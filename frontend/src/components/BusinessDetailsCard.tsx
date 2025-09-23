@@ -1,49 +1,18 @@
 import React from 'react'
 import { POI } from '../types'
+import { getCategoryIcon, ContactIcons } from '../utils/icons'
 
 interface BusinessDetailsCardProps {
   poi: POI
 }
 
 export function BusinessDetailsCard({ poi }: BusinessDetailsCardProps) {
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'food':
-        return '🍽️'
-      case 'retail':
-        return '🛍️'
-      case 'entertainment':
-        return '🎬'
-      case 'healthcare':
-        return '🏥'
-      case 'education':
-        return '🎓'
-      case 'finance':
-        return '🏦'
-      case 'automotive':
-        return '⛽'
-      case 'accommodation':
-        return '🏨'
-      case 'recreation':
-        return '⚽'
-      case 'government':
-        return '🏛️'
-      case 'religion':
-        return '⛪'
-      case 'services':
-        return '🔧'
-      case 'attractions':
-        return '🗽'
-      default:
-        return '📍'
-    }
-  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
       {/* Header */}
       <div className="flex items-center space-x-3 mb-4">
-        <span className="text-2xl">{getCategoryIcon(poi.category)}</span>
+        <div className="text-gray-600">{getCategoryIcon(poi.category, { size: 28 })}</div>
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             {poi.name || 'Unnamed Location'}
@@ -59,7 +28,7 @@ export function BusinessDetailsCard({ poi }: BusinessDetailsCardProps) {
       {poi.address && (
         <div className="mb-4">
           <div className="flex items-start space-x-2">
-            <span className="text-gray-400 mt-0.5">📍</span>
+            <div className="text-gray-400 mt-0.5">{ContactIcons.location({ size: 16 })}</div>
             <p className="text-gray-700">{poi.address}</p>
           </div>
         </div>
@@ -69,7 +38,7 @@ export function BusinessDetailsCard({ poi }: BusinessDetailsCardProps) {
       <div className="space-y-3">
         {poi.phone && (
           <div className="flex items-center space-x-3">
-            <span className="text-gray-400">📞</span>
+            <div className="text-gray-400">{ContactIcons.phone({ size: 16 })}</div>
             <a
               href={`tel:${poi.phone}`}
               className="text-gray-700 hover:text-primary-600 transition-colors"
@@ -81,7 +50,7 @@ export function BusinessDetailsCard({ poi }: BusinessDetailsCardProps) {
 
         {poi.website && (
           <div className="flex items-center space-x-3">
-            <span className="text-gray-400">🌐</span>
+            <div className="text-gray-400">{ContactIcons.website({ size: 16 })}</div>
             <a
               href={poi.website}
               target="_blank"
@@ -95,7 +64,7 @@ export function BusinessDetailsCard({ poi }: BusinessDetailsCardProps) {
 
         {poi.opening_hours && (
           <div className="flex items-start space-x-3">
-            <span className="text-gray-400 mt-0.5">🕐</span>
+            <div className="text-gray-400 mt-0.5">{ContactIcons.hours({ size: 16 })}</div>
             <p className="text-gray-700">{poi.opening_hours}</p>
           </div>
         )}
@@ -109,7 +78,7 @@ export function BusinessDetailsCard({ poi }: BusinessDetailsCardProps) {
           rel="noopener noreferrer"
           className="inline-flex items-center space-x-2 text-sm text-gray-600 hover:text-primary-600 transition-colors"
         >
-          <span>🗺️</span>
+          <div className="text-gray-600">{ContactIcons.map({ size: 16 })}</div>
           <span>View on OpenStreetMap</span>
         </a>
       </div>

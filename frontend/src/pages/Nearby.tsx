@@ -4,6 +4,8 @@ import { POI } from '../types'
 import { placesApi, checkinsApi } from '../services/api'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { POICard } from '../components/POICard'
+import { UIIcons } from '../utils/icons'
+import { IconSearch } from '@tabler/icons-react'
 
 export function Nearby() {
   const navigate = useNavigate()
@@ -210,10 +212,10 @@ export function Nearby() {
           </div>
         ) : error ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-4">😞</div>
+            <div className="text-gray-600 mb-4">{UIIcons.error({ size: 48 })}</div>
             <p className="text-gray-600 mb-4">{error}</p>
             <button
-              onClick={fetchNearbyPlaces}
+              onClick={() => fetchNearbyPlaces()}
               className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
             >
               Try Again
@@ -221,7 +223,7 @@ export function Nearby() {
           </div>
         ) : pois.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-4">🔍</div>
+            <div className="text-gray-600 mb-4"><IconSearch size={48} /></div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No places found</h3>
             <p className="text-gray-600">
               Try changing the category filter or moving to a different location.

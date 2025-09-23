@@ -1,5 +1,6 @@
 import React from 'react'
 import { POI } from '../types'
+import { getCategoryIcon } from '../utils/icons'
 
 interface POICardProps {
   poi: POI
@@ -17,45 +18,13 @@ export function POICard({ poi, onClick, showCheckInButton, onCheckIn, isChecking
     return `${(distanceInMeters / 1000).toFixed(1)}km`
   }
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'food':
-        return '🍽️'
-      case 'retail':
-        return '🛍️'
-      case 'entertainment':
-        return '🎬'
-      case 'healthcare':
-        return '🏥'
-      case 'education':
-        return '🎓'
-      case 'finance':
-        return '🏦'
-      case 'automotive':
-        return '⛽'
-      case 'accommodation':
-        return '🏨'
-      case 'recreation':
-        return '⚽'
-      case 'government':
-        return '🏛️'
-      case 'religion':
-        return '⛪'
-      case 'services':
-        return '🔧'
-      case 'attractions':
-        return '🗽'
-      default:
-        return '📍'
-    }
-  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
       <div className="flex items-stretch justify-between">
         <div className="flex-1 cursor-pointer" onClick={onClick}>
           <div className="flex items-center space-x-2 mb-2">
-            <span className="text-lg">{getCategoryIcon(poi.category)}</span>
+            <div className="text-gray-600">{getCategoryIcon(poi.category, { size: 20 })}</div>
             <div>
               <h3 className="font-medium text-gray-900 line-clamp-1">
                 {poi.name || 'Unnamed Location'}

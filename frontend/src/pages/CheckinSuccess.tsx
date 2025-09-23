@@ -4,6 +4,7 @@ import { CheckIn } from '../types'
 import { checkinsApi } from '../services/api'
 import { BusinessDetailsCard } from '../components/BusinessDetailsCard'
 import { format } from 'date-fns'
+import { UIIcons } from '../utils/icons'
 
 export function CheckinSuccess() {
   const { checkinId } = useParams<{ checkinId: string }>()
@@ -49,7 +50,7 @@ export function CheckinSuccess() {
   if (error || !checkin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-96 p-6">
-        <div className="text-6xl mb-4">😞</div>
+        <div className="text-gray-600 mb-4">{UIIcons.error({ size: 64 })}</div>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">Check-in Not Found</h2>
         <p className="text-gray-600 text-center mb-4">{error || 'This check-in could not be found.'}</p>
         <Link
@@ -81,7 +82,7 @@ export function CheckinSuccess() {
       <div className="p-4 space-y-6">
         {/* Success Celebration */}
         <div className="text-center py-6">
-          <div className="text-6xl mb-3">🎉</div>
+          <div className="text-primary-600 mb-3">{UIIcons.success({ size: 64 })}</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Check-in Successful!</h2>
           <p className="text-gray-600">
             Checked in on {format(new Date(checkin.created_at), 'MMM d, yyyy')} at{' '}
@@ -117,7 +118,7 @@ export function CheckinSuccess() {
         {/* Future Enhancement Placeholder */}
         <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-center space-x-2 mb-2">
-            <span className="text-blue-600">💡</span>
+            <div className="text-blue-600">{UIIcons.idea({ size: 20 })}</div>
             <h3 className="font-medium text-blue-900">Coming Soon</h3>
           </div>
           <p className="text-sm text-blue-700">
