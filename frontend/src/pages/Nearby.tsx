@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { POI } from '../types'
 import { placesApi, checkinsApi } from '../services/api'
@@ -129,7 +129,7 @@ export function Nearby() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Distance: {radius < 1000 ? `${radius}m` : `${radius/1000}km`}
+              Distance: {radius < 1000 ? `${radius}m` : `${radius / 1000}km`}
             </label>
             <input
               type="range"
@@ -181,6 +181,7 @@ export function Nearby() {
                 onClick={() => handlePOIClick(poi)}
                 showCheckInButton
                 onCheckIn={() => handleCheckIn(poi)}
+                isCheckingIn={checkinLoading === poi.id}
               />
             ))}
           </div>

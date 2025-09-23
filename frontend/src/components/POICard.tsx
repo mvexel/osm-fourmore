@@ -1,4 +1,3 @@
-import React from 'react'
 import { POI } from '../types'
 
 interface POICardProps {
@@ -6,9 +5,10 @@ interface POICardProps {
   onClick: () => void
   showCheckInButton?: boolean
   onCheckIn?: () => void
+  isCheckingIn?: boolean
 }
 
-export function POICard({ poi, onClick, showCheckInButton, onCheckIn }: POICardProps) {
+export function POICard({ poi, onClick, showCheckInButton, onCheckIn, isCheckingIn }: POICardProps) {
   const formatDistance = (distanceInMeters: number) => {
     if (distanceInMeters < 1000) {
       return `${Math.round(distanceInMeters)}m`
@@ -101,9 +101,10 @@ export function POICard({ poi, onClick, showCheckInButton, onCheckIn }: POICardP
               e.stopPropagation()
               onCheckIn()
             }}
-            className="ml-3 px-3 py-1 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700 transition-colors"
+            disabled={isCheckingIn}
+            className="ml-3 px-3 py-1 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700 disabled:opacity-50 transition-colors"
           >
-            Check In
+            {isCheckingIn ? 'Checking...' : 'Check In'}
           </button>
         )}
       </div>
