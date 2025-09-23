@@ -1,0 +1,198 @@
+osm_key,osm_value,naics_code,naics_name
+shop,alcohol,445310,Beer Wine and Liquor Stores
+shop,bakery,445291,Baked Goods Stores
+shop,beverages,445299,All Other Specialty Food Stores
+shop,butcher,445210,Meat Markets
+shop,cheese,445299,All Other Specialty Food Stores
+shop,chocolate,445292,Confectionery and Nut Stores
+shop,coffee,445299,All Other Specialty Food Stores
+shop,confectionery,445292,Confectionery and Nut Stores
+shop,convenience,445120,Convenience Stores
+shop,deli,445299,All Other Specialty Food Stores
+shop,greengrocer,445230,Fruit and Vegetable Markets
+shop,health_food,446191,Food (Health) Supplement Stores
+shop,seafood,445220,Fish and Seafood Markets
+shop,supermarket,445110,Supermarkets and Other Grocery (except Convenience) Stores
+shop,wine,445310,Beer Wine and Liquor Stores
+shop,department_store,452111,Department Stores (except Discount Department Stores)
+shop,general,452990,All Other General Merchandise Stores
+shop,mall,531120,Lessors of Nonresidential Buildings (except Miniwarehouses)
+shop,wholesale,423840,Industrial Supplies Merchant Wholesalers
+shop,clothes,448140,Family Clothing Stores
+shop,shoes,448210,Shoe Stores
+shop,jewelry,448310,Jewelry Stores
+shop,bag,448320,Luggage and Leather Goods Stores
+shop,boutique,448190,Other Clothing Stores
+shop,fabric,451130,Sewing Needlework and Piece Goods Stores
+shop,hairdresser,812111,Barber Shops
+shop,beauty,812112,Beauty Salons
+shop,optician,446130,Optical Goods Stores
+shop,pharmacy,446110,Pharmacies and Drug Stores
+shop,cosmetics,446120,Cosmetics Beauty Supplies and Perfume Stores
+shop,massage,812199,Other Personal Care Services
+shop,tattoo,812199,Other Personal Care Services
+shop,hardware,444130,Hardware Stores
+shop,doityourself,444110,Home Centers
+shop,paint,444120,Paint and Wallpaper Stores
+shop,garden_centre,444220,Nursery Garden Center and Farm Supply Stores
+shop,florist,453110,Florists
+shop,locksmith,561790,Other Services to Buildings and Dwellings
+shop,computer,443142,Electronics Stores
+shop,electronics,443142,Electronics Stores
+shop,mobile_phone,443142,Electronics Stores
+shop,hifi,443142,Electronics Stores
+shop,car,441110,New Car Dealers
+shop,car_repair,811111,General Automotive Repair
+shop,car_parts,441330,Automotive Parts and Accessories Stores
+shop,bicycle,451110,Sporting Goods Stores
+shop,motorcycle,441228,Motorcycle ATV and All Other Motor Vehicle Dealers
+shop,tyres,441320,Tire Dealers
+shop,sports,451110,Sporting Goods Stores
+shop,outdoor,451110,Sporting Goods Stores
+shop,fishing,451110,Sporting Goods Stores
+shop,golf,451110,Sporting Goods Stores
+shop,books,451211,Book Stores
+shop,music,451220,Prerecorded Tape Compact Disc and Record Stores
+shop,video_games,451220,Prerecorded Tape Compact Disc and Record Stores
+shop,stationery,453210,Office Supplies and Stationery Stores
+shop,furniture,442110,Furniture Stores
+shop,pet,453910,Pet and Pet Supplies Stores
+shop,toys,451120,Hobby Toy and Game Stores
+shop,gift,453220,Gift Novelty and Souvenir Stores
+shop,antiques,453310,Used Merchandise Stores
+shop,pawnbroker,522298,All Other Nondepository Credit Intermediation
+shop,dry_cleaning,812320,Dry Cleaning and Laundry Services
+shop,laundry,812310,Coin-Operated Laundries and Drycleaners
+shop,funeral_directors,812210,Funeral Homes and Funeral Services
+shop,travel_agency,561510,Travel Agencies
+shop,insurance,524210,Insurance Agencies and Brokerages
+shop,vacant,000000,Vacant Property
+amenity,restaurant,722511,Full-Service Restaurants
+amenity,fast_food,722513,Limited-Service Restaurants
+amenity,cafe,722515,Snack and Nonalcoholic Beverage Bars
+amenity,food_court,722515,Snack and Nonalcoholic Beverage Bars
+amenity,bar,722410,Drinking Places (Alcoholic Beverages)
+amenity,pub,722410,Drinking Places (Alcoholic Beverages)
+amenity,biergarten,722410,Drinking Places (Alcoholic Beverages)
+amenity,nightclub,722410,Drinking Places (Alcoholic Beverages)
+amenity,bank,522110,Commercial Banking
+amenity,atm,522110,Commercial Banking
+amenity,bureau_de_change,523130,Commodity Contracts Dealing
+amenity,cinema,512131,Motion Picture Theaters (except Drive-Ins)
+amenity,theatre,711110,Theater Companies and Dinner Theaters
+amenity,casino,713210,Casinos (except Casino Hotels)
+amenity,music_venue,711130,Musical Groups and Artists
+amenity,library,519120,Libraries and Archives
+amenity,school,611110,Elementary and Secondary Schools
+amenity,university,611310,Colleges Universities and Professional Schools
+amenity,kindergarten,624410,Child Day Care Services
+amenity,hospital,622110,General Medical and Surgical Hospitals
+amenity,clinic,621491,HMO Medical Centers
+amenity,dentist,621210,Offices of Dentists
+amenity,doctors,621111,Offices of Physicians (except Mental Health Specialists)
+amenity,pharmacy,446110,Pharmacies and Drug Stores
+amenity,veterinary,541940,Veterinary Services
+amenity,car_rental,532111,Passenger Car Rental
+amenity,car_wash,811192,Car Washes
+amenity,fuel,447110,Gasoline Stations with Convenience Stores
+amenity,charging_station,447190,Other Gasoline Stations
+amenity,post_office,491110,Postal Service
+amenity,police,922120,Police Protection
+amenity,fire_station,922160,Fire Protection
+amenity,townhall,921110,Executive Offices
+amenity,courthouse,922110,Courts
+amenity,prison,922140,Correctional Institutions
+amenity,marketplace,453998,All Other Miscellaneous Store Retailers (except Tobacco Stores)
+amenity,place_of_worship,813110,Religious Organizations
+tourism,hotel,721110,Hotels (except Casino Hotels) and Motels
+tourism,motel,721110,Hotels (except Casino Hotels) and Motels
+tourism,guest_house,721191,Bed-and-Breakfast Inns
+tourism,hostel,721199,All Other Traveler Accommodation
+tourism,camp_site,721211,RV (Recreational Vehicle) Parks and Campgrounds
+tourism,caravan_site,721211,RV (Recreational Vehicle) Parks and Campgrounds
+tourism,museum,712110,Museums
+tourism,gallery,712110,Museums
+tourism,theme_park,713110,Amusement and Theme Parks
+tourism,zoo,712130,Zoos and Botanical Gardens
+tourism,aquarium,712130,Zoos and Botanical Gardens
+tourism,attraction,713990,All Other Amusement and Recreation Industries
+tourism,viewpoint,712190,Nature Parks and Other Similar Institutions
+tourism,picnic_site,713990,All Other Amusement and Recreation Industries
+tourism,information,561591,Convention and Visitors Bureaus
+office,accountant,541211,Offices of Certified Public Accountants
+office,lawyer,541110,Offices of Lawyers
+office,architect,541310,Architectural Services
+office,consulting,541611,Administrative Management and General Management Consulting Services
+office,advertising_agency,541810,Advertising Agencies
+office,estate_agent,531210,Offices of Real Estate Agents and Brokers
+office,insurance,524210,Insurance Agencies and Brokerages
+office,it,541511,Custom Computer Programming Services
+office,government,921110,Executive Offices
+office,ngo,813319,Other Social Advocacy Organizations
+office,political_party,813940,Political Organizations
+office,tax_advisor,541213,Tax Preparation Services
+office,employment_agency,561311,Employment Placement Agencies
+office,research,541990,All Other Professional Scientific and Technical Services
+office,financial,523930,Investment Advice
+office,company,551114,Corporate Managing Offices and Headquarters
+office,newspaper,511110,Newspaper Publishers
+office,telecommunication,517911,Telecommunications Resellers
+office,educational_institution,611710,Educational Support Services
+office,association,813920,Professional Organizations
+office,engineer,541330,Engineering Services
+office,surveyor,541370,Surveying and Mapping (except Geophysical) Services
+office,notary,541199,All Other Legal Services
+craft,carpenter,238350,Finish Carpentry Contractors
+craft,plumber,238220,Plumbing Heating and Air-Conditioning Contractors
+craft,electrician,238210,Electrical Contractors and Other Wiring Installation Contractors
+craft,painter,238320,Painting and Wall Covering Contractors
+craft,roofer,238160,Roofing Contractors
+craft,brewery,312120,Breweries
+craft,winery,312130,Wineries
+craft,bakery,311811,Retail Bakeries
+craft,distillery,312140,Distilleries
+craft,pottery,327110,Pottery Ceramics and Plumbing Fixture Manufacturing
+craft,jeweller,339911,Jewelry (except Costume) Manufacturing
+craft,furniture,337122,Nonupholstered Wood Household Furniture Manufacturing
+craft,musical_instrument,339992,Musical Instrument Manufacturing
+craft,leather,316110,Leather and Hide Tanning and Finishing
+craft,blacksmith,332111,Iron and Steel Forging
+craft,shoemaker,316210,Footwear Manufacturing (including Rubber and Plastics)
+craft,tailor,315990,Apparel Accessories and Other Apparel Manufacturing
+craft,photographer,541921,Photography Studios Portrait
+craft,watchmaker,811490,Other Personal and Household Goods Repair and Maintenance
+craft,beekeeper,112910,Apiculture
+craft,glaziery,238150,Glass and Glazing Contractors
+craft,stonemason,238140,Masonry Contractors
+craft,upholsterer,811420,Reupholstery and Furniture Repair
+craft,weaver,314999,All Other Miscellaneous Textile Product Mills
+healthcare,doctor,621111,Offices of Physicians (except Mental Health Specialists)
+healthcare,dentist,621210,Offices of Dentists
+healthcare,physiotherapist,621340,Offices of Physical Occupational and Speech Therapists and Audiologists
+healthcare,optometrist,621320,Offices of Optometrists
+healthcare,psychotherapist,621330,Offices of Mental Health Practitioners (except Physicians)
+healthcare,clinic,621491,HMO Medical Centers
+healthcare,hospital,622110,General Medical and Surgical Hospitals
+healthcare,laboratory,621511,Medical Laboratories
+healthcare,pharmacy,446110,Pharmacies and Drug Stores
+healthcare,rehabilitation,623220,Residential Mental Health and Substance Abuse Facilities
+healthcare,blood_donation,621991,Blood and Organ Banks
+healthcare,birthing_center,621410,Family Planning Centers
+healthcare,dialysis,621492,Kidney Dialysis Centers
+healthcare,hospice,621610,Home Health Care Services
+healthcare,midwife,621399,Offices of All Other Miscellaneous Health Practitioners
+healthcare,occupational_therapist,621340,Offices of Physical Occupational and Speech Therapists and Audiologists
+healthcare,podiatrist,621391,Offices of Podiatrists
+healthcare,psychologist,621330,Offices of Mental Health Practitioners (except Physicians)
+healthcare,sample_collection,621511,Medical Laboratories
+healthcare,speech_therapist,621340,Offices of Physical Occupational and Speech Therapists and Audiologists
+leisure,sports_centre,713940,Fitness and Recreational Sports Centers
+leisure,fitness_centre,713940,Fitness and Recreational Sports Centers
+leisure,golf_course,713910,Golf Courses and Country Clubs
+leisure,swimming_pool,713940,Fitness and Recreational Sports Centers
+leisure,stadium,711211,Sports Teams and Clubs
+leisure,bowling_alley,713950,Bowling Centers
+leisure,ice_rink,713940,Fitness and Recreational Sports Centers
+leisure,marina,713930,Marinas
+leisure,park,712190,Nature Parks and Other Similar Institutions
+leisure,playground,713990,All Other Amusement and Recreation Industries
