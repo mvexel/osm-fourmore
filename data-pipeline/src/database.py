@@ -1,6 +1,8 @@
 """Database models and connection setup for FourMore data pipeline."""
 
 import os
+import time
+import logging
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, Text, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -10,6 +12,8 @@ from geoalchemy2 import Geometry
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
@@ -73,12 +77,37 @@ class CheckIn(Base):
 # Database connection
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://fourmore:fourmore_dev_password@localhost:5432/fourmore")
 
-engine = create_engine(DATABASE_URL)
+# Create engine with connection retry and better settings
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,  # Verify connections before use
+    pool_recycle=300,    # Recycle connections every 5 minutes
+    connect_args={
+        "connect_timeout": 10
+    }
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def create_tables():
-    """Create all tables."""
-    Base.metadata.create_all(bind=engine)
+    """Create all tables with retry logic for database connection."""
+    max_retries = 5
+    retry_delay = 2
+    
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Attempting to create tables (attempt {attempt + 1}/{max_retries})")
+            Base.metadata.create_all(bind=engine)
+            logger.info("Tables created successfully")
+            return
+        except Exception as e:
+            logger.warning(f"Failed to create tables on attempt {attempt + 1}: {e}")
+            if attempt < max_retries - 1:
+                logger.info(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+            else:
+                logger.error("Max retries reached. Failed to create tables.")
+                raise
 
 def get_db():
     """Get database session."""

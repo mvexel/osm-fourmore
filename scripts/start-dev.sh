@@ -42,11 +42,42 @@ echo "🗄️  Checking database..."
 if ! docker-compose ps postgres | grep -q "Up"; then
     echo "Starting database..."
     docker-compose up -d
-    sleep 5
+fi
+
+# Wait for database to be ready with retry logic
+echo "⏳ Waiting for database to be ready..."
+MAX_RETRIES=30
+RETRY_COUNT=0
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if docker-compose exec -T postgres pg_isready -U fourmore -d fourmore >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Database is ready${NC}"
+        break
+    fi
+    echo "Database not ready yet, waiting... (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
+    sleep 2
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+done
+
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+    echo -e "${RED}❌ Database failed to become ready after $MAX_RETRIES attempts${NC}"
+    exit 1
+fi
+
+# Additional connection test with the exact connection string used by the app
+echo "🔗 Testing database connection..."
+if ! docker-compose exec -T postgres psql -U fourmore -d fourmore -c "SELECT 1;" >/dev/null 2>&1; then
+    echo -e "${RED}❌ Database connection test failed${NC}"
+    exit 1
 fi
 
 # Check if we have any POI data
-POI_COUNT=$(docker-compose exec -T postgres psql -U fourmore -d fourmore -t -c "SELECT COUNT(*) FROM pois;" 2>/dev/null | xargs || echo "0")
+echo "📊 Checking for existing POI data..."
+POI_COUNT=$(docker-compose exec -T postgres psql -U fourmore -d fourmore -t -c "SELECT COUNT(*) FROM pois;" 2>/dev/null | tr -d '[:space:]' || echo "0")
+
+# Ensure POI_COUNT is a valid number
+if ! [[ "$POI_COUNT" =~ ^[0-9]+$ ]]; then
+    POI_COUNT="0"
+fi
 
 if [ "$POI_COUNT" -eq "0" ]; then
     echo -e "${YELLOW}⚠️  No POI data found in database${NC}"

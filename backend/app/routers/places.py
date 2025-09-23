@@ -61,7 +61,7 @@ async def get_nearby_places(
             phone=poi.phone,
             website=poi.website,
             opening_hours=poi.opening_hours,
-            tags=eval(poi.tags) if poi.tags else {},  # Convert JSON string back to dict
+            tags=poi.tags if poi.tags else {},
             created_at=poi.created_at,
             updated_at=poi.updated_at,
             distance=round(distance, 1)  # Round to 1 decimal place
@@ -98,7 +98,7 @@ async def get_place_details(
         phone=poi.phone,
         website=poi.website,
         opening_hours=poi.opening_hours,
-        tags=eval(poi.tags) if poi.tags else {},
+        tags=poi.tags if poi.tags else {},
         created_at=poi.created_at,
         updated_at=poi.updated_at
     )

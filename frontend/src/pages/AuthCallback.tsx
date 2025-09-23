@@ -10,34 +10,44 @@ export function AuthCallback() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+
     const handleCallback = async () => {
       const code = searchParams.get('code')
       const error = searchParams.get('error')
 
       if (error) {
-        setError('Authentication was cancelled or failed')
-        setTimeout(() => navigate('/login'), 3000)
+        if (!cancelled) setError('Authentication was cancelled or failed')
+        setTimeout(() => !cancelled && navigate('/login'), 3000)
         return
       }
 
       if (!code) {
-        setError('No authorization code received')
-        setTimeout(() => navigate('/login'), 3000)
+        if (!cancelled) setError('No authorization code received')
+        setTimeout(() => !cancelled && navigate('/login'), 3000)
         return
       }
 
       try {
         const authData = await authApi.handleCallback(code)
-        login(authData.access_token, authData.user)
-        navigate('/nearby')
+        if (!cancelled) {
+          login(authData.access_token, authData.user)
+          navigate('/nearby')
+        }
       } catch (err) {
         console.error('Auth callback error:', err)
-        setError('Failed to complete authentication')
-        setTimeout(() => navigate('/login'), 3000)
+        if (!cancelled) {
+          setError('Failed to complete authentication')
+          setTimeout(() => !cancelled && navigate('/login'), 3000)
+        }
       }
     }
 
     handleCallback()
+
+    return () => {
+      cancelled = true
+    }
   }, [searchParams, navigate, login])
 
   return (

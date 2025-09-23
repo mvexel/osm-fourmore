@@ -22,7 +22,13 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:5173",  # React dev servers
+        "https://d04a9f001a31.ngrok-free.app",  # Current ngrok URL
+        "https://*.ngrok-free.app",  # Allow any ngrok subdomain
+        "https://*.ngrok.app",  # Allow ngrok.app domains too
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
