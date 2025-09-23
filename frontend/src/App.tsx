@@ -7,6 +7,7 @@ import { AuthCallback } from './pages/AuthCallback'
 import { Nearby } from './pages/Nearby'
 import { PlaceDetails } from './pages/PlaceDetails'
 import { CheckIns } from './pages/CheckIns'
+import { CheckinSuccess } from './pages/CheckinSuccess'
 import { Profile } from './pages/Profile'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -57,6 +58,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <CheckIns />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/checkin-success/:checkinId"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CheckinSuccess />
             </Layout>
           </ProtectedRoute>
         }

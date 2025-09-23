@@ -48,6 +48,7 @@ export interface NearbyRequest {
   radius?: number
   category?: string
   limit?: number
+  offset?: number
 }
 
 export interface CheckInCreate {

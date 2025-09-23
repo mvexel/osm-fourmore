@@ -41,6 +41,7 @@ class POINearbyRequest(BaseModel):
     radius: float = Field(1000, ge=1, le=10000, description="Search radius in meters")
     category: Optional[str] = Field(None, description="Filter by category")
     limit: int = Field(20, ge=1, le=100, description="Maximum number of results")
+    offset: int = Field(0, ge=0, description="Number of results to skip for pagination")
 
 # User Models
 class UserBase(BaseModel):

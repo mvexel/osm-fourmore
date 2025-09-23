@@ -37,11 +37,11 @@ async def get_nearby_places(
     if request.category:
         query = query.filter(POI.category == request.category)
 
-    # Order by distance and limit results
+    # Order by distance, apply offset and limit results
     query = query.order_by(func.ST_Distance(
         func.ST_Transform(POI.location, 3857),
         func.ST_Transform(func.ST_GeomFromText(f'POINT({request.lon} {request.lat})', 4326), 3857)
-    )).limit(request.limit)
+    )).offset(request.offset).limit(request.limit)
 
     results = query.all()
 

@@ -6,9 +6,10 @@ interface POICardProps {
   onClick: () => void
   showCheckInButton?: boolean
   onCheckIn?: () => void
+  isCheckingIn?: boolean
 }
 
-export function POICard({ poi, onClick, showCheckInButton, onCheckIn }: POICardProps) {
+export function POICard({ poi, onClick, showCheckInButton, onCheckIn, isCheckingIn = false }: POICardProps) {
   const formatDistance = (distanceInMeters: number) => {
     if (distanceInMeters < 1000) {
       return `${Math.round(distanceInMeters)}m`
@@ -50,49 +51,23 @@ export function POICard({ poi, onClick, showCheckInButton, onCheckIn }: POICardP
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-      <div className="flex items-start justify-between">
+    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+      <div className="flex items-stretch justify-between">
         <div className="flex-1 cursor-pointer" onClick={onClick}>
           <div className="flex items-center space-x-2 mb-2">
             <span className="text-lg">{getCategoryIcon(poi.category)}</span>
-            <h3 className="font-medium text-gray-900 line-clamp-1">
-              {poi.name || 'Unnamed Location'}
-            </h3>
-          </div>
-
-          <div className="space-y-1 text-sm text-gray-600">
-            <p className="capitalize">{poi.category.replace('_', ' ')}</p>
-            {poi.address && (
-              <p className="line-clamp-2">{poi.address}</p>
-            )}
-            {poi.distance !== undefined && (
-              <p className="text-primary-600 font-medium">
-                {formatDistance(poi.distance)} away
+            <div>
+              <h3 className="font-medium text-gray-900 line-clamp-1">
+                {poi.name || 'Unnamed Location'}
+              </h3>
+              <p className="text-xs text-gray-600">
+                <span className="capitalize">{poi.category.replace('_', ' ')}</span>
+                {poi.distance !== undefined && (
+                  <span>, {formatDistance(poi.distance)} away</span>
+                )}
               </p>
-            )}
-          </div>
-
-          {(poi.phone || poi.website || poi.opening_hours) && (
-            <div className="mt-2 space-y-1">
-              {poi.phone && (
-                <p className="text-xs text-gray-500">📞 {poi.phone}</p>
-              )}
-              {poi.opening_hours && (
-                <p className="text-xs text-gray-500">🕐 {poi.opening_hours}</p>
-              )}
-              {poi.website && (
-                <a
-                  href={poi.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-primary-600 hover:underline"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  🌐 Visit Website
-                </a>
-              )}
             </div>
-          )}
+          </div>
         </div>
 
         {showCheckInButton && onCheckIn && (
@@ -101,14 +76,15 @@ export function POICard({ poi, onClick, showCheckInButton, onCheckIn }: POICardP
               e.stopPropagation()
               onCheckIn()
             }}
-            className="ml-3 px-3 py-1 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700 transition-colors"
+            disabled={isCheckingIn}
+            className="ml-3 px-3 py-1 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-stretch"
           >
-            Check In
+            {isCheckingIn ? 'Checking In...' : 'Check In'}
           </button>
         )}
       </div>
 
-      {/* View on Map link */}
+      {/* View on Map link
       <div className="mt-3 pt-3 border-t border-gray-100">
         <a
           href={`https://www.openstreetmap.org/?mlat=${poi.lat}&mlon=${poi.lon}&zoom=18`}
@@ -119,7 +95,7 @@ export function POICard({ poi, onClick, showCheckInButton, onCheckIn }: POICardP
         >
           📍 View on OpenStreetMap
         </a>
-      </div>
+      </div> */}
     </div>
   )
 }
