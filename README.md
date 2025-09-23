@@ -2,7 +2,7 @@
 
 I have been a Swarm (née Foursquare) user since 2011. I love to go back in time and see places I have visited.
 
-I also love OpenStreetMap, it's the best map of the world, but more than anything else, it's an amzing community of mapmakers.
+I also love OpenStreetMap, it's the best map of the world, but more than anything else, it's an amazing community of mapmakers.
 
 So this project is an effort to bring the two together. A social check in app that uses OSM as its source for points of interest to look up, and encourages users to add information to OSM while they are out and about.
 
@@ -14,30 +14,40 @@ From this MVP we will build this out to native mobile apps for Android and iOS u
 
 The FourMore MVP has been fully implemented with:
 
-- **Data Pipeline**: OSM data processing with pyosmium, PostgreSQL + PostGIS, weekly rebuilds
+- **Integrated Pipeline**: OSM data processing built into backend container
 - **Python API**: FastAPI backend with OSM OAuth2, spatial queries, check-ins, user management
 - **React Frontend**: Mobile-first web app with nearby places, check-in flow, and life log
-- **List-based UI**: Clean interface focused on core functionality (mapping deferred to v2)
+- **Docker Deployment**: Production-ready containers with automated data loading
 
-## Quick Start
+## 🚀 Quick Start
 
+### Local Development
 ```bash
-# 1. One-command setup
-./scripts/dev-setup.sh
+# Deploy locally with Docker
+./deploy-local.sh
 
-# 2. Configure OSM OAuth credentials in .env file
-# Get them from: https://www.openstreetmap.org/oauth2/applications
-
-# 3. Load test data
-./scripts/load-test-data.sh
-
-# 4. Start development servers
-./scripts/start-dev.sh
+# Access the app at http://localhost:3000
+# Backend API at http://localhost:8000
 ```
 
-Visit http://localhost:3000 to use the app!
+### VPS Production Deployment
+```bash
+# Copy project to your VPS
+scp -r . user@your-vps:/tmp/fourmore
 
-## Full Documentation
+# Run on VPS
+ssh user@your-vps
+cd /tmp/fourmore
+sudo ./deploy-vps.sh
+```
+
+Both scripts automatically handle:
+- ✅ **Database Setup**: PostgreSQL + PostGIS
+- ✅ **Utah Data Loading**: Optional OSM data population
+- ✅ **Environment Configuration**: Automated setup
+- ✅ **Service Management**: Start/stop/status commands
+
+## 📖 Documentation
 
 - [**SETUP.md**](SETUP.md) - Complete setup and development guide
 - [**Architecture Overview**](#architecture) - How everything works together
@@ -45,12 +55,13 @@ Visit http://localhost:3000 to use the app!
 ## Architecture
 
 ```
-┌─── Data Pipeline ────┐    ┌─── Backend API ───┐    ┌─── Frontend ────┐
-│ • OSM data ingestion │    │ • FastAPI         │    │ • React + TS    │
-│ • pyosmium processor │────│ • OSM OAuth2      │────│ • Mobile-first  │
-│ • PostgreSQL+PostGIS │    │ • Spatial queries │    │ • List-based UI │
-│ • Weekly rebuilds    │    │ • Check-ins       │    │ • Life log      │
-└──────────────────────┘    └───────────────────┘    └─────────────────┘
+┌─── Integrated Backend Container ────┐    ┌─── Frontend ────┐
+│ • FastAPI + OSM Pipeline            │    │ • React + TS    │
+│ • OSM data processing (pyosmium)    │────│ • Mobile-first  │
+│ • PostgreSQL + PostGIS              │    │ • List-based UI │
+│ • OSM OAuth2 + Spatial queries      │    │ • Life log      │
+│ • Automated Utah data loading       │    │ • Docker Nginx  │
+└──────────────────────────────────────┘    └─────────────────┘
 ```
 
 ### Core Features
@@ -59,9 +70,14 @@ Visit http://localhost:3000 to use the app!
 - 📖 **Life Log**: Personal timeline of all your check-ins
 - 🔐 **OSM Login**: Secure OAuth2 authentication with OpenStreetMap
 - 🗺️ **View on Map**: Quick links to see places on OpenStreetMap
+- 🏔️ **Utah Data**: Pre-loaded Utah POI database for testing
 
 ### Tech Stack
-- **Data**: PostgreSQL + PostGIS, pyosmium, Python
-- **Backend**: FastAPI, SQLAlchemy, JWT auth
-- **Frontend**: React, TypeScript, Tailwind CSS
-- **Infrastructure**: Docker Compose, automated data pipeline
+- **Backend**: FastAPI, SQLAlchemy, pyosmium, JWT auth
+- **Frontend**: React, TypeScript, Tailwind CSS, Nginx
+- **Database**: PostgreSQL + PostGIS
+- **Deployment**: Docker Compose, automated SSL, data loading
+
+### Deployment Options
+- **Local**: `./deploy-local.sh` - Development with hot reload
+- **Production**: `./deploy-vps.sh` - VPS with SSL, security, backups

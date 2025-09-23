@@ -1,4 +1,4 @@
-"""Database models and connection setup for FourMore data pipeline."""
+"""Database models and connection setup for FourMore backend."""
 
 import os
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, Text, Boolean
@@ -7,9 +7,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
 from geoalchemy2 import Geometry
-from dotenv import load_dotenv
-
-load_dotenv()
 
 Base = declarative_base()
 
@@ -41,6 +38,21 @@ class POI(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_active = Column(Boolean, default=True, index=True)
 
+    # Add lat/lon properties for easier access
+    @property
+    def lat(self):
+        """Get latitude from location."""
+        if self.location:
+            return self.location.y
+        return None
+
+    @property
+    def lon(self):
+        """Get longitude from location."""
+        if self.location:
+            return self.location.x
+        return None
+
 class User(Base):
     """User model for check-ins."""
     __tablename__ = 'users'
@@ -70,20 +82,7 @@ class CheckIn(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
-# Database connection
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://fourmore:fourmore_dev_password@localhost:5432/fourmore")
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 def create_tables():
     """Create all tables."""
+    from .db import engine
     Base.metadata.create_all(bind=engine)
-
-def get_db():
-    """Get database session."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()

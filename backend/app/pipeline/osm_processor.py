@@ -7,8 +7,8 @@ import osmium
 import osmium.geom
 import osmium.filter
 from sqlalchemy.orm import Session
-from database import POI, SessionLocal
-from profiler import profile_function, memory_profile
+from ..database import POI
+from ..db import SessionLocal
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -108,56 +108,52 @@ POI_CATEGORIES = {
     }
 }
 
-# POI categories based on OSM tags
-
-@profile_function
-@memory_profile
 def process_osm_file(file_path: str) -> List[POIData]:
     """Process an OSM file and extract POIs using optimized FileProcessor approach."""
     logger.info(f"Processing OSM file: {file_path}")
 
     pois = []
-    
+
     # Create POI category keys for filtering
     poi_keys = list(POI_CATEGORIES.keys())
-    
+
     # Use FileProcessor with optimized filters for much better performance
     try:
         # Create file processor with pre-filtering to skip irrelevant objects
         fp = osmium.FileProcessor(file_path) \
             .with_filter(osmium.filter.EmptyTagFilter()) \
             .with_filter(osmium.filter.KeyFilter(*poi_keys))
-        
+
         # Add location storage for ways that need geometry
         # Use flex_mem which automatically chooses optimal storage based on data size
         fp = fp.with_locations('flex_mem')
-        
+
         # Initialize WKT factory for efficient geometry processing
         wkt_factory = osmium.geom.WKTFactory()
         processed_count = 0
-        
+
         logger.info("Processing POIs with optimized filters...")
-        
+
         for obj in fp:
             poi_data = None
-            
+
             if obj.is_node():
                 poi_data = _extract_poi_from_node(obj, wkt_factory)
             elif obj.is_way():
                 poi_data = _extract_poi_from_way(obj, wkt_factory)
             # Skip relations for now as they're more complex
-            
+
             if poi_data:
                 pois.append(poi_data)
                 processed_count += 1
-                
+
                 if processed_count % 50000 == 0:
                     logger.info(f"Processed {processed_count} POIs...")
-    
+
     except Exception as e:
         logger.error(f"Error processing OSM file: {e}")
         raise
-    
+
     logger.info(f"Extracted {len(pois)} POIs from {file_path}")
     return pois
 
@@ -165,24 +161,19 @@ def process_osm_file(file_path: str) -> List[POIData]:
 def _extract_poi_from_node(node, wkt_factory) -> Optional[POIData]:
     """Extract POI information from a node."""
     tags = dict(node.tags)
-    
+
     category, subcategory = _categorize_poi(tags)
     if not category:
         return None
     if 'name' not in tags:
-        return None    
-    # Get name (prefer name, fall back to brand, operator, etc.)
-    # name = (tags.get('name') or
-    #         tags.get('brand') or
-    #         tags.get('operator') or
-    #         tags.get('amenity', '').replace('_', ' ').title())
-    
+        return None
+
     address_parts = []
     for addr_key in ['addr:housenumber', 'addr:street', 'addr:city', 'addr:postcode']:
         if addr_key in tags:
             address_parts.append(tags[addr_key])
     address = ', '.join(address_parts) if address_parts else None
-    
+
     return POIData(
         osm_id=str(node.id),
         osm_type='node',
@@ -202,25 +193,18 @@ def _extract_poi_from_node(node, wkt_factory) -> Optional[POIData]:
 def _extract_poi_from_way(way, wkt_factory) -> Optional[POIData]:
     """Extract POI information from a way."""
     tags = dict(way.tags)
-    
+
     category, subcategory = _categorize_poi(tags)
     if not category:
         return None
     if 'name' not in tags:
         return None
-    
-    # Get name (prefer name, fall back to brand, operator, etc.)
-    # name = (tags.get('name') or
-    #         tags.get('brand') or
-    #         tags.get('operator') or
-    #         tags.get('amenity', '').replace('_', ' ').title())
-    
-    # Filter out features with no name
+
     try:
         # Check if all nodes have valid locations
         if not all(n.location.valid() for n in way.nodes):
             return None
-        
+
         if way.is_closed() and any(k in tags for k in ['building', 'landuse', 'leisure', 'amenity']):
             # Treat closed ways with area tags as polygons
             try:
@@ -244,14 +228,14 @@ def _extract_poi_from_way(way, wkt_factory) -> Optional[POIData]:
     except Exception as e:
         logger.debug(f"Could not extract coordinates for way {way.id}: {e}")
         return None
-    
+
     # Extract additional fields
     address_parts = []
     for addr_key in ['addr:housenumber', 'addr:street', 'addr:city', 'addr:postcode']:
         if addr_key in tags:
             address_parts.append(tags[addr_key])
     address = ', '.join(address_parts) if address_parts else None
-    
+
     return POIData(
         osm_id=str(way.id),
         osm_type='way',
@@ -287,7 +271,7 @@ def _extract_centroid_from_wkt(wkt_geom: str, geom_type: str) -> Tuple[float, fl
             raise ValueError("No coordinates found in linestring")
     else:
         raise ValueError(f"Unsupported geometry type: {geom_type}")
-    
+
     return lat, lon
 
 
@@ -303,8 +287,6 @@ def _categorize_poi(tags: Dict[str, str]) -> Tuple[Optional[str], Optional[str]]
                 return tag_key, tag_value
     return None, None
 
-@profile_function
-@memory_profile
 def save_pois_to_db(pois: List[POIData]) -> None:
     """Save POIs to the database with optimized bulk inserts."""
     logger.info(f"Saving {len(pois)} POIs to database...")
