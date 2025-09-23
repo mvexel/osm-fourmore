@@ -11,11 +11,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fourmore -d fourmore"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   redis:
     image: redis:7-alpine
@@ -23,47 +18,7 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://fourmore:fourmore_dev_password@postgres:5432/fourmore}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
-      - JWT_SECRET=${JWT_SECRET:-local_dev_jwt_secret}
-      - ENVIRONMENT=${ENVIRONMENT:-development}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://localhost:3000,http://localhost:3080,http://localhost:5173}
-      - POPULATE_UTAH_DATA=${POPULATE_UTAH_DATA:-false}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    volumes:
-      - ./data:/app/data
-      - ./backend/app:/app/app  # Hot reload for development
-    networks:
-      - fourmore-network
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    networks:
-      - fourmore-network
 
 volumes:
   postgres_data:
   redis_data:
-
-networks:
-  fourmore-network:
-    driver: bridge

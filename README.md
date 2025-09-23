@@ -19,33 +19,71 @@ The FourMore MVP has been fully implemented with:
 - **React Frontend**: Mobile-first web app with nearby places, check-in flow, and life log
 - **Docker Deployment**: Production-ready containers with automated data loading
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Simplified MVP)
 
-### Local Development
+### Prerequisites
+- Docker (for database)
+- Python 3.8+ (for backend)
+- Node.js 16+ (for frontend)
+- ngrok (for public access)
+
+### Run Locally
+
+1. **Start everything:**
+   ```bash
+   ./start.sh
+   ```
+
+2. **Or start services manually:**
+   ```bash
+   # Start database
+   docker compose up -d
+
+   # Start backend
+   cd backend
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   export DATABASE_URL="postgresql://fourmore:fourmore_dev_password@localhost:5432/fourmore"
+   python -m uvicorn app.main:app --reload
+
+   # Start frontend (in another terminal)
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+### Expose with ngrok
+
 ```bash
-# Deploy locally with Docker
-./deploy-local.sh
+# Backend
+ngrok http 8000
 
-# Access the app at http://localhost:3000
-# Backend API at http://localhost:8000
+# Frontend
+ngrok http 5173
 ```
 
-### VPS Production Deployment
+### URLs
+- **Frontend:** http://localhost:5173
+- **Backend:** http://localhost:8000
+- **Database:** localhost:5432
+
+### Environment Variables
+
+The app expects these environment variables (defaults provided for local dev):
+
+- `DATABASE_URL` - PostgreSQL connection string
+- `REDIS_URL` - Redis connection string (optional)
+- `JWT_SECRET` - Secret for JWT tokens
+- `ENVIRONMENT` - Set to "development" for local
+
+### Stopping
+
+Press `Ctrl+C` in the terminal running `./start.sh`, or:
+
 ```bash
-# Copy project to your VPS
-scp -r . user@your-vps:/tmp/fourmore
-
-# Run on VPS
-ssh user@your-vps
-cd /tmp/fourmore
-sudo ./deploy-vps.sh
+docker compose down
 ```
-
-Both scripts automatically handle:
-- ✅ **Database Setup**: PostgreSQL + PostGIS
-- ✅ **Utah Data Loading**: Optional OSM data population
-- ✅ **Environment Configuration**: Automated setup
-- ✅ **Service Management**: Start/stop/status commands
 
 ## 📖 Documentation
 
@@ -78,6 +116,5 @@ Both scripts automatically handle:
 - **Database**: PostgreSQL + PostGIS
 - **Deployment**: Docker Compose, automated SSL, data loading
 
-### Deployment Options
-- **Local**: `./deploy-local.sh` - Development with hot reload
-- **Production**: `./deploy-vps.sh` - VPS with SSL, security, backups
+### Simple Setup
+Just databases + local development + ngrok for public access. No complex deployment needed for MVP.
