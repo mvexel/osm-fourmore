@@ -1,0 +1,13 @@
+localhost {
+    root * /usr/share/caddy
+    file_server
+
+    # Handle client-side routing
+    try_files {path} {path}/ /index.html
+
+    # API proxy to backend
+    reverse_proxy /api/* backend:8000
+
+    # Enable gzip compression
+    encode gzip
+}

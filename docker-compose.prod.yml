@@ -57,17 +57,22 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-fourmore.example.com}
     depends_on:
       - backend
     networks:
       - fourmore-network
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile.prod", "--adapter", "caddyfile"]
 
 volumes:
   postgres_data:
   redis_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   fourmore-network:

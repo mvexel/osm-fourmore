@@ -71,24 +71,7 @@ EOF
     echo -e "${GREEN}✅ Environment file created: $ENV_FILE${NC}"
 }
 
-# Function to prompt for Utah data
-prompt_utah_data() {
-    echo ""
-    echo -e "${YELLOW}🗺️  Utah Data Configuration${NC}"
-    echo "Do you want to populate the database with Utah POI data?"
-    echo "This will download ~150MB and may take several minutes to process."
-    echo ""
-    read -p "Load Utah data? (y/N): " load_utah
 
-    if [[ $load_utah =~ ^[Yy]$ ]]; then
-        # Update environment file
-        sed -i.bak 's/POPULATE_UTAH_DATA=false/POPULATE_UTAH_DATA=true/' $ENV_FILE
-        rm -f $ENV_FILE.bak
-        echo -e "${GREEN}✅ Utah data loading enabled${NC}"
-    else
-        echo -e "${BLUE}ℹ️  Utah data loading disabled${NC}"
-    fi
-}
 
 # Function to build and start services
 deploy_services() {
@@ -192,7 +175,6 @@ main() {
 
     check_dependencies
     create_env_file
-    prompt_utah_data
     deploy_services
     wait_and_show_status
     check_frontend
