@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import routers
-from .routers import auth, places, checkins
+from .routers import auth, places, checkins, osm_edits
 
 app = FastAPI(
     title="FourMore API",
@@ -38,6 +38,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(places.router)
 app.include_router(checkins.router)
+app.include_router(osm_edits.router)
 
 @app.get("/")
 async def root():

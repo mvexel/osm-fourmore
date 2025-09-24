@@ -33,8 +33,8 @@ async def auth_callback(callback_data: AuthCallback, db: Session = Depends(get_d
         # Get user info from OSM
         osm_user_data = await OSMAuth.get_user_info(access_token)
 
-        # Create or update user in our database
-        user = create_or_update_user(db, osm_user_data)
+        # Create or update user in our database (store OSM token for API writes)
+        user = create_or_update_user(db, osm_user_data, access_token)
 
         # Create JWT token for our app
         access_token_expires = timedelta(minutes=JWT_ACCESS_TOKEN_EXPIRE_MINUTES)

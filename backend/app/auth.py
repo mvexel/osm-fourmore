@@ -36,7 +36,7 @@ class OSMAuth:
             "client_id": OSM_CLIENT_ID,
             "redirect_uri": OSM_REDIRECT_URI,
             "response_type": "code",
-            "scope": "read_prefs"
+            "scope": "read_prefs write_api"
         }
 
         query_string = "&".join([f"{k}={v}" for k, v in params.items()])
@@ -127,7 +127,7 @@ async def get_current_user(
 
     return user
 
-def create_or_update_user(db: Session, osm_user_data: dict) -> User:
+def create_or_update_user(db: Session, osm_user_data: dict, osm_access_token: str = None) -> User:
     """Create or update user from OSM data."""
     user_element = osm_user_data["user"]
     osm_user_id = str(user_element["id"])
@@ -140,6 +140,8 @@ def create_or_update_user(db: Session, osm_user_data: dict) -> User:
         # Update existing user
         user.username = username
         user.display_name = user_element.get("display_name")
+        if osm_access_token:
+            user.osm_access_token = osm_access_token
         user.updated_at = datetime.utcnow()
     else:
         # Create new user
@@ -147,7 +149,8 @@ def create_or_update_user(db: Session, osm_user_data: dict) -> User:
             osm_user_id=osm_user_id,
             username=username,
             display_name=user_element.get("display_name"),
-            email=None  # OSM doesn't provide email in basic scope
+            email=None,  # OSM doesn't provide email in basic scope
+            osm_access_token=osm_access_token
         )
         db.add(user)
 

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { CheckIn } from '../types'
-import { checkinsApi } from '../services/api'
+import { checkinsApi, osmApi } from '../services/api'
 import { BusinessDetailsCard } from '../components/BusinessDetailsCard'
 import { format } from 'date-fns'
 import { UIIcons } from '../utils/icons'
+import { IconCheck } from '@tabler/icons-react'
 
 export function CheckinSuccess() {
   const { checkinId } = useParams<{ checkinId: string }>()
@@ -12,6 +13,9 @@ export function CheckinSuccess() {
   const [checkin, setCheckin] = useState<CheckIn | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
+  const [confirmMessage, setConfirmMessage] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchCheckinDetails = async () => {
@@ -34,6 +38,22 @@ export function CheckinSuccess() {
 
     fetchCheckinDetails()
   }, [checkinId])
+
+  const handleConfirmInfo = async () => {
+    if (!checkin) return
+
+    setConfirming(true)
+    try {
+      const result = await osmApi.confirmInfo(checkin.poi.id)
+      setConfirmed(true)
+      setConfirmMessage(result.message)
+    } catch (err) {
+      console.error('Error confirming info:', err)
+      alert('Failed to confirm info. Please try again.')
+    } finally {
+      setConfirming(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -115,16 +135,31 @@ export function CheckinSuccess() {
           </Link>
         </div>
 
-        {/* Future Enhancement Placeholder */}
-        <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center space-x-2 mb-2">
-            <div className="text-blue-600">{UIIcons.idea({ size: 20 })}</div>
-            <h3 className="font-medium text-blue-900">Coming Soon</h3>
+        {/* OSM Contribution Section */}
+        <div className="mt-8 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center space-x-2 mb-3">
+            <div className="text-green-600">🗺️</div>
+            <h3 className="font-medium text-green-900">Help Improve OpenStreetMap</h3>
           </div>
-          <p className="text-sm text-blue-700">
-            We're working on features to help you track your check-in streaks,
-            contribute business information, and earn rewards for discovering new places!
+          <p className="text-sm text-green-700 mb-4">
+            You're here! Confirm the info is correct to help keep the map up to date.
           </p>
+
+          {confirmed ? (
+            <div className="flex items-center gap-2 p-3 bg-green-100 rounded-md">
+              <IconCheck size={20} className="text-green-600" />
+              <span className="text-sm text-green-800">{confirmMessage}</span>
+            </div>
+          ) : (
+            <button
+              onClick={handleConfirmInfo}
+              disabled={confirming}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <IconCheck size={20} />
+              {confirming ? 'Confirming...' : 'Confirm Info is Correct'}
+            </button>
+          )}
         </div>
       </div>
     </div>

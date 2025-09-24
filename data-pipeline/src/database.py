@@ -24,6 +24,7 @@ class POI(Base):
     id = Column(Integer, primary_key=True, index=True)
     osm_id = Column(String, unique=True, index=True, nullable=False)
     osm_type = Column(String, nullable=False)  # 'node', 'way', 'relation'
+    osm_version = Column(Integer)
     name = Column(String, index=True)
     category = Column(String, index=True, nullable=False)
     subcategory = Column(String, index=True)
@@ -54,6 +55,7 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     display_name = Column(String)
     email = Column(String, unique=True, index=True)
+    osm_access_token = Column(String)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

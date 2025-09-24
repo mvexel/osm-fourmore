@@ -99,3 +99,19 @@ export const checkinsApi = {
     return response.data
   },
 }
+
+// OSM Edits API
+export const osmApi = {
+  confirmInfo: async (poiId: number): Promise<{
+    success: boolean
+    osm_id: string
+    osm_type: string
+    changeset_id: string
+    new_version: number
+    check_date: string
+    message: string
+  }> => {
+    const response = await api.post('/osm/confirm-info', { poi_id: poiId })
+    return response.data
+  },
+}
