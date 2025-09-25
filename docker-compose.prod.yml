@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - fourmore-network
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - fourmore-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - OSM_CLIENT_ID=${OSM_CLIENT_ID}
+      - OSM_CLIENT_SECRET=${OSM_CLIENT_SECRET}
+      - OSM_REDIRECT_URI=${OSM_REDIRECT_URI}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES}
+      - DEBUG=${DEBUG}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - REDIS_URL=${REDIS_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+    networks:
+      - fourmore-network
+
+  data-pipeline:
+    build:
+      context: .
+      dockerfile: data-pipeline/Dockerfile
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - OSM_DATA_URL=${OSM_DATA_URL}
+      - DATA_DIR=${DATA_DIR}
+    volumes:
+      - osm_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fourmore-network
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+  redis_data:
+  osm_data:
+
+networks:
+  fourmore-network:
+    driver: bridge
