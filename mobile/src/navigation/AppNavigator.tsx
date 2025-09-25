@@ -2,8 +2,9 @@ import React from 'react'
 import { NavigationContainer } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createStackNavigator } from '@react-navigation/stack'
+import { Ionicons } from '@expo/vector-icons'
 
-// Placeholder screens - will be implemented later
+// Screens
 import { NearbyScreen } from '../screens/NearbyScreen'
 import { CheckInsScreen } from '../screens/CheckInsScreen'
 import { ProfileScreen } from '../screens/ProfileScreen'
@@ -15,27 +16,51 @@ const Stack = createStackNavigator()
 
 function MainTabs() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap
+
+          if (route.name === 'Nearby') {
+            iconName = focused ? 'location' : 'location-outline'
+          } else if (route.name === 'CheckIns') {
+            iconName = focused ? 'checkmark-circle' : 'checkmark-circle-outline'
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'person' : 'person-outline'
+          } else {
+            iconName = 'help-outline'
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />
+        },
+        tabBarActiveTintColor: '#3B82F6',
+        tabBarInactiveTintColor: 'gray',
+        tabBarStyle: {
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 88,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+        },
+      })}
+    >
       <Tab.Screen
         name="Nearby"
         component={NearbyScreen}
-        options={{
-          tabBarIcon: () => null, // Will add icons later
-        }}
+        options={{ title: 'Nearby' }}
       />
       <Tab.Screen
         name="CheckIns"
         component={CheckInsScreen}
-        options={{
-          tabBarIcon: () => null,
-        }}
+        options={{ title: 'Check-ins' }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{
-          tabBarIcon: () => null,
-        }}
+        options={{ title: 'Profile' }}
       />
     </Tab.Navigator>
   )
@@ -47,10 +72,31 @@ export function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="MainTabs" component={MainTabs} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="PlaceDetails" component={PlaceDetailsScreen} />
+      <Stack.Navigator>
+        <Stack.Screen
+          name="MainTabs"
+          component={MainTabs}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{
+            title: 'Login',
+            headerStyle: {
+              backgroundColor: '#fff',
+            },
+            headerTintColor: '#111827',
+            headerTitleStyle: {
+              fontWeight: '600',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="PlaceDetails"
+          component={PlaceDetailsScreen}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   )
