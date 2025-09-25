@@ -1,0 +1,21 @@
+{
+  "name": "@fourmore/shared",
+  "version": "1.0.0",
+  "description": "Shared types, API calls, and utilities for fourmore web and mobile apps",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "date-fns": "^2.30.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "@types/node": "^20.0.0"
+  },
+  "private": true
+}

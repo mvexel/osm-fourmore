@@ -1,0 +1,12 @@
+{
+  "name": "fourmore-monorepo",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "mobile",
+    "shared"
+  ],
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}
