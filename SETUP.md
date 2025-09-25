@@ -4,12 +4,11 @@ This guide will help you set up and run the FourMore MVP locally.
 
 ## Prerequisites
 
-- Python 3.9+ with pip
-- Node.js 18+ with npm
-- Docker and Docker Compose
+- Docker and Docker Compose (recommended)
+- Node.js 18+ with npm (for frontend development)
 - Git
 
-## Quick Start
+## Quick Start (Docker Development)
 
 ### 1. Clone and Setup Environment
 
@@ -17,30 +16,23 @@ This guide will help you set up and run the FourMore MVP locally.
 # Navigate to project directory
 cd /Users/mvexel/dev/fourmore
 
-# Create Python virtual environment for data pipeline
-python -m venv data-pipeline/venv
-source data-pipeline/venv/bin/activate  # On Windows: data-pipeline\venv\Scripts\activate
-pip install -r data-pipeline/requirements.txt
-
-# Create Python virtual environment for backend
-python -m venv backend/venv
-source backend/venv/bin/activate  # On Windows: backend\venv\Scripts\activate
-pip install -r backend/requirements.txt
-
-# Install frontend dependencies
+# Install frontend dependencies (for local development)
 cd frontend
 npm install
 cd ..
 ```
 
-### 2. Start Database Services
+### 2. Start Development Services
 
 ```bash
-# Start PostgreSQL and Redis with Docker
-docker-compose up -d
+# Start all development services (database, backend with hot reload)
+docker-compose -f docker-compose.dev.yml up -d
 
-# Wait for database to be ready (about 30 seconds)
-docker-compose logs postgres
+# Or run in foreground to see logs
+docker-compose -f docker-compose.dev.yml up
+
+# Check services are running
+docker-compose -f docker-compose.dev.yml ps
 ```
 
 ### 3. Configure OSM OAuth Application
@@ -125,59 +117,46 @@ If you encounter issues with OAuth callbacks due to network restrictions or need
 ### 5. Initialize Database
 
 ```bash
-# Activate data pipeline environment
-source data-pipeline/venv/bin/activate
-
-# Initialize database tables
-cd data-pipeline/src
-python pipeline.py init-db
-cd ../..
+# Initialize database tables using Docker
+docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py init-db
 ```
 
 ### 6. Load Sample Data (Optional - for testing)
 
-**Option A: Quick test with small area:**
+**Option A: Quick test with small area (Delaware):**
 ```bash
-# Download a small state file for testing (e.g., Delaware - small file)
-mkdir -p data
-cd data
-wget https://download.geofabrik.de/north-america/us/delaware-latest.osm.pbf
-cd ..
-
-# Process the data
-source data-pipeline/venv/bin/activate
-cd data-pipeline/src
-python pipeline.py process ../../data/delaware-latest.osm.pbf
-cd ../..
+# Download and process Delaware data using Docker
+docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline bash -c "
+  cd /app/data &&
+  wget https://download.geofabrik.de/north-america/us/delaware-latest.osm.pbf &&
+  cd /app/src &&
+  python pipeline.py process /app/data/delaware-latest.osm.pbf
+"
 ```
 
 **Option B: Full US data (large download ~8GB):**
 ```bash
-# This will take significant time and space
-source data-pipeline/venv/bin/activate
-cd data-pipeline/src
-python pipeline.py full-rebuild
-cd ../..
+# This will download ~8GB and take several hours
+docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline bash -c "
+  cd /app/src && python pipeline.py full-rebuild
+"
+
+# Monitor progress in another terminal
+docker-compose -f docker-compose.dev.yml --profile tools logs -f data-pipeline
 ```
 
-### 7. Start the Services
+### 7. Start the Frontend
 
-**Terminal 1 - Backend API:**
+**The backend is already running via Docker with hot reload!**
+
 ```bash
-source backend/venv/bin/activate
-cd backend/app
-python main.py
-
-# API will be available at: http://localhost:8000
-# API docs at: http://localhost:8000/docs
-```
-
-**Terminal 2 - Frontend:**
-```bash
+# Start frontend development server
 cd frontend
 npm run dev
 
 # Frontend will be available at: http://localhost:3000
+# Backend API is available at: http://localhost:8000
+# API docs at: http://localhost:8000/docs
 ```
 
 ## Testing the Application
@@ -190,41 +169,34 @@ npm run dev
 
 ## Development Commands
 
-### Data Pipeline Commands
+### Data Pipeline Commands (Docker)
 
 ```bash
-# Activate environment
-source data-pipeline/venv/bin/activate
-cd data-pipeline/src
-
-# Download OSM data
-python pipeline.py download --data-dir ../../data
-
 # Initialize database
-python pipeline.py init-db
+docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py init-db
 
-# Process OSM file
-python pipeline.py process /path/to/file.osm.pbf
+# Process OSM file (mounted from host)
+docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py process /app/data/file.osm.pbf
 
 # Full rebuild (download + process)
-python pipeline.py full-rebuild
+docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py full-rebuild
 
 # Help
-python pipeline.py --help
+docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py --help
 ```
 
-### Backend Commands
+### Backend Commands (Docker)
 
 ```bash
-# Activate environment
-source backend/venv/bin/activate
-cd backend/app
+# Backend runs automatically with hot reload in Docker
+# View backend logs
+docker-compose -f docker-compose.dev.yml logs -f backend
 
-# Run development server
-python main.py
+# Restart backend service
+docker-compose -f docker-compose.dev.yml restart backend
 
-# Run with uvicorn directly
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+# Access backend container shell
+docker-compose -f docker-compose.dev.yml exec backend bash
 ```
 
 ### Frontend Commands
@@ -264,18 +236,16 @@ SELECT COUNT(*) FROM checkins;
 
 ```bash
 # Stop containers
-docker-compose down
+docker-compose -f docker-compose.dev.yml down
 
 # Remove volumes (WARNING: deletes all data)
-docker-compose down -v
+docker-compose -f docker-compose.dev.yml down -v
 
 # Start fresh
-docker-compose up -d
+docker-compose -f docker-compose.dev.yml up -d
 
 # Reinitialize
-source data-pipeline/venv/bin/activate
-cd data-pipeline/src
-python pipeline.py init-db
+docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py init-db
 ```
 
 ## Troubleshooting
@@ -285,13 +255,13 @@ python pipeline.py init-db
 **1. Database Connection Errors:**
 ```bash
 # Check if containers are running
-docker-compose ps
+docker-compose -f docker-compose.dev.yml ps
 
 # Check database logs
-docker-compose logs postgres
+docker-compose -f docker-compose.dev.yml logs postgres
 
 # Restart services
-docker-compose restart
+docker-compose -f docker-compose.dev.yml restart
 ```
 
 **2. OSM OAuth Errors:**
@@ -313,16 +283,16 @@ docker-compose restart
 
 ```bash
 # Backend logs
-cd backend/app && python main.py  # Logs to console
+docker-compose -f docker-compose.dev.yml logs -f backend
 
 # Frontend logs
 # Open browser dev tools (F12) → Console tab
 
 # Database logs
-docker-compose logs postgres
+docker-compose -f docker-compose.dev.yml logs postgres
 
 # Data pipeline logs
-tail -f weekly_rebuild.log  # After running pipeline
+docker-compose -f docker-compose.dev.yml --profile tools logs data-pipeline
 ```
 
 ### Performance Tips

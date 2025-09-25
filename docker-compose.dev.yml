@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.4
+    environment:
+      POSTGRES_DB: fourmore
+      POSTGRES_USER: fourmore
+      POSTGRES_PASSWORD: fourmore_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fourmore -d fourmore"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://fourmore:fourmore_dev_password@postgres:5432/fourmore
+      - DEBUG=True
+      - ENVIRONMENT=development
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET_KEY=dev_jwt_secret_key_replace_in_production
+      - JWT_ALGORITHM=HS256
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=1440
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  data-pipeline:
+    build:
+      context: .
+      dockerfile: data-pipeline/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://fourmore:fourmore_dev_password@postgres:5432/fourmore
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data-pipeline/src:/app/src:ro
+      - osm_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+  redis_data:
+  osm_data:

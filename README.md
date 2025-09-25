@@ -10,29 +10,32 @@ The MVP is a web app that just does the basic flow: Choose from a list of nearby
 
 From this MVP we will build this out to native mobile apps for Android and iOS using a to-be-determined framework.
 
-## ✅ MVP Status: Complete!
-
-The FourMore MVP has been fully implemented with:
-
-- **Data Pipeline**: OSM data processing with pyosmium, PostgreSQL + PostGIS, weekly rebuilds
-- **Python API**: FastAPI backend with OSM OAuth2, spatial queries, check-ins, user management
-- **React Frontend**: Mobile-first web app with nearby places, check-in flow, and life log
-- **List-based UI**: Clean interface focused on core functionality (mapping deferred to v2)
-
 ## Quick Start
 
 ```bash
-# 1. One-command setup
-./scripts/dev-setup.sh
+# 1. Setup environment file
+cp .env.example .env
+# Edit .env with your OSM OAuth credentials from: https://www.openstreetmap.org/oauth2/applications
 
-# 2. Configure OSM OAuth credentials in .env file
-# Get them from: https://www.openstreetmap.org/oauth2/applications
+# 2. Install frontend dependencies
+cd frontend && npm install && cd ..
 
-# 3. Load test data
-./scripts/load-test-data.sh
+# 3. Start development services (database + backend with hot reload)
+docker-compose -f docker-compose.dev.yml up -d
 
-# 4. Start development servers
-./scripts/start-dev.sh
+# 4. Initialize database
+docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py init-db
+
+# 5. Load test data (Delaware - small and fast)
+docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline bash -c "
+  cd /app/data &&
+  wget https://download.geofabrik.de/north-america/us/delaware-latest.osm.pbf &&
+  cd /app/src &&
+  python pipeline.py process /app/data/delaware-latest.osm.pbf
+"
+
+# 6. Start frontend
+cd frontend && npm run dev
 ```
 
 Visit http://localhost:3000 to use the app!
