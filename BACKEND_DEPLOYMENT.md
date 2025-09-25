@@ -383,10 +383,10 @@ docker-compose -f docker-compose.prod.yml exec postgres psql -U fourmore -d four
 SELECT
     COUNT(*) as total_pois,
     COUNT(DISTINCT category) as categories,
-    MIN(ST_Y(geom)) as min_lat,
-    MAX(ST_Y(geom)) as max_lat,
-    MIN(ST_X(geom)) as min_lon,
-    MAX(ST_X(geom)) as max_lon
+    MIN(ST_Y(location)) as min_lat,
+    MAX(ST_Y(location)) as max_lat,
+    MIN(ST_X(location)) as min_lon,
+    MAX(ST_X(location)) as max_lon
 FROM pois;
 "
 ```
