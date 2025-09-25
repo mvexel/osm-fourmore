@@ -75,7 +75,7 @@ export function useGeolocation() {
           loading: false,
         })
       },
-      (error) => {
+      () => {
         setState(prev => ({
           ...prev,
           error: 'Unable to get your location',

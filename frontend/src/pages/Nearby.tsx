@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { POI } from '../types'
 import { placesApi, checkinsApi } from '../services/api'
@@ -13,7 +13,7 @@ export function Nearby() {
   const [pois, setPois] = useState<POI[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const [selectedCategory] = useState<string>('')
   const [checkinLoading, setCheckinLoading] = useState<number | null>(null)
   const [hasNextPage, setHasNextPage] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)

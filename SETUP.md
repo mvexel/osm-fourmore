@@ -20,6 +20,9 @@ cd /Users/mvexel/dev/fourmore
 cd frontend
 npm install
 cd ..
+
+# Copy shared database models for development
+cp data-pipeline/src/database.py backend/app/database.py
 ```
 
 ### 2. Start Development Services

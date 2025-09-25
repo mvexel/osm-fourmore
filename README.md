@@ -12,33 +12,22 @@ From this MVP we will build this out to native mobile apps for Android and iOS u
 
 ## Quick Start
 
+**Prerequisites**: Docker, Docker Compose, Node.js 18+
+
 ```bash
-# 1. Setup environment file
-cp .env.example .env
-# Edit .env with your OSM OAuth credentials from: https://www.openstreetmap.org/oauth2/applications
+# Get the code and start services
+git clone [your-repo-url]
+cd fourmore
 
-# 2. Install frontend dependencies
-cd frontend && npm install && cd ..
-
-# 3. Start development services (database + backend with hot reload)
+# See SETUP.md for detailed instructions
+# TL;DR: Docker handles backend, you run frontend locally
 docker-compose -f docker-compose.dev.yml up -d
-
-# 4. Initialize database
-docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py init-db
-
-# 5. Load test data (Delaware - small and fast)
-docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline bash -c "
-  cd /app/data &&
-  wget https://download.geofabrik.de/north-america/us/delaware-latest.osm.pbf &&
-  cd /app/src &&
-  python pipeline.py process /app/data/delaware-latest.osm.pbf
-"
-
-# 6. Start frontend
 cd frontend && npm run dev
 ```
 
 Visit http://localhost:3000 to use the app!
+
+**📋 For complete setup instructions, see [SETUP.md](SETUP.md)**
 
 ## Full Documentation
 

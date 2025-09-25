@@ -1,4 +1,3 @@
-import React from 'react'
 import { POI } from '../types'
 import { getCategoryIcon, ContactIcons } from '../utils/icons'
 
