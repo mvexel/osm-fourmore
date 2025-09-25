@@ -87,7 +87,9 @@ OSM_DATA_URL=https://download.geofabrik.de/north-america/us-latest.osm.pbf
 DATA_DIR=/app/data
 ```
 
-### Create Backend Dockerfile
+### Create Docker Configuration Files
+
+First, create the backend Dockerfile:
 
 ```bash
 # Create backend Dockerfile
@@ -111,12 +113,15 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy requirements and install Python dependencies
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install gunicorn
 
 # Copy application code
-COPY app/ ./app/
+COPY backend/app/ ./app/
+
+# Copy shared database models from data-pipeline (single source of truth)
+COPY data-pipeline/src/database.py ./app/database.py
 
 # Create non-root user
 RUN useradd -m -u 1000 fourmore && chown -R fourmore:fourmore /app
@@ -159,11 +164,11 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy requirements and install Python dependencies
-COPY requirements.txt .
+COPY data-pipeline/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
-COPY src/ ./src/
+COPY data-pipeline/src/ ./src/
 
 # Create data directory
 RUN mkdir -p /app/data
@@ -186,10 +191,11 @@ CMD ["python", "pipeline.py", "--help"]
 nano docker-compose.prod.yml
 ```
 
+**Important**: The Docker Compose uses `context: .` (project root) so both `backend/` and `data-pipeline/` directories are accessible during build. This allows the backend to copy the shared `database.py` file from data-pipeline, maintaining a single source of truth for database models.
+
 Content for `docker-compose.prod.yml`:
 
 ```yaml
-version: '3.8'
 
 services:
   postgres:
@@ -225,8 +231,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - OSM_CLIENT_ID=${OSM_CLIENT_ID}
@@ -251,8 +257,8 @@ services:
 
   data-pipeline:
     build:
-      context: ./data-pipeline
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: data-pipeline/Dockerfile
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - OSM_DATA_URL=${OSM_DATA_URL}
@@ -278,6 +284,48 @@ networks:
 ```
 
 ## 3. Initial Deployment
+
+### Create Environment File
+
+You must create the `.env.production` file before starting services:
+
+```bash
+# Create the environment file
+nano .env.production
+```
+
+Example `.env.production` content:
+
+```env
+# Database (Docker service name)
+DATABASE_URL=postgresql://fourmore:yourSecurePassword123@postgres:5432/fourmore
+
+# OSM OAuth - Register at https://www.openstreetmap.org/oauth2/applications
+OSM_CLIENT_ID=your_osm_client_id
+OSM_CLIENT_SECRET=your_osm_client_secret
+OSM_REDIRECT_URI=https://yourdomain.com/auth/callback
+
+# JWT Configuration
+JWT_SECRET_KEY=your_super_secure_jwt_secret_min_32_chars_long
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=1440
+
+# Production settings
+DEBUG=False
+ENVIRONMENT=production
+
+# PostgreSQL (for Docker)
+POSTGRES_DB=fourmore
+POSTGRES_USER=fourmore
+POSTGRES_PASSWORD=yourSecurePassword123
+
+# Redis
+REDIS_URL=redis://redis:6379
+
+# Data Pipeline
+OSM_DATA_URL=https://download.geofabrik.de/north-america/us-latest.osm.pbf
+DATA_DIR=/app/data
+```
 
 ### Build and Start Services
 
