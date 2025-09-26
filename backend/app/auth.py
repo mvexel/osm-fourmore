@@ -13,7 +13,7 @@ from .db import get_db, User
 # OAuth and JWT configuration
 OSM_CLIENT_ID = os.getenv("OSM_CLIENT_ID")
 OSM_CLIENT_SECRET = os.getenv("OSM_CLIENT_SECRET")
-OSM_REDIRECT_URI = os.getenv("OSM_REDIRECT_URI", "http://localhost:3000/auth/callback")
+OSM_REDIRECT_URI = os.getenv("OSM_REDIRECT_URI", "http://127.0.0.1:3000/auth/callback")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))

@@ -1,18 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import mkcert from 'vite-plugin-mkcert'
 
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), mkcert()],
+  plugins: [react()],
   server: {
+    host: '127.0.0.1',
     port: 3000,
-    https: false,
-    allowedHosts: ['d04a9f001a31.ngrok-free.app', 'localhost'],
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       }
     }
