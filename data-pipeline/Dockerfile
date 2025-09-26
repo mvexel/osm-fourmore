@@ -17,7 +17,8 @@ WORKDIR /app
 COPY data-pipeline/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code
+# Copy shared models and pipeline source code
+COPY fourmore_shared ./fourmore_shared
 COPY data-pipeline/src/ ./src/
 
 # Create data directory
