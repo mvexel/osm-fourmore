@@ -95,7 +95,7 @@ class CheckIn(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 # Database connection
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://fourmore:fourmore_dev_password@localhost:5432/fourmore")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://fourmore:fourmore_dev_password@localhost:5432/fourmore")  ## TODO: no magic!
 
 # Create engine with connection retry and better settings
 engine = create_engine(

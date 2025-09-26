@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 # Import models from local database module (copied from data-pipeline)
 from .database import Base, POI, User, CheckIn
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://fourmore:fourmore_dev_password@localhost:5432/fourmore")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://fourmore:fourmore_dev_password@localhost:5432/fourmore")  # TODO: no magic!
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
