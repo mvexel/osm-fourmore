@@ -72,6 +72,7 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     display_name = Column(String)
     email = Column(String, unique=True, index=True)
+    avatar_url = Column(String)
     osm_access_token = Column(String)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

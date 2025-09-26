@@ -20,8 +20,8 @@ logging.basicConfig(
 )
 
 # Also set uvicorn loggers to show our app logs
-logging.getLogger("uvicorn").setLevel(logging.INFO)
-logging.getLogger("uvicorn.access").setLevel(logging.INFO)
+# logging.getLogger("uvicorn").setLevel(logging.INFO)
+# logging.getLogger("uvicorn.access").setLevel(logging.INFO)
 
 # Quiet down noisy HTTP libraries
 logging.getLogger("httpcore").setLevel(logging.WARNING)

@@ -23,10 +23,18 @@ export function Layout({ children }: LayoutProps) {
               FourMore
             </Link>
             {user && (
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">
-                  {user.display_name || user.username}
-                </span>
+              <div className="flex items-center space-x-3">
+                {user.avatar_url ? (
+                  <img
+                    src={user.avatar_url}
+                    alt={user.display_name || user.username}
+                    className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
+                    {NavIcons.profile({ size: 20 })}
+                  </div>
+                )}
                 <button
                   onClick={logout}
                   className="text-sm text-gray-500 hover:text-gray-700"

@@ -132,6 +132,8 @@ def create_or_update_user(db: Session, osm_user_data: dict, osm_access_token: st
     user_element = osm_user_data["user"]
     osm_user_id = str(user_element["id"])
     username = user_element["display_name"]
+    img = user_element.get("img")
+    avatar_url = img.get("href") if isinstance(img, dict) else None
 
     # Check if user exists
     user = db.query(User).filter(User.osm_user_id == osm_user_id).first()
@@ -140,6 +142,7 @@ def create_or_update_user(db: Session, osm_user_data: dict, osm_access_token: st
         # Update existing user
         user.username = username
         user.display_name = user_element.get("display_name")
+        user.avatar_url = avatar_url
         if osm_access_token:
             user.osm_access_token = osm_access_token
         user.updated_at = datetime.utcnow()
@@ -149,6 +152,7 @@ def create_or_update_user(db: Session, osm_user_data: dict, osm_access_token: st
             osm_user_id=osm_user_id,
             username=username,
             display_name=user_element.get("display_name"),
+            avatar_url=avatar_url,
             email=None,  # OSM doesn't provide email in basic scope
             osm_access_token=osm_access_token
         )

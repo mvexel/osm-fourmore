@@ -48,6 +48,7 @@ class UserBase(BaseModel):
     username: str
     display_name: Optional[str] = None
     email: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 class UserResponse(UserBase):
     id: int

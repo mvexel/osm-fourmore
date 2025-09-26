@@ -37,9 +37,17 @@ export function Profile() {
         {/* User Info */}
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="text-center space-y-4">
-            <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto text-primary-600">
-              {NavIcons.profile({ size: 40 })}
-            </div>
+            {user.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.display_name || user.username}
+                className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-sm mx-auto"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto text-primary-600">
+                {NavIcons.profile({ size: 40 })}
+              </div>
+            )}
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
                 {user.display_name || user.username}
