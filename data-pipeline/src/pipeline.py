@@ -5,7 +5,7 @@ from pathlib import Path
 import click
 from dotenv import load_dotenv
 
-from osm_processor import process_osm_file, save_pois_to_db
+from osm_processor import process_osm_file_streaming
 
 load_dotenv()
 
@@ -45,8 +45,7 @@ def process(data_dir, file_name):
         return
 
     logging.info(f"Processing file: {file_path.name}")
-    pois = process_osm_file(str(file_path))
-    save_pois_to_db(pois)
+    process_osm_file_streaming(str(file_path))
     logging.info("Finished processing OSM data.")
 
 
