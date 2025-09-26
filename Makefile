@@ -62,6 +62,33 @@ load-data: ## Process local OSM data from the data directory
 	@docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py full-rebuild
 
 # ==============================================================================
+# Production
+# ==============================================================================
+
+.PHONY: prod-up
+prod-up: ## Start all production services in the background
+	@echo "Starting production containers..."
+	@docker-compose -f docker-compose.prod.yml up -d
+
+.PHONY: prod-up-build
+prod-up-build: ## Start production services and force a rebuild of the images
+	@docker-compose -f docker-compose.prod.yml up -d --build
+
+.PHONY: prod-down
+prod-down: ## Stop and remove all production containers
+	@echo "Stopping and removing production containers..."
+	@docker-compose -f docker-compose.prod.yml down
+
+.PHONY: prod-logs
+prod-logs: ## Tail the logs for the production backend service
+	@echo "Tailing production backend logs..."
+	@docker-compose -f docker-compose.prod.yml logs -f backend
+
+.PHONY: prod-restart
+prod-restart: ## Restart all production services
+	@docker-compose -f docker-compose.prod.yml restart
+
+# ==============================================================================
 # Help
 # ==============================================================================
 
