@@ -19,9 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy shared models and pipeline source code
 COPY fourmore_shared ./fourmore_shared
-COPY data-pipeline/src/ ./src/
-
-ENV PYTHONPATH=/app:/app/src
+COPY data-pipeline/src/ ./
 
 # Create data directory
 RUN mkdir -p /app/data
@@ -31,7 +29,10 @@ RUN useradd -m -u 1000 fourmore && chown -R fourmore:fourmore /app
 USER fourmore
 
 # Set working directory to src
-WORKDIR /app/src
+WORKDIR /app
+
+# Add current directory to Python path so fourmore_shared can be imported
+ENV PYTHONPATH=/app:$PYTHONPATH
 
 # Default command
 CMD ["python", "pipeline.py", "--help"]
