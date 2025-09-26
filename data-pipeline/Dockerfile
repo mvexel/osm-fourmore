@@ -21,6 +21,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY fourmore_shared ./fourmore_shared
 COPY data-pipeline/src/ ./src/
 
+ENV PYTHONPATH=/app:/app/src
+
 # Create data directory
 RUN mkdir -p /app/data
 
