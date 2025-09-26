@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { authApi } from '../services/api'
+import { IconBook, IconCheck, IconMapPin2, IconMoodSmile, } from '@tabler/icons-react'
 
 export function Login() {
   const [loading, setLoading] = useState(false)
@@ -24,35 +25,35 @@ export function Login() {
         <div className="text-center">
           <h1 className="text-4xl font-bold text-primary-600 mb-2">FourMore</h1>
           <p className="text-gray-600 text-lg">
-            Social check-ins with OpenStreetMap
+            Yes we're still looking for a better name...
           </p>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
           <div className="text-center space-y-4">
             <h2 className="text-xl font-semibold text-gray-900">
-              Welcome to FourMore
+              Hey there traveler!
             </h2>
             <p className="text-gray-600">
-              Discover places around you and share your experiences while contributing to OpenStreetMap.
+              FourMore lets you keep track of places you visit and help improve OpenStreetMap in the process!
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center space-x-3 text-sm text-gray-600">
-              <span>📍</span>
+              <span><IconMapPin2 /></span>
               <span>Find nearby places from OpenStreetMap data</span>
             </div>
             <div className="flex items-center space-x-3 text-sm text-gray-600">
-              <span>✅</span>
+              <span><IconCheck /></span>
               <span>Check in to places you visit</span>
             </div>
             <div className="flex items-center space-x-3 text-sm text-gray-600">
-              <span>📖</span>
+              <span><IconBook /></span>
               <span>Keep a life log of your adventures</span>
             </div>
             <div className="flex items-center space-x-3 text-sm text-gray-600">
-              <span>🗺️</span>
+              <span><IconMoodSmile /></span>
               <span>Help improve OpenStreetMap</span>
             </div>
           </div>
@@ -78,19 +79,13 @@ export function Login() {
               </>
             ) : (
               <>
-                <img
-                  src="https://www.openstreetmap.org/assets/osm_logo-d59c728e5799e6f91a6b8d6d0b25b99a1d9b4b93d11742b3f43528b03c168b22.svg"
-                  alt="OpenStreetMap"
-                  className="w-5 h-5 mr-3"
-                />
                 Sign in with OpenStreetMap
               </>
             )}
           </button>
 
           <p className="text-xs text-gray-500 text-center">
-            By signing in, you agree to use your OpenStreetMap account to access FourMore.
-            We only access basic profile information.
+            FourMore requires an OpenStreetMap account to log in. An account with that username is then created for you on FourMore. We do not know or store your OpenStreetMap password. Your check-ins are private unless you choose to share them. Feedback is welcome! Send your thoughts to m@rtijn.org
           </p>
         </div>
       </div>

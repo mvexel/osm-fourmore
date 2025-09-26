@@ -200,9 +200,9 @@ export function Nearby() {
         ) : pois.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-gray-600 mb-4"><IconSearch size={48} /></div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No places found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Nothing here.</h3>
             <p className="text-gray-600">
-              Try changing the category filter or moving to a different location.
+              At least according to OSM. You can help by adding places around you!
             </p>
           </div>
         ) : (
@@ -246,7 +246,7 @@ export function Nearby() {
             {/* No more results indicator */}
             {!hasNextPage && pois.length > 0 && (
               <div className="text-center py-4">
-                <p className="text-gray-500 text-sm">No more places to load</p>
+                <p className="text-gray-500 text-sm">You've reached the end.</p>
               </div>
             )}
           </>
