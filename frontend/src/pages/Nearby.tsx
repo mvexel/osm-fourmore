@@ -172,10 +172,12 @@ export function Nearby() {
         <h1 className="text-xl font-semibold text-gray-900">Nearby Places</h1>
       </div>
 
-      {/* Debug Info */}
-      <div className="bg-yellow-100 p-2 text-xs">
-        <strong>Debug:</strong> Page: {page}, HasNext: {hasNextPage.toString()}, Loading: {isLoadingMore.toString()}, POIs: {pois.length}
-      </div>
+      {/* Debug Info - Only show in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-yellow-100 p-2 text-xs">
+          <strong>Debug:</strong> Page: {page}, HasNext: {hasNextPage.toString()}, Loading: {isLoadingMore.toString()}, POIs: {pois.length}
+        </div>
+      )}
 
       {/* Content */}
       <div className="p-4">

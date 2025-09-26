@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { osmApi } from '../services/api'
 import { IconCheck, IconMessagePlus } from '@tabler/icons-react'
+import { useDoubleConfirm } from '../hooks/useDoubleConfirm'
 
 interface OSMContributionProps {
   poiId: number
@@ -8,45 +9,44 @@ interface OSMContributionProps {
 }
 
 export function OSMContribution({ poiId, className }: OSMContributionProps) {
-  const [confirming, setConfirming] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [confirmMessage, setConfirmMessage] = useState<string | null>(null)
   const [note, setNote] = useState('')
-  const [addingNote, setAddingNote] = useState(false)
   const [noteAdded, setNoteAdded] = useState(false)
   const [noteMessage, setNoteMessage] = useState<string | null>(null)
 
-  const handleConfirmInfo = async () => {
-    setConfirming(true)
-    try {
-      const result = await osmApi.confirmInfo(poiId)
-      setConfirmed(true)
-      setConfirmMessage(result.message)
-    } catch (err) {
-      console.error('Error confirming info:', err)
-      alert('Failed to confirm info. Please try again.')
-    } finally {
-      setConfirming(false)
-    }
+  const confirmAction = useDoubleConfirm()
+  const noteAction = useDoubleConfirm()
+
+  const performConfirmInfo = async () => {
+    const result = await osmApi.confirmInfo(poiId)
+    setConfirmed(true)
+    setConfirmMessage(result.message)
   }
 
-  const handleAddNote = async () => {
+  const handleConfirmInfo = () => {
+    confirmAction.handleAction(performConfirmInfo).catch(err => {
+      console.error('Error confirming info:', err)
+      alert('Failed to confirm info. Please try again.')
+    })
+  }
+
+  const performAddNote = async () => {
     if (!note.trim()) {
       alert('Please enter a note.')
       return
     }
-    setAddingNote(true)
-    try {
-      const result = await osmApi.createNote(poiId, note)
-      setNoteAdded(true)
-      setNoteMessage(result.message)
-      setNote('')
-    } catch (err) {
+    const result = await osmApi.createNote(poiId, note)
+    setNoteAdded(true)
+    setNoteMessage(result.message)
+    setNote('')
+  }
+
+  const handleAddNote = () => {
+    noteAction.handleAction(performAddNote).catch(err => {
       console.error('Error adding note:', err)
       alert('Failed to add note. Please try again.')
-    } finally {
-      setAddingNote(false)
-    }
+    })
   }
 
   return (
@@ -63,11 +63,19 @@ export function OSMContribution({ poiId, className }: OSMContributionProps) {
       ) : (
         <button
           onClick={handleConfirmInfo}
-          disabled={confirming}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={confirmAction.isExecuting}
+          className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${confirmAction.isPending
+              ? 'bg-red-600 hover:bg-red-700'
+              : 'bg-green-600 hover:bg-green-700'
+            }`}
         >
           <IconCheck size={20} />
-          {confirming ? 'Confirming...' : 'Confirm Info is Correct'}
+          {confirmAction.isExecuting
+            ? 'Confirming...'
+            : confirmAction.isPending
+              ? 'Are you sure?'
+              : 'Confirm Info is Correct'
+          }
         </button>
 
       )}
@@ -95,11 +103,19 @@ export function OSMContribution({ poiId, className }: OSMContributionProps) {
             />
             <button
               onClick={handleAddNote}
-              disabled={addingNote}
-              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={noteAction.isExecuting}
+              className={`w-full mt-2 flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${noteAction.isPending
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+                }`}
             >
               <IconMessagePlus size={20} />
-              {addingNote ? 'Adding Note...' : 'Add Note'}
+              {noteAction.isExecuting
+                ? 'Adding Note...'
+                : noteAction.isPending
+                  ? 'Are you sure?'
+                  : 'Add Note'
+              }
             </button>
           </>
         )}

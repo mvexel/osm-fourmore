@@ -102,8 +102,7 @@ export function PlaceDetails() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-lg font-semibold text-gray-900 line-clamp-1">
-            {poi.name || 'Place Details'}
+          <h1 className="text-lg font-semibold text-gray-900 line-clamp-1">Place Details
           </h1>
         </div>
       </div>
