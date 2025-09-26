@@ -62,8 +62,6 @@ services:
       dockerfile: data-pipeline/Dockerfile
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - OSM_DATA_URL=${OSM_DATA_URL}
-      - DATA_DIR=${DATA_DIR}
     volumes:
       - osm_data:/app/data
     depends_on:

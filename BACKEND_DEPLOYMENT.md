@@ -83,7 +83,6 @@ POSTGRES_PASSWORD=your_secure_password_here
 REDIS_URL=redis://redis:6379
 
 # Data Pipeline
-OSM_DATA_URL=https://download.geofabrik.de/north-america/us-latest.osm.pbf
 DATA_DIR=/app/data
 ```
 
