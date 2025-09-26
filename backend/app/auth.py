@@ -36,7 +36,7 @@ class OSMAuth:
             "client_id": OSM_CLIENT_ID,
             "redirect_uri": OSM_REDIRECT_URI,
             "response_type": "code",
-            "scope": "read_prefs write_api"
+            "scope": "read_prefs write_api write_notes",
         }
 
         query_string = "&".join([f"{k}={v}" for k, v in params.items()])

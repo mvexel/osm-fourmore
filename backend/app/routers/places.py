@@ -55,8 +55,8 @@ async def get_nearby_places(
             name=poi.name,
             category=poi.category,
             subcategory=poi.subcategory,
-            lat=db.execute(text(f"SELECT ST_Y(location) FROM pois WHERE id = {poi.id}")).scalar(),
-            lon=db.execute(text(f"SELECT ST_X(location) FROM pois WHERE id = {poi.id}")).scalar(),
+            lat=poi.lat,
+            lon=poi.lon,
             address=poi.address,
             phone=poi.phone,
             website=poi.website,
@@ -82,9 +82,6 @@ async def get_place_details(
     if not poi:
         raise HTTPException(status_code=404, detail="Place not found")
 
-    # Get coordinates
-    coords = db.execute(text(f"SELECT ST_X(location), ST_Y(location) FROM pois WHERE id = {poi.id}")).first()
-
     return POIResponse(
         id=poi.id,
         osm_id=poi.osm_id,
@@ -92,8 +89,8 @@ async def get_place_details(
         name=poi.name,
         category=poi.category,
         subcategory=poi.subcategory,
-        lat=coords[1],
-        lon=coords[0],
+        lat=poi.lat,
+        lon=poi.lon,
         address=poi.address,
         phone=poi.phone,
         website=poi.website,

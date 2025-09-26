@@ -1,10 +1,13 @@
 """OpenStreetMap API client for editing operations."""
 
+import logging
 import httpx
 from datetime import datetime
 from typing import Dict, Optional, Any
 from fastapi import HTTPException, status
 import xml.etree.ElementTree as ET
+
+logger = logging.getLogger(__name__)
 
 
 OSM_API_BASE = "https://api.openstreetmap.org/api/0.6"
@@ -229,3 +232,42 @@ class OSMAPIClient:
             await self.close_changeset(changeset_id)
             raise e
 
+    async def create_note(self, lat: float, lon: float, text: str) -> int:
+        """Create a new note."""
+        logger = logging.getLogger(__name__)
+
+        # OSM Notes API expects form data, not URL params
+        data = {
+            'lat': str(lat),
+            'lon': str(lon),
+            'text': text
+        }
+
+        async with httpx.AsyncClient() as client:
+            logger.info(f"Creating OSM note with data: {data}")
+            response = await client.post(
+                f"{OSM_API_BASE}/notes",
+                headers={"Authorization": f"Bearer {self.access_token}"},
+                data=data  # Use data instead of params
+            )
+
+            logger.info(f"OSM API response: status={response.status_code}, content={response.text[:500]}")
+
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to create note: {response.text}"
+                )
+
+            # The response is XML, we need to parse it to get the note id
+            root = ET.fromstring(response.text)
+            note_element = root.find('note')
+            if note_element is not None:
+                note_id_element = note_element.find('id')
+                if note_id_element is not None and note_id_element.text:
+                    return int(note_id_element.text)
+
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to parse note creation response: {response.text}"
+            )

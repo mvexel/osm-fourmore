@@ -161,10 +161,6 @@ def get_checkin_with_poi(db: Session, checkin: CheckIn) -> CheckInResponse:
     if not poi:
         raise HTTPException(status_code=404, detail="Associated place not found")
 
-    # Get POI coordinates
-    from sqlalchemy import text
-    coords = db.execute(text(f"SELECT ST_X(location), ST_Y(location) FROM pois WHERE id = {poi.id}")).first()
-
     poi_response = POIResponse(
         id=poi.id,
         osm_id=poi.osm_id,
@@ -172,8 +168,8 @@ def get_checkin_with_poi(db: Session, checkin: CheckIn) -> CheckInResponse:
         name=poi.name,
         category=poi.category,
         subcategory=poi.subcategory,
-        lat=coords[1],
-        lon=coords[0],
+        lat=poi.lat,
+        lon=poi.lon,
         address=poi.address,
         phone=poi.phone,
         website=poi.website,

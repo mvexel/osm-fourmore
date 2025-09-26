@@ -15,10 +15,14 @@ up: ## Start all development services in the background
 	@echo "Starting development containers..."
 	@docker-compose -f docker-compose.dev.yml up -d
 
+.PHONY: up-build
+up-build: ## Start services and force a rebuild of the images
+	@docker-compose -f docker-compose.dev.yml up -d --build
+
 .PHONY: down
-down: ## Stop and remove all development containers and volumes
-	@echo "Stopping and removing containers and volumes..."
-	@docker-compose -f docker-compose.dev.yml down -v
+down: ## Stop and remove all development containers
+	@echo "Stopping and removing containers..."
+	@docker-compose -f docker-compose.dev.yml down
 
 .PHONY: logs
 logs: ## Tail the logs for the backend service
@@ -29,13 +33,23 @@ logs: ## Tail the logs for the backend service
 restart: ## Restart all services
 	@docker-compose -f docker-compose.dev.yml restart
 
+.PHONY: rebuild
+rebuild: ## Stop containers, wipe database, rebuild and reseed everything
+	@echo "Stopping and removing containers with volumes..."
+	@docker-compose -f docker-compose.dev.yml down -v
+	@echo "Starting fresh containers..."
+	@docker-compose -f docker-compose.dev.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Initializing database schema..."
+	@docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py init-db
+	@echo "Loading data..."
+	@docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py full-rebuild
+	@echo "Rebuild complete!"
+
 # ==============================================================================
 # Initial Setup & Data Management
 # ==============================================================================
-
-.PHONY: setup
-setup: ## Run the initial one-time setup script
-	@scripts/setup.sh
 
 .PHONY: init-db
 init-db: ## Initialize the database schema

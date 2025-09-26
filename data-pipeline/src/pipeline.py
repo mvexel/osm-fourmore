@@ -51,6 +51,15 @@ def process(data_dir, file_name):
 
 
 @cli.command()
+def init_db():
+    """Initialize the database schema by creating all tables."""
+    from database import create_tables
+    logging.info("Initializing database schema...")
+    create_tables()
+    logging.info("Database schema initialized successfully.")
+
+
+@cli.command()
 @click.option('--data-dir', default=DEFAULT_DATA_DIR, help='Directory for OSM data.')
 @click.option('--file-name', help='Name of the OSM PBF file. If not provided, the script will look for a single .osm.pbf file in the data directory.')
 @click.pass_context

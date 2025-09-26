@@ -46,6 +46,24 @@ class POI(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_active = Column(Boolean, default=True, index=True)
 
+    @property
+    def lat(self):
+        """Extract latitude from geometry field."""
+        if self.location and hasattr(self.location, 'data'):
+            from geoalchemy2.shape import to_shape
+            point = to_shape(self.location)
+            return point.y
+        return None
+
+    @property
+    def lon(self):
+        """Extract longitude from geometry field."""
+        if self.location and hasattr(self.location, 'data'):
+            from geoalchemy2.shape import to_shape
+            point = to_shape(self.location)
+            return point.x
+        return None
+
 class User(Base):
     """User model for check-ins."""
     __tablename__ = 'users'

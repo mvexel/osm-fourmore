@@ -114,4 +114,13 @@ export const osmApi = {
     const response = await api.post('/osm/confirm-info', { poi_id: poiId })
     return response.data
   },
+
+  createNote: async (poiId: number, text: string): Promise<{
+    success: boolean
+    note_id: number
+    message: string
+  }> => {
+    const response = await api.post('/osm/note', { poi_id: poiId, text })
+    return response.data
+  },
 }
