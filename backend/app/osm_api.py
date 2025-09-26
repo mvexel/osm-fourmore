@@ -3,7 +3,7 @@
 import logging
 import httpx
 from datetime import datetime
-from typing import Dict, Optional, Any
+from typing import Dict, Any
 from fastapi import HTTPException, status
 import xml.etree.ElementTree as ET
 
@@ -11,6 +11,27 @@ logger = logging.getLogger(__name__)
 
 
 OSM_API_BASE = "https://api.openstreetmap.org/api/0.6"
+MAX_LOG_SNIPPET = 800
+
+
+def _log_snippet(payload: str, limit: int = MAX_LOG_SNIPPET) -> str:
+    """Return a log-safe snippet of payload content."""
+    if payload is None:
+        return ""
+    stripped = payload.strip()
+    if len(stripped) <= limit:
+        return stripped
+    return f"{stripped[:limit]}...<truncated>"
+
+
+def _xml_declaration(xml_body: str) -> str:
+    """Prepend XML declaration to serialized body."""
+    return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + xml_body
+
+
+def _serialize_osm_element(element: ET.Element) -> str:
+    """Serialize an OSM XML element with declaration."""
+    return _xml_declaration(ET.tostring(element, encoding='unicode'))
 
 
 class OSMAPIClient:
@@ -32,10 +53,18 @@ class OSMAPIClient:
                 detail=f"Unsupported OSM type: {osm_type}. Only node and way are supported."
             )
 
+        url = f"{OSM_API_BASE}/{osm_type}/{osm_id}"
         async with httpx.AsyncClient() as client:
+            logger.info("OSM request: GET %s", url)
             response = await client.get(
-                f"{OSM_API_BASE}/{osm_type}/{osm_id}",
+                url,
                 headers={"Authorization": f"Bearer {self.access_token}"}
+            )
+            logger.info(
+                "OSM response: GET %s -> status=%s body=%s",
+                url,
+                response.status_code,
+                _log_snippet(response.text)
             )
 
             if response.status_code != 200:
@@ -73,19 +102,30 @@ class OSMAPIClient:
 
     async def create_changeset(self, comment: str, created_by: str = "FourMore") -> str:
         """Create a new changeset."""
-        changeset_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<osm>
-  <changeset>
-    <tag k="created_by" v="{created_by}"/>
-    <tag k="comment" v="{comment}"/>
-  </changeset>
-</osm>"""
+        root = ET.Element('osm', attrib={'version': '0.6', 'generator': 'FourMore'})
+        changeset_el = ET.SubElement(root, 'changeset')
+        ET.SubElement(changeset_el, 'tag', attrib={'k': 'created_by', 'v': created_by})
+        ET.SubElement(changeset_el, 'tag', attrib={'k': 'comment', 'v': comment})
 
+        changeset_xml = _serialize_osm_element(root)
+
+        url = f"{OSM_API_BASE}/changeset/create"
         async with httpx.AsyncClient() as client:
+            logger.info(
+                "OSM request: PUT %s body=%s",
+                url,
+                _log_snippet(changeset_xml)
+            )
             response = await client.put(
-                f"{OSM_API_BASE}/changeset/create",
+                url,
                 headers=self.headers,
                 content=changeset_xml
+            )
+            logger.info(
+                "OSM response: PUT %s -> status=%s body=%s",
+                url,
+                response.status_code,
+                _log_snippet(response.text)
             )
 
             if response.status_code != 200:
@@ -106,23 +146,36 @@ class OSMAPIClient:
         changeset_id: str
     ) -> int:
         """Update a node's tags."""
-        tags_xml = "\n".join([
-            f'    <tag k="{k}" v="{v}"/>'
-            for k, v in tags.items()
-        ])
+        root = ET.Element('osm', attrib={'version': '0.6', 'generator': 'FourMore'})
+        node_el = ET.SubElement(root, 'node', attrib={
+            'id': str(node_id),
+            'changeset': str(changeset_id),
+            'version': str(version),
+            'lat': f"{lat:.7f}",
+            'lon': f"{lon:.7f}"
+        })
+        for key, value in tags.items():
+            ET.SubElement(node_el, 'tag', attrib={'k': str(key), 'v': str(value)})
 
-        node_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<osm>
-  <node id="{node_id}" changeset="{changeset_id}" version="{version}" lat="{lat}" lon="{lon}">
-{tags_xml}
-  </node>
-</osm>"""
+        node_xml = _serialize_osm_element(root)
 
+        url = f"{OSM_API_BASE}/node/{node_id}"
         async with httpx.AsyncClient() as client:
+            logger.info(
+                "OSM request: PUT %s body=%s",
+                url,
+                _log_snippet(node_xml)
+            )
             response = await client.put(
-                f"{OSM_API_BASE}/node/{node_id}",
+                url,
                 headers=self.headers,
                 content=node_xml
+            )
+            logger.info(
+                "OSM response: PUT %s -> status=%s body=%s",
+                url,
+                response.status_code,
+                _log_snippet(response.text)
             )
 
             if response.status_code != 200:
@@ -142,29 +195,36 @@ class OSMAPIClient:
         changeset_id: str
     ) -> int:
         """Update a way's tags."""
-        tags_xml = "\n".join([
-            f'    <tag k="{k}" v="{v}"/>'
-            for k, v in tags.items()
-        ])
+        root = ET.Element('osm', attrib={'version': '0.6', 'generator': 'FourMore'})
+        way_el = ET.SubElement(root, 'way', attrib={
+            'id': str(way_id),
+            'changeset': str(changeset_id),
+            'version': str(version)
+        })
+        for node_ref in nodes:
+            ET.SubElement(way_el, 'nd', attrib={'ref': str(node_ref)})
+        for key, value in tags.items():
+            ET.SubElement(way_el, 'tag', attrib={'k': str(key), 'v': str(value)})
 
-        nodes_xml = "\n".join([
-            f'    <nd ref="{node_ref}"/>'
-            for node_ref in nodes
-        ])
+        way_xml = _serialize_osm_element(root)
 
-        way_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<osm>
-  <way id="{way_id}" changeset="{changeset_id}" version="{version}">
-{nodes_xml}
-{tags_xml}
-  </way>
-</osm>"""
-
+        url = f"{OSM_API_BASE}/way/{way_id}"
         async with httpx.AsyncClient() as client:
+            logger.info(
+                "OSM request: PUT %s body=%s",
+                url,
+                _log_snippet(way_xml)
+            )
             response = await client.put(
-                f"{OSM_API_BASE}/way/{way_id}",
+                url,
                 headers=self.headers,
                 content=way_xml
+            )
+            logger.info(
+                "OSM response: PUT %s -> status=%s body=%s",
+                url,
+                response.status_code,
+                _log_snippet(response.text)
             )
 
             if response.status_code != 200:
@@ -177,10 +237,18 @@ class OSMAPIClient:
 
     async def close_changeset(self, changeset_id: str):
         """Close a changeset."""
+        url = f"{OSM_API_BASE}/changeset/{changeset_id}/close"
         async with httpx.AsyncClient() as client:
+            logger.info("OSM request: PUT %s", url)
             response = await client.put(
-                f"{OSM_API_BASE}/changeset/{changeset_id}/close",
+                url,
                 headers={"Authorization": f"Bearer {self.access_token}"}
+            )
+            logger.info(
+                "OSM response: PUT %s -> status=%s body=%s",
+                url,
+                response.status_code,
+                _log_snippet(response.text)
             )
 
             if response.status_code != 200:
