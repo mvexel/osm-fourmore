@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { CheckIn } from '../types'
 import { checkinsApi } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
+import { getCategoryIcon, ContactIcons, UIIcons, NavIcons } from '../utils/icons'
 
 export function CheckIns() {
   const [checkins, setCheckins] = useState<CheckIn[]>([])
@@ -55,25 +56,6 @@ export function CheckIns() {
     }
   }
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'food': return '🍽️'
-      case 'retail': return '🛍️'
-      case 'entertainment': return '🎬'
-      case 'healthcare': return '🏥'
-      case 'education': return '🎓'
-      case 'finance': return '🏦'
-      case 'automotive': return '⛽'
-      case 'accommodation': return '🏨'
-      case 'recreation': return '⚽'
-      case 'government': return '🏛️'
-      case 'religion': return '⛪'
-      case 'services': return '🔧'
-      case 'attractions': return '🗽'
-      default: return '📍'
-    }
-  }
-
   return (
     <div className="pb-20">
       {/* Header */}
@@ -121,7 +103,7 @@ export function CheckIns() {
           </div>
         ) : error ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-4">😞</div>
+            <div className="text-gray-600 mb-4">{UIIcons.error({ size: 48 })}</div>
             <p className="text-gray-600 mb-4">{error}</p>
             <button
               onClick={() => fetchCheckins()}
@@ -132,7 +114,7 @@ export function CheckIns() {
           </div>
         ) : checkins.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">📍</div>
+            <div className="text-gray-600 mb-4">{NavIcons.nearby({ size: 56 })}</div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No check-ins yet</h3>
             <p className="text-gray-600 mb-6">
               Start exploring and checking in to places around you!
@@ -163,9 +145,9 @@ export function CheckIns() {
                   {dayCheckins.map((checkin) => (
                     <div key={checkin.id} className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-start space-x-3">
-                        <span className="text-xl">
-                          {getCategoryIcon(checkin.poi.category)}
-                        </span>
+                        <div className="text-gray-600">
+                          {getCategoryIcon(checkin.poi.category, { size: 24 })}
+                        </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <Link
@@ -184,8 +166,9 @@ export function CheckIns() {
                           </p>
 
                           {checkin.poi.address && (
-                            <p className="text-sm text-gray-500 line-clamp-1">
-                              📍 {checkin.poi.address}
+                            <p className="text-sm text-gray-500 line-clamp-1 flex items-center gap-1">
+                              <span className="text-gray-400">{ContactIcons.location({ size: 14 })}</span>
+                              {checkin.poi.address}
                             </p>
                           )}
 
@@ -203,8 +186,9 @@ export function CheckIns() {
                               href={`https://www.openstreetmap.org/?mlat=${checkin.poi.lat}&mlon=${checkin.poi.lon}&zoom=18`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-primary-600 hover:underline"
+                              className="text-xs text-primary-600 hover:underline inline-flex items-center gap-1"
                             >
+                              <span className="text-gray-400">{ContactIcons.map({ size: 12 })}</span>
                               View on Map
                             </a>
                           </div>

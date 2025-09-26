@@ -52,18 +52,6 @@ export function POICard({ poi, onClick, showCheckInButton, onCheckIn, isChecking
         )}
       </div>
 
-      {/* View on Map link
-      <div className="mt-3 pt-3 border-t border-gray-100">
-        <a
-          href={`https://www.openstreetmap.org/?mlat=${poi.lat}&mlon=${poi.lon}&zoom=18`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-gray-500 hover:text-primary-600 transition-colors"
-          onClick={(e) => e.stopPropagation()}
-        >
-          📍 View on OpenStreetMap
-        </a>
-      </div> */}
     </div>
   )
 }

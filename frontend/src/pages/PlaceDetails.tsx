@@ -4,6 +4,7 @@ import { POI } from '../types'
 import { placesApi, checkinsApi } from '../services/api'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { OSMContribution } from '../components/OSMContribution'
+import { getCategoryIcon, ContactIcons, UIIcons } from '../utils/icons'
 
 export function PlaceDetails() {
   const { id } = useParams<{ id: string }>()
@@ -60,25 +61,6 @@ export function PlaceDetails() {
     }
   }
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'food': return '🍽️'
-      case 'retail': return '🛍️'
-      case 'entertainment': return '🎬'
-      case 'healthcare': return '🏥'
-      case 'education': return '🎓'
-      case 'finance': return '🏦'
-      case 'automotive': return '⛽'
-      case 'accommodation': return '🏨'
-      case 'recreation': return '⚽'
-      case 'government': return '🏛️'
-      case 'religion': return '⛪'
-      case 'services': return '🔧'
-      case 'attractions': return '🗽'
-      default: return '📍'
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-96">
@@ -93,7 +75,7 @@ export function PlaceDetails() {
   if (error || !poi) {
     return (
       <div className="text-center p-6">
-        <div className="text-4xl mb-4">😞</div>
+        <div className="text-gray-600 mb-4">{UIIcons.error({ size: 56 })}</div>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">
           {error || 'Place not found'}
         </h2>
@@ -131,7 +113,7 @@ export function PlaceDetails() {
         {/* Place Info */}
         <div className="space-y-4">
           <div className="flex items-start space-x-3">
-            <span className="text-3xl">{getCategoryIcon(poi.category)}</span>
+            <div className="text-gray-600">{getCategoryIcon(poi.category, { size: 28 })}</div>
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-gray-900">
                 {poi.name || 'Unnamed Location'}
@@ -145,14 +127,14 @@ export function PlaceDetails() {
 
           {poi.address && (
             <div className="flex items-start space-x-3">
-              <span className="text-gray-400 mt-1">📍</span>
+              <span className="text-gray-400 mt-1">{ContactIcons.location({ size: 18 })}</span>
               <p className="text-gray-700">{poi.address}</p>
             </div>
           )}
 
           {poi.phone && (
             <div className="flex items-center space-x-3">
-              <span className="text-gray-400">📞</span>
+              <span className="text-gray-400">{ContactIcons.phone({ size: 18 })}</span>
               <a
                 href={`tel:${poi.phone}`}
                 className="text-primary-600 hover:underline"
@@ -164,7 +146,7 @@ export function PlaceDetails() {
 
           {poi.website && (
             <div className="flex items-center space-x-3">
-              <span className="text-gray-400">🌐</span>
+              <span className="text-gray-400">{ContactIcons.website({ size: 18 })}</span>
               <a
                 href={poi.website}
                 target="_blank"
@@ -178,14 +160,14 @@ export function PlaceDetails() {
 
           {poi.opening_hours && (
             <div className="flex items-start space-x-3">
-              <span className="text-gray-400 mt-1">🕐</span>
+              <span className="text-gray-400 mt-1">{ContactIcons.hours({ size: 18 })}</span>
               <p className="text-gray-700">{poi.opening_hours}</p>
             </div>
           )}
 
           {/* View on Map */}
           <div className="flex items-center space-x-3">
-            <span className="text-gray-400">🗺️</span>
+            <span className="text-gray-400">{ContactIcons.map({ size: 18 })}</span>
             <a
               href={`https://www.openstreetmap.org/?mlat=${poi.lat}&mlon=${poi.lon}&zoom=18`}
               target="_blank"

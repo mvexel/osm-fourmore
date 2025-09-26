@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { checkinsApi } from '../services/api'
 import { format } from 'date-fns'
+import { NavIcons, ActionIcons } from '../utils/icons'
 
 export function Profile() {
   const { user, logout } = useAuth()
@@ -36,8 +37,8 @@ export function Profile() {
         {/* User Info */}
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="text-center space-y-4">
-            <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto">
-              <span className="text-3xl">👤</span>
+            <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto text-primary-600">
+              {NavIcons.profile({ size: 40 })}
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
@@ -112,7 +113,7 @@ export function Profile() {
                 rel="noopener noreferrer"
                 className="block text-sm text-primary-600 hover:underline"
               >
-                🔗 View your OSM profile
+                <span className="inline-flex items-center gap-1">{ActionIcons.external({ size: 16 })} View your OSM profile</span>
               </a>
               <a
                 href="https://www.openstreetmap.org/edit"
@@ -120,7 +121,7 @@ export function Profile() {
                 rel="noopener noreferrer"
                 className="block text-sm text-primary-600 hover:underline"
               >
-                ✏️ Edit OpenStreetMap
+                <span className="inline-flex items-center gap-1">{ActionIcons.edit({ size: 16 })} Edit OpenStreetMap</span>
               </a>
               <a
                 href="https://www.openstreetmap.org/about"
@@ -128,7 +129,7 @@ export function Profile() {
                 rel="noopener noreferrer"
                 className="block text-sm text-primary-600 hover:underline"
               >
-                ℹ️ Learn about OpenStreetMap
+                <span className="inline-flex items-center gap-1">{ActionIcons.info({ size: 16 })} Learn about OpenStreetMap</span>
               </a>
             </div>
           </div>
@@ -146,7 +147,7 @@ export function Profile() {
             </p>
             <div className="pt-3 border-t border-gray-100">
               <p className="text-xs text-gray-500">
-                Version 1.0.0 • Built with ❤️ for the OSM community
+                Version 1.0.0 • Built with <span className="inline-flex items-center text-red-500">{ActionIcons.favoriteFilled({ size: 14 })}</span> for the OSM community
               </p>
             </div>
           </div>

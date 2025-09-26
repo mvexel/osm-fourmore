@@ -23,6 +23,12 @@ import {
   IconHome,
   IconHistory,
   IconUser,
+  IconLock,
+  IconExternalLink,
+  IconPencil,
+  IconInfoCircle,
+  IconHeart,
+  IconHeartFilled,
 } from '@tabler/icons-react'
 
 interface IconProps {
@@ -81,6 +87,15 @@ export const UIIcons = {
   success: (props: IconProps = {}) => <IconConfetti {...props} />,
   error: (props: IconProps = {}) => <IconMoodSad {...props} />,
   idea: (props: IconProps = {}) => <IconBulb {...props} />,
+  secure: (props: IconProps = {}) => <IconLock {...props} />,
+}
+
+export const ActionIcons = {
+  external: (props: IconProps = {}) => <IconExternalLink {...props} />,
+  edit: (props: IconProps = {}) => <IconPencil {...props} />,
+  info: (props: IconProps = {}) => <IconInfoCircle {...props} />,
+  favorite: (props: IconProps = {}) => <IconHeart {...props} />,
+  favoriteFilled: (props: IconProps = {}) => <IconHeartFilled {...props} />,
 }
 
 // Navigation icons

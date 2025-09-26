@@ -4,7 +4,7 @@ import { POI } from '../types'
 import { placesApi, checkinsApi } from '../services/api'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { POICard } from '../components/POICard'
-import { UIIcons } from '../utils/icons'
+import { UIIcons, NavIcons } from '../utils/icons'
 import { IconSearch } from '@tabler/icons-react'
 
 export function Nearby() {
@@ -140,7 +140,7 @@ export function Nearby() {
   if (locationLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-96 p-6">
-        <div className="text-6xl mb-4">📍</div>
+        <div className="text-gray-600 mb-4">{NavIcons.nearby({ size: 56 })}</div>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">Getting your location...</h2>
         <p className="text-gray-600 text-center">
           We need to know where you are to find nearby places
@@ -152,7 +152,7 @@ export function Nearby() {
   if (locationError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-96 p-6">
-        <div className="text-6xl mb-4">📍</div>
+        <div className="text-gray-600 mb-4">{NavIcons.nearby({ size: 56 })}</div>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">Location needed</h2>
         <p className="text-gray-600 text-center mb-4">{locationError}</p>
         <button

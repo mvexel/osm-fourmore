@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { authApi } from '../services/api'
+import { UIIcons } from '../utils/icons'
 
 export function AuthCallback() {
   const [searchParams] = useSearchParams()
@@ -55,14 +56,14 @@ export function AuthCallback() {
       <div className="max-w-md w-full text-center">
         {error ? (
           <div className="space-y-4">
-            <div className="text-6xl">😞</div>
+            <div className="text-gray-600">{UIIcons.error({ size: 64 })}</div>
             <h2 className="text-xl font-semibold text-gray-900">Authentication Failed</h2>
             <p className="text-gray-600">{error}</p>
             <p className="text-sm text-gray-500">Redirecting to login page...</p>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="text-6xl">🔐</div>
+            <div className="text-primary-600">{UIIcons.secure({ size: 64 })}</div>
             <h2 className="text-xl font-semibold text-gray-900">Completing Sign In</h2>
             <p className="text-gray-600">Please wait while we finish setting up your account...</p>
             <div className="flex justify-center">
