@@ -49,21 +49,16 @@ end
 
 -- Function to find POI category from mapping
 function find_poi_category(object)
-    -- First pass: look for mappings with multiple tags (more specific)
-    for category, mapping_tags in pairs(poi_mapping) do
-        if #mapping_tags > 1 and matches_poi_criteria(object, mapping_tags) then
-            return category, mapping_tags
+    for _, category in ipairs(poi_mapping) do
+        local mappings = category.matches or {}
+        for _, mapping_tags in ipairs(mappings) do
+            if matches_poi_criteria(object, mapping_tags) then
+                return category
+            end
         end
     end
-    
-    -- Second pass: look for mappings with single tags (less specific)
-    for category, mapping_tags in pairs(poi_mapping) do
-        if #mapping_tags == 1 and matches_poi_criteria(object, mapping_tags) then
-            return category, mapping_tags
-        end
-    end
- 
-    return nil, nil
+
+    return nil
 end
 
 -- Main processing function
@@ -80,26 +75,20 @@ function process_poi(object)
     }
 
     -- Try to find category using the mapping
-    local category, mapping_tags = find_poi_category(object)
+    local category = find_poi_category(object)
     if category then
         -- Store the POI category name as the class
-        fields.class = category
+        fields.class = category.class
         return fields
     end
 
-    -- Fallback to original logic for backward compatibility
-    if object.tags.amenity then
-        -- exclude parking
-        if object.tags.amenity == 'parking' then
-            return {}
-        end
-        fields.class = 'amenity_' .. object.tags.amenity
-    elseif object.tags.shop then
-        fields.class = 'shop_' .. object.tags.shop
-    else
-        return {}
+    -- Fallback: mark as miscellaneous if it still looks like a POI
+    if object.tags.amenity or object.tags.shop or object.tags.leisure or object.tags.tourism then
+        fields.class = 'misc'
+        return fields
     end
-    return fields
+
+    return {}
 end
 
 -- Node processing

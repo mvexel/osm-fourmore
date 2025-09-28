@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react'
 import {
   IconToolsKitchen2,
   IconShoppingBag,
@@ -6,11 +7,9 @@ import {
   IconSchool,
   IconBuildingBank,
   IconGasStation,
-  IconBuildingStore,
   IconBallFootball,
   IconBuilding,
   IconBuildingChurch,
-  IconTool,
   IconBuildingMonument,
   IconMapPin,
   IconPhone,
@@ -29,145 +28,227 @@ import {
   IconInfoCircle,
   IconHeart,
   IconHeartFilled,
+  IconCoffee,
+  IconBeer,
+  IconBurger,
+  IconShoppingCart,
+  IconBread,
+  IconScissors,
+  IconBriefcase,
+  IconBed,
+  IconBus,
+  IconParking,
+  IconUsers,
+  IconPalette,
+  IconTrees,
+  IconPaw,
+  IconBuildingFactory,
+  IconQuestionMark,
 } from '@tabler/icons-react'
 
-interface IconProps {
-  size?: number
-  className?: string
-  color?: string
+type IconProps = Partial<ComponentProps<typeof IconMapPin>>
+
+type IconComponent = typeof IconMapPin
+
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+const CATEGORY_META = {
+  restaurant: { label: 'Restaurants', Icon: IconToolsKitchen2 },
+  cafe_bakery: { label: 'Cafes & Bakeries', Icon: IconCoffee },
+  bar_pub: { label: 'Bars & Pubs', Icon: IconBeer },
+  fast_food: { label: 'Fast Food', Icon: IconBurger },
+  grocery: { label: 'Grocery & Markets', Icon: IconShoppingCart },
+  specialty_food: { label: 'Specialty Food', Icon: IconBread },
+  retail: { label: 'Shops & Retail', Icon: IconShoppingBag },
+  personal_services: { label: 'Personal Services', Icon: IconScissors },
+  professional_services: { label: 'Professional Services', Icon: IconBriefcase },
+  finance: { label: 'Financial Services', Icon: IconBuildingBank },
+  lodging: { label: 'Lodging & Camping', Icon: IconBed },
+  transport: { label: 'Transit & Travel', Icon: IconBus },
+  auto_services: { label: 'Auto Services', Icon: IconGasStation },
+  parking: { label: 'Parking', Icon: IconParking },
+  healthcare: { label: 'Healthcare', Icon: IconFirstAidKit },
+  education: { label: 'Education', Icon: IconSchool },
+  government: { label: 'Government & Civic', Icon: IconBuilding },
+  community: { label: 'Community & Social', Icon: IconUsers },
+  religious: { label: 'Religious', Icon: IconBuildingChurch },
+  culture: { label: 'Culture & Arts', Icon: IconPalette },
+  entertainment: { label: 'Entertainment', Icon: IconDeviceGamepad2 },
+  sports_fitness: { label: 'Sports & Fitness', Icon: IconBallFootball },
+  parks_outdoors: { label: 'Parks & Outdoors', Icon: IconTrees },
+  landmark: { label: 'Landmarks', Icon: IconBuildingMonument },
+  animal_services: { label: 'Animal Services', Icon: IconPaw },
+  industrial: { label: 'Industrial & Utility', Icon: IconBuildingFactory },
+  misc: { label: 'Other', Icon: IconQuestionMark },
+} as const
+/* eslint-enable @typescript-eslint/no-unsafe-assignment */
+
+type CategoryKey = keyof typeof CATEGORY_META
+type CategoryMeta = { label: string; Icon: IconComponent }
+
+const LEGACY_AMENITY_TO_CATEGORY: Record<string, CategoryKey> = {
+  restaurant: 'restaurant',
+  cafe: 'cafe_bakery',
+  coffee_shop: 'cafe_bakery',
+  bar: 'bar_pub',
+  pub: 'bar_pub',
+  biergarten: 'bar_pub',
+  fast_food: 'fast_food',
+  food_court: 'restaurant',
+  bank: 'finance',
+  atm: 'finance',
+  bureau_de_change: 'finance',
+  money_transfer: 'finance',
+  hospital: 'healthcare',
+  clinic: 'healthcare',
+  doctor: 'healthcare',
+  doctors: 'healthcare',
+  dentist: 'healthcare',
+  pharmacy: 'healthcare',
+  school: 'education',
+  kindergarten: 'education',
+  college: 'education',
+  university: 'education',
+  library: 'education',
+  fuel: 'auto_services',
+  charging_station: 'auto_services',
+  car_wash: 'auto_services',
+  car_repair: 'auto_services',
+  vehicle_inspection: 'auto_services',
+  parking: 'parking',
+  bicycle_parking: 'parking',
+  motorcycle_parking: 'parking',
+  place_of_worship: 'religious',
+  theatre: 'culture',
+  cinema: 'entertainment',
+  nightclub: 'entertainment',
+  casino: 'entertainment',
+  police: 'government',
+  fire_station: 'government',
+  post_office: 'government',
+  townhall: 'government',
+  community_centre: 'community',
+  social_facility: 'community',
+  arts_centre: 'culture',
+  museum: 'culture',
+  gallery: 'culture',
+  hotel: 'lodging',
+  hostel: 'lodging',
+  guest_house: 'lodging',
+  ferry_terminal: 'transport',
+  bus_station: 'transport',
+}
+
+const LEGACY_SHOP_TO_CATEGORY: Record<string, CategoryKey> = {
+  supermarket: 'grocery',
+  convenience: 'grocery',
+  grocery: 'grocery',
+  bakery: 'specialty_food',
+  butcher: 'specialty_food',
+  cheese: 'specialty_food',
+  confectionery: 'specialty_food',
+  fishmonger: 'specialty_food',
+  frozen_food: 'specialty_food',
+  greengrocer: 'specialty_food',
+  organic: 'specialty_food',
+  pastry: 'specialty_food',
+  tea: 'specialty_food',
+  coffee: 'specialty_food',
+  mall: 'retail',
+  department_store: 'retail',
+  clothes: 'retail',
+  fashion: 'retail',
+  shoes: 'retail',
+  electronics: 'retail',
+  computer: 'retail',
+  hardware: 'retail',
+  doityourself: 'retail',
+  furniture: 'retail',
+  jewelry: 'retail',
+  toys: 'retail',
+  books: 'retail',
+  gift: 'retail',
+  cosmetics: 'personal_services',
+  hairdresser: 'personal_services',
+  beauty: 'personal_services',
+  massage: 'personal_services',
+  laundry: 'personal_services',
+  tailor: 'personal_services',
+}
+
+const DEFAULT_META: { label: string; Icon: IconComponent } = { label: 'Other', Icon: IconMapPin }
+
+const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
+
+const humanize = (value: string) =>
+  value
+    .replace(/^amenity_/, '')
+    .replace(/^shop_/, '')
+    .replace(/_/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => capitalize(word))
+    .join(' ')
+
+const hasCategoryMeta = (className: string): className is CategoryKey =>
+  Object.prototype.hasOwnProperty.call(CATEGORY_META, className)
+
+const normalizeClassName = (className: string | undefined): string | undefined => {
+  if (!className) {
+    return undefined
+  }
+
+  if (hasCategoryMeta(className)) {
+    return className
+  }
+
+  if (className.startsWith('amenity_')) {
+    const amenityType = className.replace('amenity_', '')
+    return LEGACY_AMENITY_TO_CATEGORY[amenityType] ?? className
+  }
+
+  if (className.startsWith('shop_')) {
+    const shopType = className.replace('shop_', '')
+    return LEGACY_SHOP_TO_CATEGORY[shopType] ?? className
+  }
+
+  return className
+}
+
+const getCategoryMeta = (className: string | undefined): CategoryMeta | undefined => {
+  const normalized = normalizeClassName(className)
+  if (normalized && hasCategoryMeta(normalized)) {
+    const meta = CATEGORY_META[normalized]
+    return { label: meta.label, Icon: meta.Icon as IconComponent }
+  }
+  return undefined
 }
 
 export const getCategoryIcon = (className: string, props: IconProps = {}) => {
   const { size = 20, className: cssClass = '', color } = props
-  const iconProps = { size, className: cssClass, color }
+  const iconProps: IconProps = { size, className: cssClass, color }
 
-  // Handle osm2pgsql class names (e.g., 'amenity_restaurant', 'shop_supermarket')
-  // Extract the base category for icon mapping
-  if (className.includes('amenity_')) {
-    const amenityType = className.replace('amenity_', '')
-    switch (amenityType) {
-      case 'restaurant':
-      case 'cafe':
-      case 'bar':
-      case 'pub':
-      case 'fast_food':
-      case 'food_court':
-        return <IconToolsKitchen2 {...iconProps} />
-      case 'bank':
-      case 'atm':
-        return <IconBuildingBank {...iconProps} />
-      case 'hospital':
-      case 'clinic':
-      case 'pharmacy':
-      case 'dentist':
-        return <IconFirstAidKit {...iconProps} />
-      case 'school':
-      case 'university':
-      case 'college':
-      case 'library':
-        return <IconSchool {...iconProps} />
-      case 'fuel':
-      case 'parking':
-      case 'car_wash':
-      case 'car_repair':
-        return <IconGasStation {...iconProps} />
-      case 'place_of_worship':
-        return <IconBuildingChurch {...iconProps} />
-      case 'theatre':
-      case 'cinema':
-      case 'nightclub':
-      case 'casino':
-        return <IconDeviceGamepad2 {...iconProps} />
-      case 'police':
-      case 'fire_station':
-      case 'post_office':
-      case 'townhall':
-        return <IconBuilding {...iconProps} />
-      default:
-        return <IconMapPin {...iconProps} />
-    }
+  const meta = getCategoryMeta(className)
+  const IconComponent: IconComponent = meta?.Icon ?? DEFAULT_META.Icon
+
+  return <IconComponent {...iconProps} />
+}
+
+export const getCategoryLabel = (className: string | undefined) => {
+  if (!className) {
+    return DEFAULT_META.label
   }
 
-  if (className.includes('shop_')) {
-    const shopType = className.replace('shop_', '')
-    switch (shopType) {
-      case 'supermarket':
-      case 'convenience':
-      case 'department_store':
-      case 'mall':
-      case 'clothes':
-      case 'shoes':
-      case 'electronics':
-      case 'books':
-        return <IconShoppingBag {...iconProps} />
-      case 'bakery':
-      case 'butcher':
-      case 'seafood':
-        return <IconToolsKitchen2 {...iconProps} />
-      case 'hairdresser':
-      case 'beauty':
-      case 'laundry':
-        return <IconTool {...iconProps} />
-      default:
-        return <IconShoppingBag {...iconProps} />
-    }
+  const meta = getCategoryMeta(className)
+
+  if (meta) {
+    return meta.label
   }
 
-  if (className.includes('tourism_')) {
-    const tourismType = className.replace('tourism_', '')
-    switch (tourismType) {
-      case 'hotel':
-      case 'motel':
-      case 'hostel':
-      case 'guest_house':
-        return <IconBuildingStore {...iconProps} />
-      case 'museum':
-      case 'gallery':
-      case 'zoo':
-      case 'theme_park':
-      case 'attraction':
-      case 'viewpoint':
-        return <IconBuildingMonument {...iconProps} />
-      default:
-        return <IconMapPin {...iconProps} />
-    }
+  if (className === 'misc') {
+    return DEFAULT_META.label
   }
 
-  if (className.includes('leisure_')) {
-    return <IconBallFootball {...iconProps} />
-  }
-
-  // Legacy category support (fallback)
-  switch (className) {
-    case 'food':
-      return <IconToolsKitchen2 {...iconProps} />
-    case 'retail':
-      return <IconShoppingBag {...iconProps} />
-    case 'entertainment':
-      return <IconDeviceGamepad2 {...iconProps} />
-    case 'healthcare':
-      return <IconFirstAidKit {...iconProps} />
-    case 'education':
-      return <IconSchool {...iconProps} />
-    case 'finance':
-      return <IconBuildingBank {...iconProps} />
-    case 'automotive':
-      return <IconGasStation {...iconProps} />
-    case 'accommodation':
-      return <IconBuildingStore {...iconProps} />
-    case 'recreation':
-      return <IconBallFootball {...iconProps} />
-    case 'government':
-      return <IconBuilding {...iconProps} />
-    case 'religion':
-      return <IconBuildingChurch {...iconProps} />
-    case 'services':
-      return <IconTool {...iconProps} />
-    case 'attractions':
-      return <IconBuildingMonument {...iconProps} />
-    default:
-      return <IconMapPin {...iconProps} />
-  }
+  return humanize(className)
 }
 
 // Contact and UI icons

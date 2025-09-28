@@ -25,7 +25,7 @@ export function Login() {
         <div className="text-center">
           <h1 className="text-4xl font-bold text-primary-600 mb-2">FourMore</h1>
           <p className="text-gray-600 text-lg">
-            Yes we're still looking for a better name...
+            Yes we&apos;re still looking for a better name...
           </p>
         </div>
 

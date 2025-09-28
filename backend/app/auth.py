@@ -32,6 +32,8 @@ class OSMAuth:
     @staticmethod
     def get_authorization_url() -> str:
         """Generate OSM OAuth authorization URL."""
+        from urllib.parse import urlencode
+        
         params = {
             "client_id": OSM_CLIENT_ID,
             "redirect_uri": OSM_REDIRECT_URI,
@@ -39,12 +41,15 @@ class OSMAuth:
             "scope": "read_prefs write_api write_notes",
         }
 
-        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+        query_string = urlencode(params)
         return f"{OSM_OAUTH_URL}?{query_string}"
 
     @staticmethod
     async def exchange_code_for_token(code: str) -> Dict[str, Any]:
         """Exchange authorization code for access token."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         data = {
             "client_id": OSM_CLIENT_ID,
             "client_secret": OSM_CLIENT_SECRET,
@@ -53,13 +58,22 @@ class OSMAuth:
             "redirect_uri": OSM_REDIRECT_URI
         }
 
+        logger.info(f"Exchanging code for token with OSM: {OSM_TOKEN_URL}")
+        logger.info(f"Using client_id: {OSM_CLIENT_ID}")
+        logger.info(f"Using redirect_uri: {OSM_REDIRECT_URI}")
+        logger.info(f"Code (first 10 chars): {code[:10]}...")
+        logger.info(f"Request data: {data}")
+
         async with httpx.AsyncClient() as client:
             response = await client.post(OSM_TOKEN_URL, data=data)
 
+        logger.info(f"OSM token exchange response status: {response.status_code}")
         if response.status_code != 200:
+            logger.error(f"OSM token exchange failed. Response: {response.text}")
+            logger.error(f"Response headers: {dict(response.headers)}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to exchange code for token"
+                detail=f"Failed to exchange code for token: {response.text}"
             )
 
         return response.json()

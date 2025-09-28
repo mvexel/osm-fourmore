@@ -1,5 +1,5 @@
 import { POI } from '../types'
-import { getCategoryIcon, ContactIcons } from '../utils/icons'
+import { getCategoryIcon, getCategoryLabel, ContactIcons } from '../utils/icons'
 
 interface BusinessDetailsCardProps {
   poi: POI
@@ -11,14 +11,14 @@ export function BusinessDetailsCard({ poi }: BusinessDetailsCardProps) {
     <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
       {/* Header */}
       <div className="flex items-center space-x-3 mb-4">
-        <div className="text-gray-600">{getCategoryIcon(poi.category, { size: 28 })}</div>
+        <div className="text-gray-600">{getCategoryIcon(poi.class || poi.category || 'misc', { size: 28 })}</div>
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
             {poi.name || 'Unnamed Location'}
           </h2>
-          <p className="text-sm text-gray-600 capitalize">
-            {poi.category.replace('_', ' ')}
-            {poi.subcategory && ` • ${poi.subcategory.replace('_', ' ')}`}
+          <p className="text-sm text-gray-600">
+            {getCategoryLabel(poi.class || poi.category)}
+            {poi.subcategory && ` • ${getCategoryLabel(poi.subcategory)}`}
           </p>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { authApi } from '../services/api'
 import { UIIcons } from '../utils/icons'
 
@@ -44,7 +44,7 @@ export function AuthCallback() {
       }
     }
 
-    handleCallback()
+    void handleCallback()
 
     return () => {
       cancelled = true

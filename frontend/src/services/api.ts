@@ -1,27 +1,54 @@
-import axios from 'axios'
-import { POI, CheckIn, AuthToken, NearbyRequest, CheckInCreate, ApiResponse } from '../types'
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
+import {
+  POI,
+  CheckIn,
+  AuthToken,
+  NearbyRequest,
+  CheckInCreate,
+  ApiResponse,
+  ClassesListEntry,
+  CheckinHistory,
+  CheckinStats,
+} from '../types'
+
+type LoginUrlResponse = { auth_url: string }
+type NearbyResponse = POI[]
+type PlaceDetailsResponse = POI
+type CheckinDeleteResponse = ApiResponse
+type ConfirmInfoResponse = {
+  success: boolean
+  osm_id: string
+  osm_type: string
+  changeset_id: string
+  new_version: number
+  check_date: string
+  message: string
+}
+type CreateNoteResponse = {
+  success: boolean
+  note_id: number
+  message: string
+}
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
-// Create axios instance with default config
-export const api = axios.create({
+export const api: AxiosInstance = axios.create({
   baseURL: API_BASE,
-  timeout: 10000,
+  timeout: 10_000,
 })
 
-// Add auth token to requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('fourmore_token')
   if (token) {
+    config.headers = config.headers ?? {}
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
-// Handle auth errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  (error: AxiosError) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('fourmore_token')
       localStorage.removeItem('fourmore_user')
@@ -31,96 +58,81 @@ api.interceptors.response.use(
   }
 )
 
-// Auth API
+const unwrap = <T>(response: AxiosResponse<T>): T => response.data
+
 export const authApi = {
-  getLoginUrl: async (): Promise<{ auth_url: string }> => {
-    const response = await api.get('/auth/login')
-    return response.data.data
+  async getLoginUrl(): Promise<LoginUrlResponse> {
+    const response = await api.get<ApiResponse<LoginUrlResponse>>('/auth/login')
+    const data = unwrap(response).data
+    if (!data?.auth_url) {
+      throw new Error('Missing login URL in response')
+    }
+    return data
   },
 
-  handleCallback: async (code: string): Promise<AuthToken> => {
-    const response = await api.post('/auth/callback', { code })
-    return response.data
+  async handleCallback(code: string): Promise<AuthToken> {
+    const response = await api.post<AuthToken>('/auth/callback', { code })
+    return unwrap(response)
   },
 }
 
-// Places API
 export const placesApi = {
-  getNearby: async (request: NearbyRequest): Promise<POI[]> => {
-    const response = await api.post('/places/nearby', request)
-    return response.data
+  async getNearby(request: NearbyRequest): Promise<NearbyResponse> {
+    const response = await api.post<NearbyResponse>('/places/nearby', request)
+    return unwrap(response)
   },
 
-  getDetails: async (osmType: string, osmId: number): Promise<POI> => {
-    const response = await api.get(`/places/${osmType}/${osmId}`)
-    return response.data
+  async getDetails(osmType: string, osmId: number): Promise<PlaceDetailsResponse> {
+    const response = await api.get<PlaceDetailsResponse>(`/places/${osmType}/${osmId}`)
+    return unwrap(response)
   },
 
-  getClasses: async (): Promise<ApiResponse<Array<{ class: string; count: number }>>> => {
-    const response = await api.get('/places/classes/list')
-    return response.data
+  async getClasses(): Promise<ClassesListEntry[]> {
+    const response = await api.get<ApiResponse<ClassesListEntry[]>>('/places/classes/list')
+    return unwrap(response).data ?? []
   },
 }
 
-// Check-ins API
 export const checkinsApi = {
-  create: async (checkin: CheckInCreate): Promise<CheckIn> => {
-    const response = await api.post('/checkins', checkin)
-    return response.data
+  async create(checkin: CheckInCreate): Promise<CheckIn> {
+    const response = await api.post<CheckIn>('/checkins', checkin)
+    return unwrap(response)
   },
 
-  getHistory: async (page = 1, perPage = 20): Promise<{
-    checkins: CheckIn[]
-    total: number
-    page: number
-    per_page: number
-  }> => {
-    const response = await api.get(`/checkins?page=${page}&per_page=${perPage}`)
-    return response.data
+  async getHistory(page = 1, perPage = 20): Promise<CheckinHistory> {
+    const response = await api.get<CheckinHistory>(`/checkins?page=${page}&per_page=${perPage}`)
+    return unwrap(response)
   },
 
-  getDetails: async (checkinId: number): Promise<CheckIn> => {
-    const response = await api.get(`/checkins/${checkinId}`)
-    return response.data
+  async getDetails(checkinId: number): Promise<CheckIn> {
+    const response = await api.get<CheckIn>(`/checkins/${checkinId}`)
+    return unwrap(response)
   },
 
-  delete: async (checkinId: number): Promise<ApiResponse> => {
-    const response = await api.delete(`/checkins/${checkinId}`)
-    return response.data
+  async delete(checkinId: number): Promise<CheckinDeleteResponse> {
+    const response = await api.delete<CheckinDeleteResponse>(`/checkins/${checkinId}`)
+    return unwrap(response)
   },
 
-  getStats: async (): Promise<ApiResponse<{
-    total_checkins: number
-    unique_places: number
-    favorite_class: string
-    member_since: string
-  }>> => {
-    const response = await api.get('/checkins/stats/summary')
-    return response.data
+  async getStats(): Promise<CheckinStats> {
+    const response = await api.get<ApiResponse<CheckinStats>>('/checkins/stats/summary')
+    return unwrap(response).data ?? {
+      total_checkins: 0,
+      unique_places: 0,
+      favorite_class: null,
+      member_since: null,
+    }
   },
 }
 
-// OSM Edits API
 export const osmApi = {
-  confirmInfo: async (poiId: number): Promise<{
-    success: boolean
-    osm_id: string
-    osm_type: string
-    changeset_id: string
-    new_version: number
-    check_date: string
-    message: string
-  }> => {
-    const response = await api.post('/osm/confirm-info', { poi_id: poiId })
-    return response.data
+  async confirmInfo(poiId: number): Promise<ConfirmInfoResponse> {
+    const response = await api.post<ConfirmInfoResponse>('/osm/confirm-info', { poi_id: poiId })
+    return unwrap(response)
   },
 
-  createNote: async (poiId: number, text: string): Promise<{
-    success: boolean
-    note_id: number
-    message: string
-  }> => {
-    const response = await api.post('/osm/note', { poi_id: poiId, text })
-    return response.data
+  async createNote(poiId: number, text: string): Promise<CreateNoteResponse> {
+    const response = await api.post<CreateNoteResponse>('/osm/note', { poi_id: poiId, text })
+    return unwrap(response)
   },
 }

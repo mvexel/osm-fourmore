@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { POI } from '../types'
 import { placesApi, checkinsApi } from '../services/api'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { OSMContribution } from '../components/OSMContribution'
-import { getCategoryIcon, ContactIcons, UIIcons } from '../utils/icons'
+import { getCategoryIcon, getCategoryLabel, ContactIcons, UIIcons } from '../utils/icons'
 
 export function PlaceDetails() {
   const { osmType, osmId } = useParams<{ osmType: string; osmId: string }>()
@@ -17,17 +17,11 @@ export function PlaceDetails() {
   const [comment, setComment] = useState('')
   const [showCheckInForm, setShowCheckInForm] = useState(false)
 
-  useEffect(() => {
-    if (osmType && osmId) {
-      fetchPlaceDetails(osmType, Number(osmId))
-    }
-  }, [osmType, osmId])
-
-  const fetchPlaceDetails = async (osmType: string, osmId: number) => {
+  const fetchPlaceDetails = useCallback(async (type: string, id: number) => {
     try {
       setLoading(true)
       setError(null)
-      const poiData = await placesApi.getDetails(osmType, osmId)
+      const poiData = await placesApi.getDetails(type, id)
       setPoi(poiData)
     } catch (err) {
       setError('Failed to load place details')
@@ -35,7 +29,13 @@ export function PlaceDetails() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (osmType && osmId) {
+      void fetchPlaceDetails(osmType, Number(osmId))
+    }
+  }, [fetchPlaceDetails, osmType, osmId])
 
   const handleCheckIn = async () => {
     if (!poi) return
@@ -113,13 +113,13 @@ export function PlaceDetails() {
         {/* Place Info */}
         <div className="space-y-4">
           <div className="flex items-start space-x-3">
-            <div className="text-gray-600">{getCategoryIcon(poi.class, { size: 28 })}</div>
+            <div className="text-gray-600">{getCategoryIcon(poi.class || poi.category || 'misc', { size: 28 })}</div>
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-gray-900">
                 {poi.name || 'Unnamed Location'}
               </h2>
-              <p className="text-gray-600 capitalize">
-                {poi.class.replace('_', ' ')}
+              <p className="text-gray-600">
+                {getCategoryLabel(poi.class || poi.category)}
               </p>
             </div>
           </div>

@@ -25,13 +25,20 @@ async def login():
 @router.post("/callback", response_model=Token)
 async def auth_callback(callback_data: AuthCallback, db: Session = Depends(get_db)):
     """Handle OAuth callback and create user session."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
+        logger.info(f"Auth callback received with code: {callback_data.code[:10]}...")
+        
         # Exchange code for token
         token_data = await OSMAuth.exchange_code_for_token(callback_data.code)
+        logger.info(f"Token exchange successful, got token: {token_data.get('access_token', '')[:10]}...")
         access_token = token_data["access_token"]
 
         # Get user info from OSM
         osm_user_data = await OSMAuth.get_user_info(access_token)
+        logger.info(f"User data retrieved: {osm_user_data.get('user', {}).get('display_name', 'unknown')}")
 
         # Create or update user in our database (store OSM token for API writes)
         user = create_or_update_user(db, osm_user_data, access_token)
@@ -43,6 +50,7 @@ async def auth_callback(callback_data: AuthCallback, db: Session = Depends(get_d
             expires_delta=access_token_expires
         )
 
+        logger.info(f"JWT token created successfully for user: {user.username}")
         return Token(
             access_token=jwt_token,
             token_type="bearer",
@@ -50,6 +58,7 @@ async def auth_callback(callback_data: AuthCallback, db: Session = Depends(get_d
         )
 
     except Exception as e:
+        logger.error(f"Auth callback failed: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Authentication failed: {str(e)}"

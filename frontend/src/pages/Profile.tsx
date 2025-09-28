@@ -1,28 +1,29 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { checkinsApi } from '../services/api'
+import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
-import { NavIcons, ActionIcons } from '../utils/icons'
+import { useAuth } from '../hooks/useAuth'
+import { checkinsApi } from '../services/api'
+import { NavIcons, ActionIcons, getCategoryLabel } from '../utils/icons'
+import { CheckinStats } from '../types'
 
 export function Profile() {
   const { user, logout } = useAuth()
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<CheckinStats | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchStats()
-  }, [])
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await checkinsApi.getStats()
-      setStats(response.data)
+      setStats(response)
     } catch (err) {
       console.error('Error fetching stats:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    void fetchStats()
+  }, [fetchStats])
 
   if (!user) return null
 
@@ -86,12 +87,10 @@ export function Profile() {
             </div>
 
             <div className="space-y-3 text-sm">
-              {stats.favorite_category && (
+              {stats.favorite_class && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Favorite Category:</span>
-                  <span className="font-medium capitalize">
-                    {stats.favorite_category.replace('_', ' ')}
-                  </span>
+                  <span className="font-medium">{getCategoryLabel(stats.favorite_class)}</span>
                 </div>
               )}
 
@@ -151,7 +150,7 @@ export function Profile() {
               FourMore is a social check-in app that uses OpenStreetMap data to help you discover and share places.
             </p>
             <p>
-              By checking in to places, you're building a personal map of your experiences while contributing to the OpenStreetMap community.
+              By checking in to places, you&apos;re building a personal map of your experiences while contributing to the OpenStreetMap community.
             </p>
             <div className="pt-3 border-t border-gray-100">
               <p className="text-xs text-gray-500">

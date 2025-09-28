@@ -1,28 +1,32 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 import { User } from '../types'
+import { AuthContext, AuthContextType } from './AuthContextObject'
 
-interface AuthContextType {
-  user: User | null
-  token: string | null
-  login: (token: string, user: User) => void
-  logout: () => void
-  isAuthenticated: boolean
+const readStoredUser = (): User | null => {
+  const stored = localStorage.getItem('fourmore_user')
+  if (!stored) {
+    return null
+  }
+
+  try {
+    return JSON.parse(stored) as User
+  } catch (error) {
+    console.error('Failed to parse stored user', error)
+    return null
+  }
 }
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
-    // Load user and token from localStorage on app start
     const savedToken = localStorage.getItem('fourmore_token')
-    const savedUser = localStorage.getItem('fourmore_user')
+    const savedUser = readStoredUser()
 
     if (savedToken && savedUser) {
       setToken(savedToken)
-      setUser(JSON.parse(savedUser))
+      setUser(savedUser)
     }
   }, [])
 
@@ -40,25 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('fourmore_user')
   }
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        login,
-        logout,
-        isAuthenticated: !!token && !!user,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+  const contextValue: AuthContextType = {
+    user,
+    token,
+    login,
+    logout,
+    isAuthenticated: Boolean(token && user),
   }
-  return context
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
 }

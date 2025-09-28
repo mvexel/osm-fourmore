@@ -1,15 +1,20 @@
+export type POITags = Record<string, unknown>
+
 export interface POI {
+  id?: number
   osm_id: number
   osm_type: string
   name: string
   class: string
+  category?: string
+  subcategory?: string
   lat: number
   lon: number
   address?: string
   phone?: string
   website?: string
   opening_hours?: string
-  tags: Record<string, any>
+  tags: POITags
   version: number
   timestamp: string
   distance?: number
@@ -59,8 +64,27 @@ export interface CheckInCreate {
   user_lon?: number
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   message: string
   data?: T
+}
+
+export interface ClassesListEntry {
+  class: string
+  count: number
+}
+
+export interface CheckinHistory {
+  checkins: CheckIn[]
+  total: number
+  page: number
+  per_page: number
+}
+
+export interface CheckinStats {
+  total_checkins: number
+  unique_places: number
+  favorite_class: string | null
+  member_since: string | null
 }

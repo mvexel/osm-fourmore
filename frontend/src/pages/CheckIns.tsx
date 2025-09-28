@@ -1,60 +1,115 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckIn } from '../types'
-import { checkinsApi } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
-import { getCategoryIcon, ContactIcons, UIIcons, NavIcons } from '../utils/icons'
+import { CheckIn, CheckinStats } from '../types'
+import { checkinsApi } from '../services/api'
+import { getCategoryIcon, getCategoryLabel, ContactIcons, UIIcons, NavIcons } from '../utils/icons'
 
 export function CheckIns() {
   const [checkins, setCheckins] = useState<CheckIn[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<CheckinStats | null>(null)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
-  useEffect(() => {
-    fetchCheckins()
-    fetchStats()
-  }, [])
-
-  const fetchCheckins = async (pageNum = 1, reset = true) => {
+  const fetchCheckins = useCallback(async (pageNum = 1, reset = true) => {
     try {
-      setLoading(true)
-      setError(null)
+      if (reset) {
+        setLoading(true)
+        setError(null)
+      } else {
+        setIsLoadingMore(true)
+      }
 
       const response = await checkinsApi.getHistory(pageNum, 20)
 
       if (reset) {
         setCheckins(response.checkins)
       } else {
-        setCheckins(prev => [...prev, ...response.checkins])
+        setCheckins((prev) => [...prev, ...response.checkins])
       }
 
-      setHasMore(response.checkins.length === 20)
+      setHasMore(response.checkins.length === response.per_page)
       setPage(pageNum)
     } catch (err) {
       setError('Failed to load check-ins')
       console.error('Error fetching check-ins:', err)
     } finally {
-      setLoading(false)
+      if (reset) {
+        setLoading(false)
+      } else {
+        setIsLoadingMore(false)
+      }
     }
-  }
+  }, [])
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await checkinsApi.getStats()
-      setStats(response.data)
+      setStats(response)
     } catch (err) {
       console.error('Error fetching stats:', err)
     }
-  }
+  }, [])
 
-  const loadMore = () => {
-    if (!loading && hasMore) {
-      fetchCheckins(page + 1, false)
+  useEffect(() => {
+    void fetchCheckins(1, true)
+    void fetchStats()
+  }, [fetchCheckins, fetchStats])
+
+  const loadMore = useCallback(() => {
+    if (loading || isLoadingMore || !hasMore) {
+      return
     }
-  }
+    void fetchCheckins(page + 1, false)
+  }, [fetchCheckins, hasMore, isLoadingMore, loading, page])
+
+  const statsContent = useMemo(() => {
+    if (!stats) {
+      return null
+    }
+
+    return (
+      <div className="p-4 bg-gray-50">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-primary-600">
+              {stats.total_checkins}
+            </div>
+            <div className="text-sm text-gray-600">Total Check-ins</div>
+          </div>
+          <div className="bg-white rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-primary-600">
+              {stats.unique_places}
+            </div>
+            <div className="text-sm text-gray-600">Unique Places</div>
+          </div>
+        </div>
+        {stats.favorite_class && (
+          <div className="mt-3 text-center">
+            <p className="text-sm text-gray-600">
+              Favorite category: <span className="font-medium">{getCategoryLabel(stats.favorite_class)}</span>
+            </p>
+          </div>
+        )}
+      </div>
+    )
+  }, [stats])
+
+  const groupedCheckins = useMemo(() => {
+    const groups = checkins.reduce<Record<string, CheckIn[]>>((acc, checkin) => {
+      const date = format(new Date(checkin.created_at), 'yyyy-MM-dd')
+      if (!acc[date]) {
+        acc[date] = []
+      }
+      acc[date].push(checkin)
+      return acc
+    }, {})
+
+    return Object.entries(groups)
+  }, [checkins])
 
   return (
     <div className="pb-20">
@@ -64,33 +119,7 @@ export function CheckIns() {
       </div>
 
       {/* Stats */}
-      {stats && (
-        <div className="p-4 bg-gray-50">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-primary-600">
-                {stats.total_checkins}
-              </div>
-              <div className="text-sm text-gray-600">Total Check-ins</div>
-            </div>
-            <div className="bg-white rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-primary-600">
-                {stats.unique_places}
-              </div>
-              <div className="text-sm text-gray-600">Unique Places</div>
-            </div>
-          </div>
-          {stats.favorite_category && (
-            <div className="mt-3 text-center">
-              <p className="text-sm text-gray-600">
-                Favorite category: <span className="font-medium capitalize">
-                  {stats.favorite_category.replace('_', ' ')}
-                </span>
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+      {statsContent}
 
       {/* Content */}
       <div className="p-4">
@@ -106,7 +135,7 @@ export function CheckIns() {
             <div className="text-gray-600 mb-4">{UIIcons.error({ size: 48 })}</div>
             <p className="text-gray-600 mb-4">{error}</p>
             <button
-              onClick={() => fetchCheckins()}
+              onClick={() => void fetchCheckins(1, true)}
               className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
             >
               Try Again
@@ -129,14 +158,7 @@ export function CheckIns() {
         ) : (
           <div className="space-y-4">
             {/* Group by date */}
-            {Object.entries(
-              checkins.reduce((groups, checkin) => {
-                const date = format(new Date(checkin.created_at), 'yyyy-MM-dd')
-                if (!groups[date]) groups[date] = []
-                groups[date].push(checkin)
-                return groups
-              }, {} as Record<string, CheckIn[]>)
-            ).map(([date, dayCheckins]) => (
+            {groupedCheckins.map(([date, dayCheckins]) => (
               <div key={date}>
                 <h3 className="text-sm font-medium text-gray-500 mb-3 sticky top-16 bg-white py-1">
                   {format(new Date(date), 'EEEE, MMMM d, yyyy')}
@@ -146,7 +168,7 @@ export function CheckIns() {
                     <div key={checkin.id} className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-start space-x-3">
                         <div className="text-gray-600">
-                          {getCategoryIcon(checkin.poi.category, { size: 24 })}
+                          {getCategoryIcon(checkin.poi.class || checkin.poi.category || 'misc', { size: 24 })}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
@@ -161,8 +183,8 @@ export function CheckIns() {
                             </span>
                           </div>
 
-                          <p className="text-sm text-gray-600 capitalize">
-                            {checkin.poi.category.replace('_', ' ')}
+                          <p className="text-sm text-gray-600">
+                            {getCategoryLabel(checkin.poi.class || checkin.poi.category)}
                           </p>
 
                           {checkin.poi.address && (
@@ -174,7 +196,7 @@ export function CheckIns() {
 
                           {checkin.comment && (
                             <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-700">
-                              "{checkin.comment}"
+                              <q className="italic text-gray-700">{checkin.comment}</q>
                             </div>
                           )}
 
@@ -205,10 +227,10 @@ export function CheckIns() {
               <div className="text-center pt-4">
                 <button
                   onClick={loadMore}
-                  disabled={loading}
+                  disabled={isLoadingMore}
                   className="px-6 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 transition-colors"
                 >
-                  {loading ? 'Loading...' : 'Load More'}
+                  {isLoadingMore ? 'Loading...' : 'Load More'}
                 </button>
               </div>
             )}

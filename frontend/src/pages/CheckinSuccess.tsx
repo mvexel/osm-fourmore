@@ -33,7 +33,7 @@ export function CheckinSuccess() {
       }
     }
 
-    fetchCheckinDetails()
+    void fetchCheckinDetails()
   }, [checkinId])
 
   if (loading) {
@@ -91,7 +91,7 @@ export function CheckinSuccess() {
           </p>
           {checkin.comment && (
             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-700 italic">"{checkin.comment}"</p>
+              <q className="text-sm text-gray-700 italic">{checkin.comment}</q>
             </div>
           )}
         </div>

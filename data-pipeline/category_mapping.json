@@ -1,0 +1,434 @@
+[
+  {
+    "class": "restaurant",
+    "label": "Restaurants",
+    "icon": "IconToolsKitchen2",
+    "matches": [
+      "amenity=restaurant",
+      "amenity=food_court",
+      "amenity=diner",
+      "amenity=bbq"
+    ]
+  },
+  {
+    "class": "cafe_bakery",
+    "label": "Cafes & Bakeries",
+    "icon": "IconCoffee",
+    "matches": [
+      "amenity=cafe",
+      "amenity=coffee_shop",
+      "amenity=tea"
+    ]
+  },
+  {
+    "class": "bar_pub",
+    "label": "Bars & Pubs",
+    "icon": "IconBeer",
+    "matches": [
+      "amenity=bar",
+      "amenity=pub",
+      "amenity=biergarten"
+    ]
+  },
+  {
+    "class": "fast_food",
+    "label": "Fast Food",
+    "icon": "IconBurger",
+    "matches": [
+      "amenity=fast_food",
+      "amenity=food_truck",
+      "amenity=ice_cream",
+      "amenity=street_vendor"
+    ]
+  },
+  {
+    "class": "grocery",
+    "label": "Grocery & Markets",
+    "icon": "IconShoppingCart",
+    "matches": [
+      "shop=supermarket",
+      "shop=convenience",
+      "shop=grocery",
+      "shop=marketplace",
+      "amenity=marketplace"
+    ]
+  },
+  {
+    "class": "specialty_food",
+    "label": "Specialty Food",
+    "icon": "IconBread",
+    "matches": [
+      "shop=bakery",
+      "shop=butcher",
+      "shop=cheese",
+      "shop=confectionery",
+      "shop=chocolate",
+      "shop=deli",
+      "shop=fishmonger",
+      "shop=frozen_food",
+      "shop=greengrocer",
+      "shop=health_food",
+      "shop=organic",
+      "shop=pastry",
+      "shop=tea",
+      "shop=coffee"
+    ]
+  },
+  {
+    "class": "retail",
+    "label": "Shops & Retail",
+    "icon": "IconShoppingBag",
+    "matches": [
+      "shop=mall",
+      "shop=department_store",
+      "shop=car",
+      "shop=car_parts",
+      "shop=car_accessories",
+      "shop=clothes",
+      "shop=fashion",
+      "shop=shoes",
+      "shop=electronics",
+      "shop=computer",
+      "shop=hardware",
+      "shop=doityourself",
+      "shop=furniture",
+      "shop=jewelry",
+      "shop=toys",
+      "shop=books",
+      "shop=gift",
+      "shop=cosmetics",
+      "shop=interior_decoration",
+      "shop=variety_store",
+      "shop=stationery",
+      "shop=general",
+      "shop=*"
+    ]
+  },
+  {
+    "class": "personal_services",
+    "label": "Personal Services",
+    "icon": "IconScissors",
+    "matches": [
+      "amenity=spa",
+      "amenity=sauna",
+      "amenity=hairdresser",
+      "amenity=beauty_salon",
+      "amenity=laundry",
+      "amenity=dry_cleaning",
+      "shop=hairdresser",
+      "shop=beauty",
+      "shop=massage",
+      "shop=cosmetics",
+      "shop=laundry",
+      "shop=tailor"
+    ]
+  },
+  {
+    "class": "professional_services",
+    "label": "Professional Services",
+    "icon": "IconBriefcase",
+    "matches": [
+      "amenity=coworking_space",
+      "amenity=conference_centre",
+      "office=company",
+      "office=it",
+      "office=technology",
+      "office=lawyer",
+      "office=architect",
+      "office=estate_agent",
+      "office=accountant",
+      "office=tax_advisor",
+      "office=notary",
+      "office=consulting",
+      "office=insurance",
+      "office=ngo",
+      "office=research"
+    ]
+  },
+  {
+    "class": "finance",
+    "label": "Financial Services",
+    "icon": "IconBuildingBank",
+    "matches": [
+      "amenity=bank",
+      "amenity=atm",
+      "amenity=bureau_de_change",
+      "amenity=money_transfer"
+    ]
+  },
+  {
+    "class": "lodging",
+    "label": "Lodging & Camping",
+    "icon": "IconBed",
+    "matches": [
+      "tourism=hotel",
+      "tourism=guest_house",
+      "tourism=hostel",
+      "tourism=motel",
+      "tourism=apartment",
+      "tourism=chalet",
+      "tourism=alpine_hut",
+      "tourism=camp_site",
+      "tourism=caravan_site"
+    ]
+  },
+  {
+    "class": "transport",
+    "label": "Transit & Travel",
+    "icon": "IconBus",
+    "matches": [
+      "amenity=bus_station",
+      "highway=bus_stop",
+      "railway=station",
+      "railway=halt",
+      "railway=stop",
+      "railway=tram_stop",
+      "railway=light_rail",
+      "railway=subway_entrance",
+      "railway=platform",
+      "public_transport=station",
+      "public_transport=platform",
+      "aeroway=aerodrome",
+      "aeroway=terminal",
+      "aeroway=heliport",
+      "aeroway=helipad",
+      "aeroway=gate",
+      "amenity=ferry_terminal",
+      "amenity=bus_terminal",
+      "amenity=airport"
+    ]
+  },
+  {
+    "class": "auto_services",
+    "label": "Auto Services",
+    "icon": "IconGasStation",
+    "matches": [
+      "amenity=fuel",
+      "amenity=charging_station",
+      "amenity=car_wash",
+      "amenity=car_rental",
+      "amenity=car_sharing",
+      "amenity=car_repair",
+      "amenity=vehicle_inspection",
+      "shop=car_repair",
+      "shop=tyres",
+      "shop=car_parts",
+      "shop=motorcycle",
+      "shop=caravan"
+    ]
+  },
+  {
+    "class": "parking",
+    "label": "Parking",
+    "icon": "IconParking",
+    "matches": [
+      "amenity=parking",
+      "amenity=parking_entrance",
+      "amenity=parking_space",
+      "amenity=bicycle_parking",
+      "amenity=motorcycle_parking"
+    ]
+  },
+  {
+    "class": "healthcare",
+    "label": "Healthcare",
+    "icon": "IconFirstAidKit",
+    "matches": [
+      "amenity=hospital",
+      "amenity=clinic",
+      "amenity=doctors",
+      "amenity=doctor",
+      "amenity=dentist",
+      "amenity=pharmacy",
+      "amenity=ambulance_station",
+      "healthcare=*"
+    ]
+  },
+  {
+    "class": "education",
+    "label": "Education",
+    "icon": "IconSchool",
+    "matches": [
+      "amenity=school",
+      "amenity=kindergarten",
+      "amenity=college",
+      "amenity=university",
+      "amenity=music_school",
+      "amenity=language_school",
+      "amenity=library"
+    ]
+  },
+  {
+    "class": "government",
+    "label": "Government & Civic",
+    "icon": "IconBuilding",
+    "matches": [
+      "amenity=townhall",
+      "amenity=courthouse",
+      "amenity=police",
+      "amenity=fire_station",
+      "amenity=post_office",
+      "amenity=embassy",
+      "amenity=customs",
+      "office=government",
+      "office=administrative",
+      "office=diplomatic"
+    ]
+  },
+  {
+    "class": "community",
+    "label": "Community & Social",
+    "icon": "IconUsers",
+    "matches": [
+      "amenity=community_centre",
+      "amenity=social_centre",
+      "amenity=youth_centre",
+      "amenity=social_facility",
+      "amenity=shelter",
+      "amenity=soup_kitchen",
+      "amenity=public_bath",
+      "amenity=events_centre"
+    ]
+  },
+  {
+    "class": "religious",
+    "label": "Religious",
+    "icon": "IconBuildingChurch",
+    "matches": [
+      "amenity=place_of_worship",
+      "amenity=church",
+      "amenity=mosque",
+      "amenity=temple",
+      "amenity=synagogue",
+      "amenity=chapel",
+      "amenity=shrine"
+    ]
+  },
+  {
+    "class": "culture",
+    "label": "Culture & Arts",
+    "icon": "IconPalette",
+    "matches": [
+      "tourism=museum",
+      "tourism=gallery",
+      "tourism=artwork",
+      "amenity=arts_centre",
+      "amenity=theatre",
+      "amenity=concert_hall",
+      "amenity=planetarium",
+      "amenity=cultural_center"
+    ]
+  },
+  {
+    "class": "entertainment",
+    "label": "Entertainment",
+    "icon": "IconDeviceGamepad2",
+    "matches": [
+      "amenity=cinema",
+      "amenity=nightclub",
+      "amenity=casino",
+      "amenity=bowling_alley",
+      "amenity=amusement_arcade",
+      "amenity=stripclub",
+      "leisure=bowling_alley",
+      "leisure=disc_golf_course",
+      "leisure=escape_game",
+      "leisure=amusement_arcade",
+      "leisure=video_games"
+    ]
+  },
+  {
+    "class": "sports_fitness",
+    "label": "Sports & Fitness",
+    "icon": "IconBallFootball",
+    "matches": [
+      "leisure=sports_centre",
+      "leisure=fitness_centre",
+      "leisure=gym",
+      "leisure=swimming_pool",
+      "leisure=stadium",
+      "leisure=pitch",
+      "leisure=track",
+      "leisure=ice_rink",
+      "leisure=golf_course",
+      "leisure=tennis_court",
+      "leisure=basketball_court",
+      "sport=*"
+    ]
+  },
+  {
+    "class": "parks_outdoors",
+    "label": "Parks & Outdoors",
+    "icon": "IconTrees",
+    "matches": [
+      "leisure=park",
+      "leisure=garden",
+      "leisure=nature_reserve",
+      "leisure=common",
+      "leisure=playground",
+      "leisure=dog_park",
+      "amenity=picnic_table",
+      "tourism=picnic_site",
+      "tourism=viewpoint",
+      "natural=beach",
+      "natural=wood",
+      "natural=scrub",
+      "boundary=national_park"
+    ]
+  },
+  {
+    "class": "landmark",
+    "label": "Landmarks",
+    "icon": "IconBuildingMonument",
+    "matches": [
+      "tourism=attraction",
+      "tourism=information",
+      "historic=monument",
+      "historic=memorial",
+      "historic=castle",
+      "historic=ruins",
+      "man_made=lighthouse",
+      "man_made=tower",
+      "man_made=obelisk",
+      "man_made=windmill",
+      "man_made=water_tower",
+      "amenity=fountain",
+      "historic=archaeological_site"
+    ]
+  },
+  {
+    "class": "animal_services",
+    "label": "Animal Services",
+    "icon": "IconPaw",
+    "matches": [
+      "amenity=veterinary",
+      "amenity=animal_boarding",
+      "amenity=animal_shelter",
+      "shop=pet",
+      "shop=pet_grooming"
+    ]
+  },
+  {
+    "class": "industrial",
+    "label": "Industrial & Utility",
+    "icon": "IconBuildingFactory",
+    "matches": [
+      "man_made=works",
+      "man_made=plant",
+      "man_made=power_wind",
+      "man_made=chimney",
+      "man_made=crane",
+      "power=plant",
+      "power=substation",
+      "power=generator",
+      "industrial=*",
+      "landuse=industrial"
+    ]
+  },
+  {
+    "class": "misc",
+    "label": "Other",
+    "icon": "IconQuestionMark",
+    "matches": []
+  }
+]

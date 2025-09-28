@@ -1,5 +1,5 @@
 import { POI } from '../types'
-import { getCategoryIcon } from '../utils/icons'
+import { getCategoryIcon, getCategoryLabel } from '../utils/icons'
 
 interface POICardProps {
   poi: POI
@@ -23,13 +23,13 @@ export function POICard({ poi, onClick, showCheckInButton, onCheckIn, isChecking
       <div className="flex items-stretch justify-between">
         <div className="flex-1 cursor-pointer" onClick={onClick}>
           <div className="flex items-center space-x-2 mb-2">
-            <div className="text-gray-600">{getCategoryIcon(poi.class, { size: 20 })}</div>
+            <div className="text-gray-600">{getCategoryIcon(poi.class || poi.category || 'misc', { size: 20 })}</div>
             <div>
               <h3 className="font-medium text-gray-900 line-clamp-1">
                 {poi.name || 'Unnamed Location'}
               </h3>
               <p className="text-xs text-gray-600">
-                <span className="capitalize">{poi.class.replace('_', ' ')}</span>
+                <span>{getCategoryLabel(poi.class || poi.category)}</span>
                 {poi.distance !== undefined && (
                   <span>, {formatDistance(poi.distance)} away</span>
                 )}

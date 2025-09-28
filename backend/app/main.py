@@ -1,6 +1,7 @@
 """FourMore FastAPI backend application."""
 
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -30,12 +31,27 @@ logger = logging.getLogger(__name__)
 
 # Import routers
 from .routers import auth, places, checkins, osm_edits
+from .database import create_tables
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application lifespan events."""
+    # Startup
+    logger.info("Creating database tables...")
+    create_tables()
+    logger.info("Database tables created successfully")
+    
+    yield
+    
+    # Shutdown (if needed)
+    logger.info("Application shutting down...")
 
 app = FastAPI(
     title="FourMore API",
     description="Social check-in app using OpenStreetMap data",
     version="1.0.0",
-    root_path="/api"
+    root_path="/api",
+    lifespan=lifespan
 )
 
 # CORS middleware

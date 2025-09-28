@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { POI } from '../types'
 import { placesApi, checkinsApi } from '../services/api'
@@ -22,17 +22,7 @@ export function Nearby() {
 
   const radius = 100 // TODO - this should be a constant. We keep this really small for performance and to prevent users from checking in too far away
 
-  // Fetch nearby places when location is available
-  useEffect(() => {
-    if (latitude && longitude) {
-      // Reset pagination when filters change
-      setPage(0)
-      setHasNextPage(true)
-      fetchNearbyPlaces(true)
-    }
-  }, [latitude, longitude, selectedClass])
-
-  const fetchNearbyPlaces = async (reset = false) => {
+  const fetchNearbyPlaces = useCallback(async (reset = false, pageOverride?: number) => {
     if (!latitude || !longitude) return
 
     try {
@@ -43,7 +33,7 @@ export function Nearby() {
         setIsLoadingMore(true)
       }
 
-      const currentPage = reset ? 0 : page
+      const currentPage = reset ? 0 : pageOverride ?? 0
       const limit = 20
       const offset = currentPage * limit
 
@@ -77,14 +67,23 @@ export function Nearby() {
       setLoading(false)
       setIsLoadingMore(false)
     }
-  }
+  }, [latitude, longitude, radius, selectedClass])
 
-  const loadMorePlaces = async () => {
+  // Fetch nearby places when location is available
+  useEffect(() => {
+    if (latitude && longitude) {
+      setPage(0)
+      setHasNextPage(true)
+      void fetchNearbyPlaces(true)
+    }
+  }, [fetchNearbyPlaces, latitude, longitude, selectedClass])
+
+  const loadMorePlaces = useCallback(async () => {
     console.log('loadMorePlaces called:', { hasNextPage, isLoadingMore, loading })
     if (!hasNextPage || isLoadingMore || loading) return
     console.log('Loading more places...')
-    await fetchNearbyPlaces(false)
-  }
+    await fetchNearbyPlaces(false, page)
+  }, [fetchNearbyPlaces, hasNextPage, isLoadingMore, loading, page])
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const now = Date.now()
@@ -109,7 +108,7 @@ export function Nearby() {
     // Trigger load more when within 200px of bottom (more generous threshold)
     if (distanceFromBottom <= 200 && hasNextPage && !isLoadingMore && !loading) {
       console.log('Near bottom, triggering load more')
-      loadMorePlaces()
+      void loadMorePlaces()
     }
   }
 
@@ -250,7 +249,7 @@ export function Nearby() {
             {/* No more results indicator */}
             {!hasNextPage && pois.length > 0 && (
               <div className="text-center py-4">
-                <p className="text-gray-500 text-sm">You've reached the end.</p>
+                <p className="text-gray-500 text-sm">You&apos;ve reached the end.</p>
               </div>
             )}
           </>
