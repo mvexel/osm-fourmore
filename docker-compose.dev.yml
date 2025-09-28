@@ -15,6 +15,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - fourmore-network
 
   redis:
     image: redis:7-alpine
@@ -27,6 +29,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - fourmore-network
 
   backend:
     build:
@@ -53,6 +57,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
     command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug" ]
+    networks:
+      - fourmore-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app:cached
+      - ./frontend/src/generated:/app/src/generated:ro
+    environment:
+      - NODE_ENV=development
+      - VITE_API_BASE_URL=/api
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - fourmore-network
 
   data-pipeline:
     build:
@@ -71,7 +96,14 @@ services:
         condition: service_healthy
     profiles:
       - tools
+    networks:
+      - fourmore-network
 
 volumes:
   postgres_data:
   redis_data:
+
+
+networks:
+  fourmore-network:
+    driver: bridge
