@@ -7,7 +7,7 @@ import { OSMContribution } from '../components/OSMContribution'
 import { getCategoryIcon, ContactIcons, UIIcons } from '../utils/icons'
 
 export function PlaceDetails() {
-  const { id } = useParams<{ id: string }>()
+  const { osmType, osmId } = useParams<{ osmType: string; osmId: string }>()
   const navigate = useNavigate()
   const { latitude, longitude } = useGeolocation()
   const [poi, setPoi] = useState<POI | null>(null)
@@ -18,16 +18,16 @@ export function PlaceDetails() {
   const [showCheckInForm, setShowCheckInForm] = useState(false)
 
   useEffect(() => {
-    if (id) {
-      fetchPlaceDetails(Number(id))
+    if (osmType && osmId) {
+      fetchPlaceDetails(osmType, Number(osmId))
     }
-  }, [id])
+  }, [osmType, osmId])
 
-  const fetchPlaceDetails = async (poiId: number) => {
+  const fetchPlaceDetails = async (osmType: string, osmId: number) => {
     try {
       setLoading(true)
       setError(null)
-      const poiData = await placesApi.getDetails(poiId)
+      const poiData = await placesApi.getDetails(osmType, osmId)
       setPoi(poiData)
     } catch (err) {
       setError('Failed to load place details')
@@ -44,7 +44,8 @@ export function PlaceDetails() {
       setCheckinLoading(true)
 
       await checkinsApi.create({
-        poi_id: poi.id,
+        poi_osm_type: poi.osm_type,
+        poi_osm_id: poi.osm_id,
         comment: comment.trim() || undefined,
         user_lat: latitude || undefined,
         user_lon: longitude || undefined,
@@ -112,14 +113,13 @@ export function PlaceDetails() {
         {/* Place Info */}
         <div className="space-y-4">
           <div className="flex items-start space-x-3">
-            <div className="text-gray-600">{getCategoryIcon(poi.category, { size: 28 })}</div>
+            <div className="text-gray-600">{getCategoryIcon(poi.class, { size: 28 })}</div>
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-gray-900">
                 {poi.name || 'Unnamed Location'}
               </h2>
               <p className="text-gray-600 capitalize">
-                {poi.category.replace('_', ' ')}
-                {poi.subcategory && ` • ${poi.subcategory.replace('_', ' ')}`}
+                {poi.class.replace('_', ' ')}
               </p>
             </div>
           </div>
@@ -179,7 +179,7 @@ export function PlaceDetails() {
         </div>
 
         {/* OSM Contribution Section */}
-        <OSMContribution poiId={poi.id} />
+        <OSMContribution poiId={poi.osm_id} />
 
         {/* Check-in Section */}
         <div className="border-t border-gray-200 pt-6">

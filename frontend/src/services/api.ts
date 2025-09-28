@@ -51,13 +51,13 @@ export const placesApi = {
     return response.data
   },
 
-  getDetails: async (poiId: number): Promise<POI> => {
-    const response = await api.get(`/places/${poiId}`)
+  getDetails: async (osmType: string, osmId: number): Promise<POI> => {
+    const response = await api.get(`/places/${osmType}/${osmId}`)
     return response.data
   },
 
-  getCategories: async (): Promise<ApiResponse<Array<{ category: string; count: number }>>> => {
-    const response = await api.get('/places/categories/list')
+  getClasses: async (): Promise<ApiResponse<Array<{ class: string; count: number }>>> => {
+    const response = await api.get('/places/classes/list')
     return response.data
   },
 }
@@ -92,7 +92,7 @@ export const checkinsApi = {
   getStats: async (): Promise<ApiResponse<{
     total_checkins: number
     unique_places: number
-    favorite_category: string
+    favorite_class: string
     member_since: string
   }>> => {
     const response = await api.get('/checkins/stats/summary')

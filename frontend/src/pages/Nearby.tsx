@@ -13,8 +13,8 @@ export function Nearby() {
   const [pois, setPois] = useState<POI[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedCategory] = useState<string>('')
-  const [checkinLoading, setCheckinLoading] = useState<number | null>(null)
+  const [selectedClass] = useState<string>('')
+  const [checkinLoading, setCheckinLoading] = useState<string | null>(null)
   const [hasNextPage, setHasNextPage] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [page, setPage] = useState(0)
@@ -30,7 +30,7 @@ export function Nearby() {
       setHasNextPage(true)
       fetchNearbyPlaces(true)
     }
-  }, [latitude, longitude, selectedCategory])
+  }, [latitude, longitude, selectedClass])
 
   const fetchNearbyPlaces = async (reset = false) => {
     if (!latitude || !longitude) return
@@ -53,7 +53,7 @@ export function Nearby() {
         lat: latitude,
         lon: longitude,
         radius,
-        category: selectedCategory || undefined,
+        class: selectedClass || undefined,
         limit,
         offset,
       })
@@ -115,10 +115,12 @@ export function Nearby() {
 
   const handleCheckIn = async (poi: POI) => {
     try {
-      setCheckinLoading(poi.id)
+      const poiKey = `${poi.osm_type}-${poi.osm_id}`
+      setCheckinLoading(poiKey)
 
       const checkin = await checkinsApi.create({
-        poi_id: poi.id,
+        poi_osm_type: poi.osm_type,
+        poi_osm_id: poi.osm_id,
         user_lat: latitude || undefined,
         user_lon: longitude || undefined,
       })
@@ -134,7 +136,7 @@ export function Nearby() {
   }
 
   const handlePOIClick = (poi: POI) => {
-    navigate(`/places/${poi.id}`)
+    navigate(`/places/${poi.osm_type}/${poi.osm_id}`)
   }
 
   if (locationLoading) {
@@ -217,7 +219,7 @@ export function Nearby() {
                   onClick={() => handlePOIClick(poi)}
                   showCheckInButton
                   onCheckIn={() => handleCheckIn(poi)}
-                  isCheckingIn={checkinLoading === poi.id}
+                  isCheckingIn={checkinLoading === `${poi.osm_type}-${poi.osm_id}`}
                 />
               ))}
             </div>

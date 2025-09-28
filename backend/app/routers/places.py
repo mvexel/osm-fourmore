@@ -22,24 +22,24 @@ async def get_nearby_places(
     query = db.query(
         POI,
         func.ST_Distance(
-            func.ST_Transform(POI.location, 3857),  # Transform to Web Mercator for accurate distance
+            func.ST_Transform(POI.geom, 3857),  # Transform to Web Mercator for accurate distance
             func.ST_Transform(func.ST_GeomFromText(f'POINT({request.lon} {request.lat})', 4326), 3857)
         ).label('distance')
     ).filter(
         func.ST_DWithin(
-            func.ST_Transform(POI.location, 3857),
+            func.ST_Transform(POI.geom, 3857),
             func.ST_Transform(func.ST_GeomFromText(f'POINT({request.lon} {request.lat})', 4326), 3857),
             request.radius
         )
-    ).filter(POI.is_active == True)
+    )
 
-    # Filter by category if provided
-    if request.category:
-        query = query.filter(POI.category == request.category)
+    # Filter by class if provided
+    if request.class_:
+        query = query.filter(POI.class_ == request.class_)
 
     # Order by distance, apply offset and limit results
     query = query.order_by(func.ST_Distance(
-        func.ST_Transform(POI.location, 3857),
+        func.ST_Transform(POI.geom, 3857),
         func.ST_Transform(func.ST_GeomFromText(f'POINT({request.lon} {request.lat})', 4326), 3857)
     )).offset(request.offset).limit(request.limit)
 
@@ -49,12 +49,10 @@ async def get_nearby_places(
     pois = []
     for poi, distance in results:
         poi_data = POIResponse(
-            id=poi.id,
             osm_id=poi.osm_id,
             osm_type=poi.osm_type,
             name=poi.name,
-            category=poi.category,
-            subcategory=poi.subcategory,
+            class_=poi.class_,
             lat=poi.lat,
             lon=poi.lon,
             address=poi.address,
@@ -62,33 +60,32 @@ async def get_nearby_places(
             website=poi.website,
             opening_hours=poi.opening_hours,
             tags=poi.tags if poi.tags else {},
-            created_at=poi.created_at,
-            updated_at=poi.updated_at,
+            version=poi.version,
+            timestamp=poi.timestamp,
             distance=round(distance, 1)  # Round to 1 decimal place
         )
         pois.append(poi_data)
 
     return pois
 
-@router.get("/{poi_id}", response_model=POIResponse)
+@router.get("/{osm_type}/{osm_id}", response_model=POIResponse)
 async def get_place_details(
-    poi_id: int,
+    osm_type: str,
+    osm_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get detailed information about a specific POI."""
-    poi = db.query(POI).filter(POI.id == poi_id, POI.is_active == True).first()
+    poi = db.query(POI).filter(POI.osm_type == osm_type, POI.osm_id == osm_id).first()
 
     if not poi:
         raise HTTPException(status_code=404, detail="Place not found")
 
     return POIResponse(
-        id=poi.id,
         osm_id=poi.osm_id,
         osm_type=poi.osm_type,
         name=poi.name,
-        category=poi.category,
-        subcategory=poi.subcategory,
+        class_=poi.class_,
         lat=poi.lat,
         lon=poi.lon,
         address=poi.address,
@@ -96,23 +93,23 @@ async def get_place_details(
         website=poi.website,
         opening_hours=poi.opening_hours,
         tags=poi.tags if poi.tags else {},
-        created_at=poi.created_at,
-        updated_at=poi.updated_at
+        version=poi.version,
+        timestamp=poi.timestamp
     )
 
-@router.get("/categories/list")
-async def get_categories(
+@router.get("/classes/list")
+async def get_classes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get list of available POI categories."""
-    categories = db.query(
-        POI.category,
-        func.count(POI.id).label('count')
-    ).filter(POI.is_active == True).group_by(POI.category).all()
+    """Get list of available POI classes."""
+    classes = db.query(
+        POI.class_,
+        func.count().label('count')
+    ).group_by(POI.class_).all()
 
     return APIResponse(
         success=True,
-        message="Categories retrieved successfully",
-        data=[{"category": cat, "count": count} for cat, count in categories]
+        message="Classes retrieved successfully",
+        data=[{"class": cls, "count": count} for cls, count in classes]
     )

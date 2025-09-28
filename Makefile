@@ -34,32 +34,28 @@ restart: ## Restart all services
 	@docker-compose -f docker-compose.dev.yml restart
 
 .PHONY: rebuild
-rebuild: ## Stop containers, wipe database, rebuild and reseed everything
+rebuild: ## Reset services, rebuild the database, and load OSM data
 	@echo "Stopping and removing containers with volumes..."
 	@docker-compose -f docker-compose.dev.yml down -v
-	@echo "Starting fresh containers..."
+	@echo "Starting services..."
 	@docker-compose -f docker-compose.dev.yml up -d
-	@echo "Waiting for database to be ready..."
-	@sleep 5
-	@echo "Initializing database schema..."
-	@docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py init-db
-	@echo "Loading data..."
-	@docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py full-rebuild
+	@$(MAKE) wait-for-db
+	@$(MAKE) load-data
 	@echo "Rebuild complete!"
 
 # ==============================================================================
 # Initial Setup & Data Management
 # ==============================================================================
 
-.PHONY: init-db
-init-db: ## Initialize the database schema
-	@echo "Initializing database..."
-	@docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py init-db
+.PHONY: wait-for-db
+wait-for-db:
+	@echo "Waiting for database to be ready..."
+	@bash -lc 'for i in {1..30}; do docker-compose -f docker-compose.dev.yml exec -T postgres pg_isready -U fourmore -d fourmore >/dev/null 2>&1 && exit 0; echo "  postgres is still starting..."; sleep 2; done; echo "Postgres did not become ready in time" >&2; exit 1'
 
 .PHONY: load-data
-load-data: ## Process local OSM data from the data directory
-	@echo "Processing local OSM data..."
-	@docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py full-rebuild
+load-data: ## Load OSM data into Postgres using osm2pgsql
+	@echo "Loading OSM data with osm2pgsql..."
+	@docker-compose -f docker-compose.dev.yml --profile tools run --rm $(if $(OSM_DATA_FILE),-e OSM_DATA_FILE=$(OSM_DATA_FILE),) data-pipeline ./run_osm2pgsql.sh
 
 # ==============================================================================
 # Production

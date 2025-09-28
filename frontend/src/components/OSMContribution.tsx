@@ -4,7 +4,7 @@ import { IconCheck, IconMessagePlus } from '@tabler/icons-react'
 import { useDoubleConfirm } from '../hooks/useDoubleConfirm'
 
 interface OSMContributionProps {
-  poiId: number
+  poiId: string | number
   className?: string
 }
 

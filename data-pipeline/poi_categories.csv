@@ -1,0 +1,721 @@
+source_type,class
+afghan_restaurant,Food & Drink
+african_restaurant,Food & Drink
+american_restaurant,Food & Drink
+arabian_restaurant,Food & Drink
+argentine_restaurant,Food & Drink
+armenian_restaurant,Food & Drink
+asian_fusion_restaurant,Food & Drink
+asian_restaurant,Food & Drink
+australian_restaurant,Food & Drink
+austrian_restaurant,Food & Drink
+azerbaijani_restaurant,Food & Drink
+bagel_restaurant,Food & Drink
+bangladeshi_restaurant,Food & Drink
+baozi_restaurant,Food & Drink
+bar_and_grill_restaurant,Food & Drink
+barbecue_restaurant,Food & Drink
+basque_restaurant,Food & Drink
+belarusian_restaurant,Food & Drink
+belgian_restaurant,Food & Drink
+belizean_restaurant,Food & Drink
+bolivian_restaurant,Food & Drink
+brasserie,Food & Drink
+brazilian_restaurant,Food & Drink
+breakfast_and_brunch_restaurant,Food & Drink
+british_restaurant,Food & Drink
+buffet_restaurant,Food & Drink
+bulgarian_restaurant,Food & Drink
+burger_restaurant,Food & Drink
+burmese_restaurant,Food & Drink
+cajun_creole_restaurant,Food & Drink
+cambodian_restaurant,Food & Drink
+canadian_restaurant,Food & Drink
+caribbean_restaurant,Food & Drink
+catalan_restaurant,Food & Drink
+cheesesteak_restaurant,Food & Drink
+chicken_restaurant,Food & Drink
+chicken_wings_restaurant,Food & Drink
+chilean_restaurant,Food & Drink
+chinese_restaurant,Food & Drink
+colombian_restaurant,Food & Drink
+comfort_food_restaurant,Food & Drink
+costa_rican_restaurant,Food & Drink
+cuban_restaurant,Food & Drink
+curry_sausage_restaurant,Food & Drink
+czech_restaurant,Food & Drink
+danish_restaurant,Food & Drink
+dim_sum_restaurant,Food & Drink
+diner,Food & Drink
+dog_meat_restaurant,Food & Drink
+dominican_restaurant,Food & Drink
+dumpling_restaurant,Food & Drink
+eastern_european_restaurant,Food & Drink
+ecuadorian_restaurant,Food & Drink
+egyptian_restaurant,Food & Drink
+ethiopian_restaurant,Food & Drink
+european_restaurant,Food & Drink
+falafel_restaurant,Food & Drink
+filipino_restaurant,Food & Drink
+fish_and_chips_restaurant,Food & Drink
+fish_restaurant,Food & Drink
+fondue_restaurant,Food & Drink
+french_restaurant,Food & Drink
+georgian_restaurant,Food & Drink
+german_restaurant,Food & Drink
+gluten_free_restaurant,Food & Drink
+greek_restaurant,Food & Drink
+guamanian_restaurant,Food & Drink
+guatemalan_restaurant,Food & Drink
+haitian_restaurant,Food & Drink
+halal_restaurant,Food & Drink
+haute_cuisine_restaurant,Food & Drink
+hawaiian_restaurant,Food & Drink
+health_food_restaurant,Food & Drink
+himalayan_nepalese_restaurant,Food & Drink
+honduran_restaurant,Food & Drink
+hot_dog_restaurant,Food & Drink
+hungarian_restaurant,Food & Drink
+iberian_restaurant,Food & Drink
+indian_restaurant,Food & Drink
+indo_chinese_restaurant,Food & Drink
+indonesian_restaurant,Food & Drink
+international_restaurant,Food & Drink
+irish_restaurant,Food & Drink
+israeli_restaurant,Food & Drink
+italian_restaurant,Food & Drink
+jamaican_restaurant,Food & Drink
+japanese_restaurant,Food & Drink
+jewish_restaurant,Food & Drink
+kofta_restaurant,Food & Drink
+korean_restaurant,Food & Drink
+kosher_restaurant,Food & Drink
+kurdish_restaurant,Food & Drink
+laotian_restaurant,Food & Drink
+latin_american_restaurant,Food & Drink
+lebanese_restaurant,Food & Drink
+live_and_raw_food_restaurant,Food & Drink
+malaysian_restaurant,Food & Drink
+meat_restaurant,Food & Drink
+mediterranean_restaurant,Food & Drink
+mexican_restaurant,Food & Drink
+middle_eastern_restaurant,Food & Drink
+molecular_gastronomy_restaurant,Food & Drink
+mongolian_restaurant,Food & Drink
+moroccan_restaurant,Food & Drink
+nicaraguan_restaurant,Food & Drink
+nigerian_restaurant,Food & Drink
+noodles_restaurant,Food & Drink
+norwegian_restaurant,Food & Drink
+oriental_restaurant,Food & Drink
+pakistani_restaurant,Food & Drink
+pan_asian_restaurant,Food & Drink
+panamanian_restaurant,Food & Drink
+pancake_house,Food & Drink
+paraguayan_restaurant,Food & Drink
+persian_iranian_restaurant,Food & Drink
+peruvian_restaurant,Food & Drink
+piadina_restaurant,Food & Drink
+pizza_restaurant,Food & Drink
+polish_restaurant,Food & Drink
+polynesian_restaurant,Food & Drink
+portuguese_restaurant,Food & Drink
+potato_restaurant,Food & Drink
+poutinerie_restaurant,Food & Drink
+puerto_rican_restaurant,Food & Drink
+restaurant,Food & Drink
+romanian_restaurant,Food & Drink
+rotisserie_chicken_restaurant,Food & Drink
+russian_restaurant,Food & Drink
+salvadoran_restaurant,Food & Drink
+scandinavian_restaurant,Food & Drink
+scottish_restaurant,Food & Drink
+seafood_restaurant,Food & Drink
+senegalese_restaurant,Food & Drink
+serbo_croation_restaurant,Food & Drink
+singaporean_restaurant,Food & Drink
+slovakian_restaurant,Food & Drink
+soup_restaurant,Food & Drink
+south_african_restaurant,Food & Drink
+southern_restaurant,Food & Drink
+spanish_restaurant,Food & Drink
+sri_lankan_restaurant,Food & Drink
+steakhouse,Food & Drink
+sushi_restaurant,Food & Drink
+swiss_restaurant,Food & Drink
+syrian_restaurant,Food & Drink
+taco_restaurant,Food & Drink
+taiwanese_restaurant,Food & Drink
+tapas_bar,Food & Drink
+tatar_restaurant,Food & Drink
+texmex_restaurant,Food & Drink
+thai_restaurant,Food & Drink
+trinidadian_restaurant,Food & Drink
+turkish_restaurant,Food & Drink
+ukrainian_restaurant,Food & Drink
+uruguayan_restaurant,Food & Drink
+uzbek_restaurant,Food & Drink
+vegan_restaurant,Food & Drink
+vegetarian_restaurant,Food & Drink
+venezuelan_restaurant,Food & Drink
+vietnamese_restaurant,Food & Drink
+waffle_restaurant,Food & Drink
+bar,Food & Drink
+beer_bar,Food & Drink
+champagne_bar,Food & Drink
+cocktail_bar,Food & Drink
+drive_thru_bar,Food & Drink
+gastropub,Food & Drink
+gay_bar,Food & Drink
+irish_pub,Food & Drink
+piano_bar,Food & Drink
+pub,Food & Drink
+sake_bar,Food & Drink
+tiki_bar,Food & Drink
+whiskey_bar,Food & Drink
+wine_bar,Food & Drink
+acai_bowls,Food & Drink
+bagel_shop,Food & Drink
+bubble_tea,Food & Drink
+cafe,Food & Drink
+cafeteria,Food & Drink
+canteen,Food & Drink
+coffee_shop,Food & Drink
+doner_kebab,Food & Drink
+donuts,Food & Drink
+empanadas,Food & Drink
+fast_food_restaurant,Food & Drink
+food_court,Food & Drink
+food_truck,Food & Drink
+hong_kong_style_cafe,Food & Drink
+internet_cafe,Food & Drink
+kombucha,Food & Drink
+milk_bar,Food & Drink
+milkshake_bar,Food & Drink
+poke,Food & Drink
+salad_bar,Food & Drink
+sandwich_shop,Food & Drink
+smoothie_juice_bar,Food & Drink
+frozen_yoghurt_shop,Food & Drink
+gelato,Food & Drink
+ice_cream_shop,Food & Drink
+beer_garden,Food & Drink
+brewery,Food & Drink
+distillery,Food & Drink
+wine_tasting_room,Food & Drink
+winery,Food & Drink
+airport,Travel & Transportation
+airport_lounge,Travel & Transportation
+airport_terminal,Travel & Transportation
+domestic_airports,Travel & Transportation
+heliports,Travel & Transportation
+major_airports,Travel & Transportation
+bus_station,Travel & Transportation
+light_rail_and_subway_stations,Travel & Transportation
+metro_station,Travel & Transportation
+train_station,Travel & Transportation
+bridge,Travel & Transportation
+rest_stop,Travel & Transportation
+toll_stations,Travel & Transportation
+bicycle_sharing_location,Travel & Transportation
+bike_rentals,Travel & Transportation
+bike_sharing,Travel & Transportation
+car_rental_agency,Travel & Transportation
+car_sharing,Travel & Transportation
+bike_parking,Travel & Transportation
+motorcycle_parking,Travel & Transportation
+parking,Travel & Transportation
+marina,Travel & Transportation
+pier,Travel & Transportation
+quay,Travel & Transportation
+car_dealer,Automotive
+motorcycle_dealer,Automotive
+tire_dealer_and_repair,Automotive
+truck_dealer,Automotive
+used_car_dealer,Automotive
+auto_body_shop,Automotive
+auto_customization,Automotive
+auto_detailing,Automotive
+auto_electrical_repair,Automotive
+auto_glass_service,Automotive
+auto_restoration_services,Automotive
+auto_security,Automotive
+automotive_repair,Automotive
+bike_repair_maintenance,Automotive
+car_repair_shop,Automotive
+car_window_tinting,Automotive
+motorcycle_repair,Automotive
+tire_shop,Automotive
+vehicle_inspection,Automotive
+ev_charging_station,Automotive
+gas_station,Automotive
+truck_gas_station,Automotive
+car_wash,Automotive
+asian_grocery_store,Shopping & Retail
+back_shop,Shopping & Retail
+bakery,Shopping & Retail
+butcher_shop,Shopping & Retail
+cheese_shop,Shopping & Retail
+chocolatier,Shopping & Retail
+coffee_roastery,Shopping & Retail
+delicatessen,Shopping & Retail
+fishmonger,Shopping & Retail
+food,Shopping & Retail
+fruits_and_vegetables,Shopping & Retail
+herb_and_spice_shop,Shopping & Retail
+honey_farm_shop,Shopping & Retail
+indian_grocery_store,Shopping & Retail
+indoor_market,Shopping & Retail
+japanese_grocery_store,Shopping & Retail
+korean_grocery_store,Shopping & Retail
+kosher_grocery_store,Shopping & Retail
+mexican_grocery_store,Shopping & Retail
+olive_oil,Shopping & Retail
+open_air_market,Shopping & Retail
+organic_grocery_store,Shopping & Retail
+pasta_shop,Shopping & Retail
+pastry_shop,Shopping & Retail
+rice_shop,Shopping & Retail
+russian_grocery_store,Shopping & Retail
+supermarket,Shopping & Retail
+children\,Shopping & Retail
+clothing_store,Shopping & Retail
+costume_store,Shopping & Retail
+dance_wear,Shopping & Retail
+denim_wear_store,Shopping & Retail
+designer_clothing,Shopping & Retail
+fashion,Shopping & Retail
+fashion_accessories_store,Shopping & Retail
+fur_clothing,Shopping & Retail
+hat_shop,Shopping & Retail
+jewelry_store,Shopping & Retail
+leather_goods,Shopping & Retail
+lingerie_store,Shopping & Retail
+men\,Shopping & Retail
+orthopedic_shoe_store,Shopping & Retail
+shoe_store,Shopping & Retail
+sleepwear,Shopping & Retail
+swimwear_store,Shopping & Retail
+traditional_clothing,Shopping & Retail
+watch_store,Shopping & Retail
+women\,Shopping & Retail
+appliance_store,Shopping & Retail
+candle_store,Shopping & Retail
+carpet_store,Shopping & Retail
+fabric_store,Shopping & Retail
+flooring_store,Shopping & Retail
+florist,Shopping & Retail
+flowers_and_gifts_shop,Shopping & Retail
+framing_store,Shopping & Retail
+furniture_accessory_store,Shopping & Retail
+furniture_store,Shopping & Retail
+hardware_store,Shopping & Retail
+home_decor,Shopping & Retail
+home_goods_store,Shopping & Retail
+home_improvement_store,Shopping & Retail
+lighting_store,Shopping & Retail
+mattress_store,Shopping & Retail
+paint_store,Shopping & Retail
+tile_store,Shopping & Retail
+academic_bookstore,Shopping & Retail
+adult_store,Shopping & Retail
+art_supply_store,Shopping & Retail
+bicycle_shop,Shopping & Retail
+bookstore,Shopping & Retail
+cannabis_dispensary,Shopping & Retail
+comic_books_store,Shopping & Retail
+gift_shop,Shopping & Retail
+hobby_shop,Shopping & Retail
+kiosk,Shopping & Retail
+liquor_store,Shopping & Retail
+party_supply,Shopping & Retail
+pet_store,Shopping & Retail
+religious_items,Shopping & Retail
+stationery_store,Shopping & Retail
+tobacco_shop,Shopping & Retail
+toy_store,Shopping & Retail
+used_bookstore,Shopping & Retail
+water_store,Shopping & Retail
+wine_store,Shopping & Retail
+computer_store,Shopping & Retail
+electronic_parts_supplier,Shopping & Retail
+electronics,Shopping & Retail
+mobile_phone_store,Shopping & Retail
+archery_shop,Shopping & Retail
+dive_shop,Shopping & Retail
+golf_equipment,Shopping & Retail
+hockey_equipment,Shopping & Retail
+hunting_and_fishing_supplies,Shopping & Retail
+outdoor_gear,Shopping & Retail
+skate_shop,Shopping & Retail
+ski_and_snowboard_shop,Shopping & Retail
+sporting_goods,Shopping & Retail
+surf_shop,Shopping & Retail
+drugstore,Shopping & Retail
+eyewear_and_optician,Shopping & Retail
+health_food_store,Shopping & Retail
+hearing_aids,Shopping & Retail
+herbal_shop,Shopping & Retail
+pharmacy,Shopping & Retail
+department_store,Shopping & Retail
+discount_store,Shopping & Retail
+flea_market,Shopping & Retail
+holiday_market,Shopping & Retail
+military_surplus_store,Shopping & Retail
+pawn_shop,Shopping & Retail
+shopping_center,Shopping & Retail
+thrift_store,Shopping & Retail
+electrical_wholesaler,Shopping & Retail
+pharmaceutical_products_wholesaler,Shopping & Retail
+seafood_wholesaler,Shopping & Retail
+wholesale_florist,Shopping & Retail
+wholesale_grocer,Shopping & Retail
+wholesale_store,Shopping & Retail
+abortion_clinic,Health & Medical
+hospital,Health & Medical
+hospice,Health & Medical
+acupuncture,Health & Medical
+audiologist,Health & Medical
+ayurveda,Health & Medical
+chiropractor,Health & Medical
+counseling_and_mental_health,Health & Medical
+dentist,Health & Medical
+dermatologist,Health & Medical
+doctor,Health & Medical
+family_counselor,Health & Medical
+fertility,Health & Medical
+gastroenterologist,Health & Medical
+geneticist,Health & Medical
+gerontologist,Health & Medical
+hepatologist,Health & Medical
+internal_medicine,Health & Medical
+midwife,Health & Medical
+neurologist,Health & Medical
+obstetrician_and_gynecologist,Health & Medical
+oncologist,Health & Medical
+optometrist,Health & Medical
+physical_therapy,Health & Medical
+podiatrist,Health & Medical
+podiatry,Health & Medical
+psychiatrist,Health & Medical
+speech_therapist,Health & Medical
+traditional_chinese_medicine,Health & Medical
+tropical_medicine,Health & Medical
+urologist,Health & Medical
+halotherapy,Health & Medical
+health_and_medical,Health & Medical
+massage,Health & Medical
+spas,Health & Medical
+medical_supply,Health & Medical
+circus,Arts & Entertainment
+comedy_club,Arts & Entertainment
+dance_club,Arts & Entertainment
+dinner_theatre,Arts & Entertainment
+jazz_and_blues,Arts & Entertainment
+karaoke,Arts & Entertainment
+salsa_club,Arts & Entertainment
+strip_club,Arts & Entertainment
+theatre,Arts & Entertainment
+topic_concert_venue,Arts & Entertainment
+art_gallery,Arts & Entertainment
+museum,Arts & Entertainment
+planetarium,Arts & Entertainment
+sculpture_statue,Arts & Entertainment
+cinema,Arts & Entertainment
+drive_in_theatre,Arts & Entertainment
+outdoor_movies,Arts & Entertainment
+amusement_park,Arts & Entertainment
+arcade,Arts & Entertainment
+bingo_hall,Arts & Entertainment
+bowling_alley,Arts & Entertainment
+carousel,Arts & Entertainment
+casino,Arts & Entertainment
+escape_rooms,Arts & Entertainment
+go_kart_track,Arts & Entertainment
+laser_tag,Arts & Entertainment
+virtual_reality_center,Arts & Entertainment
+water_park,Arts & Entertainment
+lounge,Arts & Entertainment
+nudist_clubs,Arts & Entertainment
+social_club,Arts & Entertainment
+studio_taping,Arts & Entertainment
+american_football_field,Sports & Recreation
+archery_range,Sports & Recreation
+badminton_court,Sports & Recreation
+baseball_field,Sports & Recreation
+baseball_stadium,Sports & Recreation
+basketball_court,Sports & Recreation
+basketball_stadium,Sports & Recreation
+beach_volleyball_court,Sports & Recreation
+bocce_ball_court,Sports & Recreation
+cricket_ground,Sports & Recreation
+disc_golf_course,Sports & Recreation
+driving_range,Sports & Recreation
+football_stadium,Sports & Recreation
+futsal_field,Sports & Recreation
+golf_course,Sports & Recreation
+handball_court,Sports & Recreation
+hockey_arena,Sports & Recreation
+hockey_field,Sports & Recreation
+indoor_golf_center,Sports & Recreation
+paintball,Sports & Recreation
+racquetball_court,Sports & Recreation
+rugby_pitch,Sports & Recreation
+rugby_stadium,Sports & Recreation
+soccer_field,Sports & Recreation
+soccer_stadium,Sports & Recreation
+squash_court,Sports & Recreation
+stadium_arena,Sports & Recreation
+swimming_pool,Sports & Recreation
+table_tennis_club,Sports & Recreation
+tennis_court,Sports & Recreation
+tennis_stadium,Sports & Recreation
+track_stadium,Sports & Recreation
+trampoline_park,Sports & Recreation
+volleyball_court,Sports & Recreation
+barre_classes,Sports & Recreation
+boxing_gym,Sports & Recreation
+gym,Sports & Recreation
+rock_climbing_gym,Sports & Recreation
+yoga_studio,Sports & Recreation
+adventure_sports_center,Sports & Recreation
+country_dance_hall,Sports & Recreation
+fencing_club,Sports & Recreation
+gymnastics_club,Sports & Recreation
+horse_riding,Sports & Recreation
+karate_club,Sports & Recreation
+martial_arts_club,Sports & Recreation
+rodeo,Sports & Recreation
+soccer_club,Sports & Recreation
+sports_and_recreation_venue,Sports & Recreation
+taekwondo_club,Sports & Recreation
+volleyball_club,Sports & Recreation
+botanical_garden,Sports & Recreation
+dog_park,Sports & Recreation
+hiking_trail,Sports & Recreation
+indoor_playcenter,Sports & Recreation
+memorial_park,Sports & Recreation
+miniature_golf_course,Sports & Recreation
+mountain_bike_trails,Sports & Recreation
+national_park,Sports & Recreation
+nature_reserve,Sports & Recreation
+park,Sports & Recreation
+path,Sports & Recreation
+playground,Sports & Recreation
+state_park,Sports & Recreation
+wildlife_sanctuary,Sports & Recreation
+elementary_school,Education
+high_school,Education
+middle_school,Education
+preschool,Education
+school,Education
+college_university,Education
+research_institute,Education
+art_school,Education
+bartending_school,Education
+circus_school,Education
+cooking_school,Education
+cosmetology_school,Education
+dance_school,Education
+drama_school,Education
+driving_school,Education
+language_school,Education
+music_school,Education
+rock_climbing_instructor,Education
+library,Education
+courthouse,Public & Government Services
+embassy,Public & Government Services
+government_offices,Public & Government Services
+town_hall,Public & Government Services
+fire_department,Public & Government Services
+police_department,Public & Government Services
+drinking_water_dispenser,Public & Government Services
+post_office,Public & Government Services
+public_phones,Public & Government Services
+public_restrooms,Public & Government Services
+public_toilet,Public & Government Services
+jail_and_prison,Public & Government Services
+accountant,Professional & Financial Services
+atms,Professional & Financial Services
+auto_insurance,Professional & Financial Services
+bail_bonds_service,Professional & Financial Services
+bank,Professional & Financial Services
+currency_exchange,Professional & Financial Services
+farm_insurance,Professional & Financial Services
+financial_advisor,Professional & Financial Services
+financial_service,Professional & Financial Services
+gold_buyer,Professional & Financial Services
+home_and_rental_insurance,Professional & Financial Services
+insurance_agency,Professional & Financial Services
+life_insurance,Professional & Financial Services
+tax_services,Professional & Financial Services
+bankruptcy_law,Professional & Financial Services
+business_law,Professional & Financial Services
+contract_law,Professional & Financial Services
+criminal_defense_law,Professional & Financial Services
+disability_law,Professional & Financial Services
+divorce_and_family_law,Professional & Financial Services
+dui_law,Professional & Financial Services
+employment_law,Professional & Financial Services
+entertainment_law,Professional & Financial Services
+estate_planning_law,Professional & Financial Services
+immigration_law,Professional & Financial Services
+ip_and_internet_law,Professional & Financial Services
+lawyer,Professional & Financial Services
+medical_law,Professional & Financial Services
+notary_public,Professional & Financial Services
+patent_law,Professional & Financial Services
+personal_injury_law,Professional & Financial Services
+real_estate_law,Professional & Financial Services
+social_security_law,Professional & Financial Services
+tax_law,Professional & Financial Services
+tenant_and_eviction_law,Professional & Financial Services
+traffic_ticketing_law,Professional & Financial Services
+workers_compensation_law,Professional & Financial Services
+advertising_agency,Professional & Financial Services
+architect,Professional & Financial Services
+automotive_consultant,Professional & Financial Services
+broadcasting_media_production,Professional & Financial Services
+company,Professional & Financial Services
+coworking_space,Professional & Financial Services
+exhibition_and_trade_center,Professional & Financial Services
+information_technology_company,Professional & Financial Services
+logistics_services,Professional & Financial Services
+professional_services,Professional & Financial Services
+property_management,Professional & Financial Services
+real_estate_agent,Professional & Financial Services
+software_development,Professional & Financial Services
+telecommunications_company,Professional & Financial Services
+travel_agents,Professional & Financial Services
+astrologer,Professional & Financial Services
+automobile_registration_service,Professional & Financial Services
+bookmakers,Professional & Financial Services
+photographer,Professional & Financial Services
+ticket_sales,Professional & Financial Services
+bed_and_breakfast,Lodging & Accommodation
+guest_house,Lodging & Accommodation
+hostel,Lodging & Accommodation
+hotel,Lodging & Accommodation
+motel,Lodging & Accommodation
+apartments,Lodging & Accommodation
+beach_resort,Lodging & Accommodation
+cabin,Lodging & Accommodation
+cottage,Lodging & Accommodation
+resort,Lodging & Accommodation
+service_apartments,Lodging & Accommodation
+campground,Lodging & Accommodation
+rv_park,Lodging & Accommodation
+carpenter,Home & Trade Services
+chimney_sweep,Home & Trade Services
+electrician,Home & Trade Services
+electronics_repair_shop,Home & Trade Services
+flooring_contractors,Home & Trade Services
+insulation_installation,Home & Trade Services
+key_and_locksmith,Home & Trade Services
+masonry_contractors,Home & Trade Services
+painting,Home & Trade Services
+plasterer,Home & Trade Services
+plumbing,Home & Trade Services
+roofing,Home & Trade Services
+stone_and_masonry,Home & Trade Services
+tiling,Home & Trade Services
+welders,Home & Trade Services
+dry_cleaning,Home & Trade Services
+laundromat,Home & Trade Services
+shoe_repair,Home & Trade Services
+landscaping,Home & Trade Services
+tree_services,Home & Trade Services
+caterer,Home & Trade Services
+glass_blowing,Home & Trade Services
+machine_and_tool_rentals,Home & Trade Services
+motorcycle_rentals,Home & Trade Services
+rental_service,Home & Trade Services
+rv_rentals,Home & Trade Services
+self_storage_facility,Home & Trade Services
+trailer_rentals,Home & Trade Services
+truck_rentals,Home & Trade Services
+water_supplier,Home & Trade Services
+anglican_church,Religion & Spirituality
+baptist_church,Religion & Spirituality
+buddhist_temple,Religion & Spirituality
+catholic_church,Religion & Spirituality
+church_cathedral,Religion & Spirituality
+episcopal_church,Religion & Spirituality
+evangelical_church,Religion & Spirituality
+hindu_temple,Religion & Spirituality
+mosque,Religion & Spirituality
+pentecostal_church,Religion & Spirituality
+place_of_worship,Religion & Spirituality
+shinto_shrines,Religion & Spirituality
+sikh_temple,Religion & Spirituality
+synagogue,Religion & Spirituality
+temple,Religion & Spirituality
+charity_organization,Civic & Community
+community_center,Civic & Community
+food_banks,Civic & Community
+homeless_shelter,Civic & Community
+non_governmental_association,Civic & Community
+retirement_home,Civic & Community
+social_center,Civic & Community
+cremation_services,Civic & Community
+funeral_services_and_cemeteries,Civic & Community
+mortuary_services,Civic & Community
+makerspace,Civic & Community
+animal_shelter,Animal & Pet Services
+dog_trainer,Animal & Pet Services
+horse_boarding,Animal & Pet Services
+horse_equipment_shop,Animal & Pet Services
+horse_trainer,Animal & Pet Services
+pet_boarding,Animal & Pet Services
+pet_groomer,Animal & Pet Services
+pet_training,Animal & Pet Services
+veterinarian,Animal & Pet Services
+canyon,Natural Features & Outdoors
+castle,Natural Features & Outdoors
+cave,Natural Features & Outdoors
+desert,Natural Features & Outdoors
+forest,Natural Features & Outdoors
+geologic_formation,Natural Features & Outdoors
+island,Natural Features & Outdoors
+beach,Natural Features & Outdoors
+canal,Natural Features & Outdoors
+dam,Natural Features & Outdoors
+lake,Natural Features & Outdoors
+natural_hot_springs,Natural Features & Outdoors
+river,Natural Features & Outdoors
+waterfall,Natural Features & Outdoors
+weir,Natural Features & Outdoors
+fort,Natural Features & Outdoors
+fountain,Natural Features & Outdoors
+lighthouse,Natural Features & Outdoors
+lookout,Natural Features & Outdoors
+monument,Natural Features & Outdoors
+palace,Natural Features & Outdoors
+plaza,Natural Features & Outdoors
+ruin,Natural Features & Outdoors
+tower,Natural Features & Outdoors
+aquarium,Natural Features & Outdoors
+petting_zoo,Natural Features & Outdoors
+zoo,Natural Features & Outdoors
+farm,Industrial & Agriculture
+fish_farm,Industrial & Agriculture
+orchard,Industrial & Agriculture
+poultry_farm,Industrial & Agriculture
+coal_and_coke,Industrial & Agriculture
+glass_manufacturer,Industrial & Agriculture
+iron_and_steel_industry,Industrial & Agriculture
+mining,Industrial & Agriculture
+oil_refiners,Industrial & Agriculture
+shoe_factory,Industrial & Agriculture
+warehouses,Industrial & Agriculture
+junkyard,Industrial & Agriculture
+observatory,Industrial & Agriculture
+weather_station,Industrial & Agriculture
+barber,Personal Care & Services
+beauty_salon,Personal Care & Services
+embroidery_and_crochet,Personal Care & Services
+piercing,Personal Care & Services
+tattoo,Personal Care & Services
+tattoo_and_piercing,Personal Care & Services
+tattoo_removal,Personal Care & Services
+visitor_center,Miscellaneous

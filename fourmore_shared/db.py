@@ -11,34 +11,20 @@ Base = declarative_base()
 
 
 class POI(Base):
-    """Point of Interest model."""
+    """Point of Interest model matching osm2pgsql schema."""
 
     __tablename__ = "pois"
 
-    id = Column(Integer, primary_key=True, index=True)
-    osm_id = Column(String, unique=True, index=True, nullable=False)
-    osm_type = Column(String, nullable=False)
-    osm_version = Column(Integer)
-    name = Column(String, index=True)
-    category = Column(String, index=True, nullable=False)
-    subcategory = Column(String, index=True)
+    # Composite primary key matching osm2pgsql schema
+    osm_type = Column(String(1), primary_key=True, nullable=False)
+    osm_id = Column(Integer, primary_key=True, nullable=False)
 
-    # Geometry stored as point (even for polygonal features)
-    location = Column(Geometry("POINT", srid=4326), nullable=False, index=True)
-
-    # Store original OSM tags as JSONB for better performance and querying
+    name = Column(Text)
+    class_ = Column("class", Text, nullable=False, index=True)  # 'class' is reserved in Python
     tags = Column(JSONB)
-
-    # Extracted common fields
-    address = Column(String)
-    phone = Column(String)
-    website = Column(String)
-    opening_hours = Column(String)
-
-    # Metadata
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    is_active = Column(Boolean, default=True, index=True)
+    geom = Column(Geometry("POINT", srid=4326), nullable=False, index=True)
+    version = Column(Integer, nullable=False)
+    timestamp = Column(DateTime, nullable=False)
 
     @property
     def lat(self):
@@ -52,12 +38,40 @@ class POI(Base):
         point = self._to_point()
         return point.x if point else None
 
+    @property
+    def address(self):
+        """Extract address from tags."""
+        if not self.tags:
+            return None
+
+        addr_parts = []
+        for key in ['addr:housenumber', 'addr:street', 'addr:city', 'addr:postcode']:
+            if key in self.tags:
+                addr_parts.append(self.tags[key])
+
+        return ', '.join(addr_parts) if addr_parts else None
+
+    @property
+    def phone(self):
+        """Extract phone from tags."""
+        return self.tags.get('phone') if self.tags else None
+
+    @property
+    def website(self):
+        """Extract website from tags."""
+        return self.tags.get('website') if self.tags else None
+
+    @property
+    def opening_hours(self):
+        """Extract opening hours from tags."""
+        return self.tags.get('opening_hours') if self.tags else None
+
     def _to_point(self):
         """Convert the geometry to a shapely point, if possible."""
-        if self.location is None:
+        if self.geom is None:
             return None
         try:
-            return to_shape(self.location)
+            return to_shape(self.geom)
         except Exception:
             return None
 
@@ -87,7 +101,10 @@ class CheckIn(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False, index=True)
-    poi_id = Column(Integer, nullable=False, index=True)
+
+    # Reference POI by composite key
+    poi_osm_type = Column(String(1), nullable=False, index=True)
+    poi_osm_id = Column(Integer, nullable=False, index=True)
 
     # User's location when checking in (may differ slightly from POI location)
     user_location = Column(Geometry("POINT", srid=4326))

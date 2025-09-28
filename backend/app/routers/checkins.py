@@ -19,7 +19,10 @@ async def create_checkin(
 ):
     """Create a new check-in."""
     # Verify POI exists
-    poi = db.query(POI).filter(POI.id == checkin_data.poi_id, POI.is_active == True).first()
+    poi = db.query(POI).filter(
+        POI.osm_type == checkin_data.poi_osm_type,
+        POI.osm_id == checkin_data.poi_osm_id
+    ).first()
     if not poi:
         raise HTTPException(status_code=404, detail="Place not found")
 
@@ -31,7 +34,8 @@ async def create_checkin(
     # Create check-in
     checkin = CheckIn(
         user_id=current_user.id,
-        poi_id=checkin_data.poi_id,
+        poi_osm_type=checkin_data.poi_osm_type,
+        poi_osm_id=checkin_data.poi_osm_id,
         user_location=user_location,
         comment=checkin_data.comment
     )
@@ -55,15 +59,19 @@ async def get_user_checkins(
     offset = (page - 1) * per_page
 
     # Get check-ins with valid POIs only
-    checkins = db.query(CheckIn).join(POI, CheckIn.poi_id == POI.id).filter(
-        CheckIn.user_id == current_user.id,
-        POI.is_active == True
+    checkins = db.query(CheckIn).join(
+        POI,
+        (CheckIn.poi_osm_type == POI.osm_type) & (CheckIn.poi_osm_id == POI.osm_id)
+    ).filter(
+        CheckIn.user_id == current_user.id
     ).order_by(desc(CheckIn.created_at)).offset(offset).limit(per_page).all()
 
     # Get total count of valid check-ins
-    total = db.query(CheckIn).join(POI, CheckIn.poi_id == POI.id).filter(
-        CheckIn.user_id == current_user.id,
-        POI.is_active == True
+    total = db.query(CheckIn).join(
+        POI,
+        (CheckIn.poi_osm_type == POI.osm_type) & (CheckIn.poi_osm_id == POI.osm_id)
+    ).filter(
+        CheckIn.user_id == current_user.id
     ).count()
 
     # Convert to response format with POI details
@@ -124,19 +132,22 @@ async def get_checkin_stats(
     """Get user's check-in statistics."""
     total_checkins = db.query(CheckIn).filter(CheckIn.user_id == current_user.id).count()
 
-    unique_places = db.query(func.count(func.distinct(CheckIn.poi_id))).filter(
+    unique_places = db.query(func.count(func.distinct(func.concat(CheckIn.poi_osm_type, CheckIn.poi_osm_id)))).filter(
         CheckIn.user_id == current_user.id
     ).scalar()
 
-    # Get most visited category
-    category_stats = db.query(
-        POI.category,
+    # Get most visited class
+    class_stats = db.query(
+        POI.class_,
         func.count(CheckIn.id).label('count')
-    ).join(CheckIn, POI.id == CheckIn.poi_id).filter(
+    ).join(
+        CheckIn,
+        (POI.osm_type == CheckIn.poi_osm_type) & (POI.osm_id == CheckIn.poi_osm_id)
+    ).filter(
         CheckIn.user_id == current_user.id
-    ).group_by(POI.category).order_by(desc('count')).first()
+    ).group_by(POI.class_).order_by(desc('count')).first()
 
-    favorite_category = category_stats[0] if category_stats else None
+    favorite_class = class_stats[0] if class_stats else None
 
     # Get first check-in date
     first_checkin = db.query(CheckIn).filter(
@@ -149,25 +160,26 @@ async def get_checkin_stats(
         data={
             "total_checkins": total_checkins,
             "unique_places": unique_places,
-            "favorite_category": favorite_category,
+            "favorite_class": favorite_class,
             "member_since": first_checkin.created_at if first_checkin else None
         }
     )
 
 def get_checkin_with_poi(db: Session, checkin: CheckIn) -> CheckInResponse:
     """Helper function to get checkin with POI details."""
-    poi = db.query(POI).filter(POI.id == checkin.poi_id).first()
+    poi = db.query(POI).filter(
+        POI.osm_type == checkin.poi_osm_type,
+        POI.osm_id == checkin.poi_osm_id
+    ).first()
 
     if not poi:
         raise HTTPException(status_code=404, detail="Associated place not found")
 
     poi_response = POIResponse(
-        id=poi.id,
         osm_id=poi.osm_id,
         osm_type=poi.osm_type,
         name=poi.name,
-        category=poi.category,
-        subcategory=poi.subcategory,
+        class_=poi.class_,
         lat=poi.lat,
         lon=poi.lon,
         address=poi.address,
@@ -175,13 +187,14 @@ def get_checkin_with_poi(db: Session, checkin: CheckIn) -> CheckInResponse:
         website=poi.website,
         opening_hours=poi.opening_hours,
         tags=poi.tags if poi.tags else {},
-        created_at=poi.created_at,
-        updated_at=poi.updated_at
+        version=poi.version,
+        timestamp=poi.timestamp
     )
 
     return CheckInResponse(
         id=checkin.id,
-        poi_id=checkin.poi_id,
+        poi_osm_type=checkin.poi_osm_type,
+        poi_osm_id=checkin.poi_osm_id,
         user_id=checkin.user_id,
         comment=checkin.comment,
         created_at=checkin.created_at,

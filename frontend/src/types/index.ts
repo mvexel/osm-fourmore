@@ -1,10 +1,8 @@
 export interface POI {
-  id: number
-  osm_id: string
+  osm_id: number
   osm_type: string
   name: string
-  category: string
-  subcategory?: string
+  class: string
   lat: number
   lon: number
   address?: string
@@ -12,8 +10,8 @@ export interface POI {
   website?: string
   opening_hours?: string
   tags: Record<string, any>
-  created_at: string
-  updated_at?: string
+  version: number
+  timestamp: string
   distance?: number
 }
 
@@ -30,7 +28,8 @@ export interface User {
 
 export interface CheckIn {
   id: number
-  poi_id: number
+  poi_osm_type: string
+  poi_osm_id: number
   user_id: number
   comment?: string
   created_at: string
@@ -47,13 +46,14 @@ export interface NearbyRequest {
   lat: number
   lon: number
   radius?: number
-  category?: string
+  class?: string
   limit?: number
   offset?: number
 }
 
 export interface CheckInCreate {
-  poi_id: number
+  poi_osm_type: string
+  poi_osm_id: number
   comment?: string
   user_lat?: number
   user_lon?: number
