@@ -16,6 +16,8 @@ services:
     restart: unless-stopped
     networks:
       - fourmore-network
+    expose:
+      - "5432"
 
   redis:
     image: redis:7-alpine
