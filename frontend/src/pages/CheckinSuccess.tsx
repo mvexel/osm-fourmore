@@ -117,7 +117,7 @@ export function CheckinSuccess() {
         </div>
 
         {/* OSM Contribution Section */}
-        <OSMContribution poiId={checkin.poi.id} className="mt-8" />
+        <OSMContribution poiId={checkin.poi.id || checkin.poi.osm_id} className="mt-8" />
       </div>
     </div>
   )

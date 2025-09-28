@@ -19,7 +19,7 @@ export function OSMContribution({ poiId, className }: OSMContributionProps) {
   const noteAction = useDoubleConfirm()
 
   const performConfirmInfo = async () => {
-    const result = await osmApi.confirmInfo(poiId)
+    const result = await osmApi.confirmInfo(Number(poiId))
     setConfirmed(true)
     setConfirmMessage(result.message)
   }
@@ -36,7 +36,7 @@ export function OSMContribution({ poiId, className }: OSMContributionProps) {
       alert('Please enter a note.')
       return
     }
-    const result = await osmApi.createNote(poiId, note)
+    const result = await osmApi.createNote(Number(poiId), note)
     setNoteAdded(true)
     setNoteMessage(result.message)
     setNote('')

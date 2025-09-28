@@ -18,6 +18,7 @@ export function POICard({ poi, onClick, showCheckInButton, onCheckIn, isChecking
   }
 
 
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
       <div className="flex items-stretch justify-between">

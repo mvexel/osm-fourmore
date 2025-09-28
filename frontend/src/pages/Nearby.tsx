@@ -20,7 +20,7 @@ export function Nearby() {
   const [page, setPage] = useState(0)
   const [lastScrollTime, setLastScrollTime] = useState(0)
 
-  const radius = 100 // TODO - this should be a constant. We keep this really small for performance and to prevent users from checking in too far away
+  const radius = 1000 // TODO - this should be a constant. We keep this really small for performance and to prevent users from checking in too far away
 
   const fetchNearbyPlaces = useCallback(async (reset = false, pageOverride?: number) => {
     if (!latitude || !longitude) return
@@ -213,7 +213,7 @@ export function Nearby() {
             <div className="space-y-3">
               {pois.map((poi) => (
                 <POICard
-                  key={poi.id}
+                  key={`${poi.osm_type}-${poi.osm_id}`}
                   poi={poi}
                   onClick={() => handlePOIClick(poi)}
                   showCheckInButton

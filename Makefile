@@ -34,7 +34,9 @@ restart: ## Restart all services
 	@docker-compose -f docker-compose.dev.yml restart
 
 .PHONY: rebuild
-rebuild: ## Reset services, rebuild the database, and load OSM data
+rebuild: ## Reset services, rebuild the database, load OSM data, and generate mappings
+	@echo "Generating category mappings..."
+	@./scripts/generate-mappings.sh
 	@echo "Stopping and removing containers with volumes..."
 	@docker-compose -f docker-compose.dev.yml down -v
 	@echo "Starting services..."
@@ -42,6 +44,22 @@ rebuild: ## Reset services, rebuild the database, and load OSM data
 	@$(MAKE) wait-for-db
 	@$(MAKE) load-data
 	@echo "Rebuild complete!"
+
+# ==============================================================================
+# Build & Generate
+# ==============================================================================
+
+.PHONY: build
+build: ## Generate mappings and build frontend
+	@echo "Generating category mappings..."
+	@./scripts/generate-mappings.sh
+	@echo "Building frontend..."
+	@cd frontend && npm run build
+	@echo "Build complete!"
+
+.PHONY: generate-mappings
+generate-mappings: ## Generate category mappings from category_mapping.json
+	@./scripts/generate-mappings.sh
 
 # ==============================================================================
 # Initial Setup & Data Management

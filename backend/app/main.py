@@ -30,7 +30,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Import routers
-from .routers import auth, places, checkins, osm_edits
+from .routers import auth, places, checkins, osm_edits, categories
 from .database import create_tables
 
 @asynccontextmanager
@@ -59,6 +59,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000", # Local development
+        "http://127.0.0.1:3000", # Local development (127.0.0.1)
         "https://fourmore.osm.lol", # Production frontend
     ],
     allow_credentials=True,
@@ -71,6 +72,7 @@ app.include_router(auth.router)
 app.include_router(places.router)
 app.include_router(checkins.router)
 app.include_router(osm_edits.router)
+app.include_router(categories.router)
 
 @app.get("/")
 async def root():
