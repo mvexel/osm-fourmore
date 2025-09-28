@@ -83,13 +83,14 @@ services:
     build:
       context: .
       dockerfile: data-pipeline/Dockerfile
-    env_file:
-      - .env
     environment:
-      - DATABASE_URL=postgresql://fourmore:fourmore_dev_password@postgres:5432/fourmore
-      - DATA_DIR=/app/data
+      - DATABASE_NAME=fourmore
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=fourmore
+      - DATABASE_PASSWORD=fourmore_dev_password
+      - OSM_DATA_FILE=/app/data/utah-latest.osm.pbf
     volumes:
-      - ./data-pipeline/src:/app/src:ro
       - ./data:/app/data
     depends_on:
       postgres:
