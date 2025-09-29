@@ -22,17 +22,17 @@ async def login():
         data={"auth_url": auth_url}
     )
 
-@router.post("/callback", response_model=Token)
-async def auth_callback(callback_data: AuthCallback, db: Session = Depends(get_db)):
+@router.get("/callback", response_model=Token)
+async def auth_callback(code: str, db: Session = Depends(get_db)):
     """Handle OAuth callback and create user session."""
     import logging
     logger = logging.getLogger(__name__)
-    
+
     try:
-        logger.info(f"Auth callback received with code: {callback_data.code[:10]}...")
-        
+        logger.info(f"Auth callback received with code: {code[:10]}...")
+
         # Exchange code for token
-        token_data = await OSMAuth.exchange_code_for_token(callback_data.code)
+        token_data = await OSMAuth.exchange_code_for_token(code)
         logger.info(f"Token exchange successful, got token: {token_data.get('access_token', '')[:10]}...")
         access_token = token_data["access_token"]
 
