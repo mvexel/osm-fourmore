@@ -2,6 +2,19 @@
 -- Import the POI mapping table from the generated file
 local poi_mapping = require('poi_mapping')
 
+-- Create a lookup table for faster matching
+local poi_lookup = {}
+for _, category in ipairs(poi_mapping) do
+    for _, match in ipairs(category.matches) do
+        local key = match[1][1]
+        local value = match[1][2]
+        if not poi_lookup[key] then
+            poi_lookup[key] = {}
+        end
+        poi_lookup[key][value] = category.class
+    end
+end
+
 local pois = osm2pgsql.define_table({
     name = 'pois',
     ids = { type = 'any', type_column = 'osm_type', id_column = 'osm_id' },
@@ -19,45 +32,17 @@ function format_date(ts)
     return os.date('!%Y-%m-%dT%H:%M:%SZ', ts)
 end
 
--- Function to check if object matches POI mapping criteria
-function matches_poi_criteria(object, mapping_tags)
-    -- ALL tags in the mapping must match
-    for _, tag_pair in ipairs(mapping_tags) do
-        local key, value = tag_pair[1], tag_pair[2]
-        
-        -- Check if the key exists in the object
-        if not object.tags[key] then
-            return false  -- Required key is missing
-        end
-        
-        -- If mapping value is '*', it means "any value is acceptable" (wildcard)
-        if value == '*' then
-            -- Just check that the key exists (which we already confirmed above)
-            -- and has some value (not empty)
-            if object.tags[key] == '' then
-                return false
-            end
-        else
-            -- Exact match required
-            if object.tags[key] ~= value then
-                return false
-            end
-        end
-    end
-    return true  -- All tags matched
-end
-
 -- Function to find POI category from mapping
 function find_poi_category(object)
-    for _, category in ipairs(poi_mapping) do
-        local mappings = category.matches or {}
-        for _, mapping_tags in ipairs(mappings) do
-            if matches_poi_criteria(object, mapping_tags) then
-                return category
+    for key, value in pairs(object.tags) do
+        if poi_lookup[key] then
+            if poi_lookup[key][value] then
+                return { class = poi_lookup[key][value] }
+            elseif poi_lookup[key]['*'] then
+                return { class = poi_lookup[key]['*'] }
             end
         end
     end
-
     return nil
 end
 
