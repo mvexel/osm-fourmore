@@ -1,12 +1,13 @@
 services:
   postgres:
     image: postgis/postgis:15-3.4
+    init: true
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
@@ -16,11 +17,19 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
 
   redis:
     image: redis:7-alpine
+    init: true
     ports:
-      - "${REDIS_PORT}:6379"
+      - "127.0.0.1:${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -29,6 +38,13 @@ services:
       timeout: 10s
       retries: 5
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
 
   backend:
     build:
@@ -41,24 +57,34 @@ services:
       REDIS_URL: ${REDIS_URL}
       ENVIRONMENT: production
       DEBUG: ${DEBUG}
-    volumes:
-      - ./backend/app:/app/app
-      - ./fourmore_shared:/app/fourmore_shared
     ports:
       - "127.0.0.1:${BACKEND_PORT}"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - internal
 
   data-pipeline:
     build:
       context: .
       dockerfile: data-pipeline/Dockerfile
     env_file:
-      - ${FOURMORE_ENV_FILE:-.env.production
+      - ${FOURMORE_ENV_FILE:-.env.production}
     environment:
       DATABASE_NAME: ${DATABASE_NAME}
       DATABASE_HOST: ${DATABASE_HOST}
@@ -71,7 +97,20 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+    profiles:
+      - data-pipeline
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  internal:
+    driver: bridge
