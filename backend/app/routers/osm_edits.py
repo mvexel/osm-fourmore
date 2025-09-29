@@ -16,7 +16,8 @@ router = APIRouter(prefix="/osm", tags=["osm-edits"])
 
 
 class ConfirmInfoRequest(BaseModel):
-    poi_id: int
+    poi_osm_type: str
+    poi_osm_id: int
 
 
 class OSMEditResponse(BaseModel):
@@ -42,7 +43,7 @@ async def confirm_poi_info(
             detail="OSM access token not available. Please re-authenticate."
         )
 
-    poi = db.query(POI).filter(POI.id == request.poi_id).first()
+    poi = db.query(POI).filter(POI.osm_type == request.poi_osm_type, POI.osm_id == request.poi_osm_id).first()
     if not poi:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -83,7 +84,8 @@ async def confirm_poi_info(
 
 
 class NoteRequest(BaseModel):
-    poi_id: int
+    poi_osm_type: str
+    poi_osm_id: int
     text: str
 
 
@@ -106,7 +108,7 @@ async def create_osm_note(
             detail="OSM access token not available. Please re-authenticate."
         )
 
-    poi = db.query(POI).filter(POI.id == request.poi_id).first()
+    poi = db.query(POI).filter(POI.osm_type == request.poi_osm_type, POI.osm_id == request.poi_osm_id).first()
     if not poi:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

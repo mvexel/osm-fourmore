@@ -126,13 +126,13 @@ export const checkinsApi = {
 }
 
 export const osmApi = {
-  async confirmInfo(poiId: number): Promise<ConfirmInfoResponse> {
-    const response = await api.post<ConfirmInfoResponse>('/osm/confirm-info', { poi_id: poiId })
+  async confirmInfo(osmType: string, osmId: number): Promise<ConfirmInfoResponse> {
+    const response = await api.post<ConfirmInfoResponse>('/osm/confirm-info', { poi_osm_type: osmType, poi_osm_id: osmId })
     return unwrap(response)
   },
 
-  async createNote(poiId: number, text: string): Promise<CreateNoteResponse> {
-    const response = await api.post<CreateNoteResponse>('/osm/note', { poi_id: poiId, text })
+  async createNote(osmType: string, osmId: number, text: string): Promise<CreateNoteResponse> {
+    const response = await api.post<CreateNoteResponse>('/osm/note', { poi_osm_type: osmType, poi_osm_id: osmId, text })
     return unwrap(response)
   },
 }

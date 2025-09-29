@@ -179,7 +179,7 @@ export function PlaceDetails() {
         </div>
 
         {/* OSM Contribution Section */}
-        <OSMContribution poiId={poi.osm_id} />
+        <OSMContribution osmType={poi.osm_type} osmId={poi.osm_id} />
 
         {/* Check-in Section */}
         <div className="border-t border-gray-200 pt-6">

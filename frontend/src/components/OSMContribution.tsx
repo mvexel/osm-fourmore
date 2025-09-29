@@ -4,11 +4,12 @@ import { IconCheck, IconMessagePlus } from '@tabler/icons-react'
 import { useDoubleConfirm } from '../hooks/useDoubleConfirm'
 
 interface OSMContributionProps {
-  poiId: string | number
+  osmType: string
+  osmId: number
   className?: string
 }
 
-export function OSMContribution({ poiId, className }: OSMContributionProps) {
+export function OSMContribution({ osmType, osmId, className }: OSMContributionProps) {
   const [confirmed, setConfirmed] = useState(false)
   const [confirmMessage, setConfirmMessage] = useState<string | null>(null)
   const [note, setNote] = useState('')
@@ -19,7 +20,7 @@ export function OSMContribution({ poiId, className }: OSMContributionProps) {
   const noteAction = useDoubleConfirm()
 
   const performConfirmInfo = async () => {
-    const result = await osmApi.confirmInfo(Number(poiId))
+    const result = await osmApi.confirmInfo(osmType, osmId)
     setConfirmed(true)
     setConfirmMessage(result.message)
   }
@@ -36,7 +37,7 @@ export function OSMContribution({ poiId, className }: OSMContributionProps) {
       alert('Please enter a note.')
       return
     }
-    const result = await osmApi.createNote(Number(poiId), note)
+    const result = await osmApi.createNote(osmType, osmId, note)
     setNoteAdded(true)
     setNoteMessage(result.message)
     setNote('')
