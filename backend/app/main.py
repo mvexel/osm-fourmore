@@ -50,7 +50,6 @@ app = FastAPI(
     title="FourMore API",
     description="Social check-in app using OpenStreetMap data",
     version="1.0.0",
-    root_path="/api",
     lifespan=lifespan
 )
 

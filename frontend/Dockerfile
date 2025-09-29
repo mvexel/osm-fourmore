@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for React frontend
-FROM --platform=linux/amd64 node:18-alpine AS base
+FROM node:18-alpine AS base
 
 # Set working directory
 WORKDIR /app
