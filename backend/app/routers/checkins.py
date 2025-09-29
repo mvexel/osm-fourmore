@@ -138,14 +138,14 @@ async def get_checkin_stats(
 
     # Get most visited class
     class_stats = db.query(
-        POI.class_,
+        POI.poi_class,
         func.count(CheckIn.id).label('count')
     ).join(
         CheckIn,
         (POI.osm_type == CheckIn.poi_osm_type) & (POI.osm_id == CheckIn.poi_osm_id)
     ).filter(
         CheckIn.user_id == current_user.id
-    ).group_by(POI.class_).order_by(desc('count')).first()
+    ).group_by(POI.poi_class).order_by(desc('count')).first()
 
     favorite_class = class_stats[0] if class_stats else None
 
@@ -179,7 +179,7 @@ def get_checkin_with_poi(db: Session, checkin: CheckIn) -> CheckInResponse:
         osm_id=poi.osm_id,
         osm_type=poi.osm_type,
         name=poi.name,
-        class_=poi.class_,
+        poi_class=poi.class_,
         lat=poi.lat,
         lon=poi.lon,
         address=poi.address,

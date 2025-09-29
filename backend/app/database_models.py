@@ -20,7 +20,7 @@ class POI(Base):
     osm_id = Column(Integer, primary_key=True, nullable=False)
 
     name = Column(Text)
-    class_ = Column("class", Text, nullable=False, index=True)  # 'class' is reserved in Python
+    poi_class = Column("class", Text, nullable=False, index=True)  # 'class' is reserved in Python
     tags = Column(JSONB)
     geom = Column(Geometry("POINT", srid=4326), nullable=False, index=True)
     version = Column(Integer, nullable=False)

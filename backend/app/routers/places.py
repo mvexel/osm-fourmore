@@ -35,7 +35,7 @@ async def get_nearby_places(
 
     # Filter by class if provided
     if request.class_:
-        query = query.filter(POI.class_ == request.class_)
+        query = query.filter(POI.poi_class == request.class_)
 
     # Order by distance, apply offset and limit results
     query = query.order_by(func.ST_Distance(
@@ -52,7 +52,7 @@ async def get_nearby_places(
             osm_id=poi.osm_id,
             osm_type=poi.osm_type,
             name=poi.name,
-            class_=poi.class_,
+            poi_class=poi.class_,
             lat=poi.lat,
             lon=poi.lon,
             address=poi.address,
@@ -85,7 +85,7 @@ async def get_place_details(
         osm_id=poi.osm_id,
         osm_type=poi.osm_type,
         name=poi.name,
-        class_=poi.class_,
+        poi_class=poi.class_,
         lat=poi.lat,
         lon=poi.lon,
         address=poi.address,
@@ -104,9 +104,9 @@ async def get_classes(
 ):
     """Get list of available POI classes."""
     classes = db.query(
-        POI.class_,
+        POI.poi_class,
         func.count().label('count')
-    ).group_by(POI.class_).all()
+    ).group_by(POI.poi_class).all()
 
     return APIResponse(
         success=True,

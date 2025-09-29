@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 # POI Models
 class POIBase(BaseModel):
     name: Optional[str] = None
-    class_: str = Field(..., alias="class")
+    poi_class: str = Field(..., alias="class")
     address: Optional[str] = None
     phone: Optional[str] = None
     website: Optional[str] = None
