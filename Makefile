@@ -105,18 +105,30 @@ db-seed-dev:
 
 deploy:
 	@echo "🚀 Deploying full FourMore stack..."
-	docker compose --profile full up --build -d
+	@if [ -f .env.local ]; then \
+		docker compose --env-file .env --env-file .env.local --profile full up --build -d; \
+	else \
+		docker compose --profile full up --build -d; \
+	fi
 	@echo "Services available at:"
 	@echo "  Frontend: http://127.0.0.1:3000"
 	@echo "  Backend: http://127.0.0.1:8000"
 
 deploy-api:
 	@echo "🔧 Deploying backend API..."
-	docker compose --profile backend --profile database --profile cache up --build -d
+	@if [ -f .env.local ]; then \
+		docker compose --env-file .env --env-file .env.local --profile backend --profile database --profile cache up --build -d; \
+	else \
+		docker compose --profile backend --profile database --profile cache up --build -d; \
+	fi
 
 deploy-web:
 	@echo "🌐 Deploying frontend..."
-	docker compose --profile frontend up --build -d
+	@if [ -f .env.local ]; then \
+		docker compose --env-file .env --env-file .env.local --profile frontend up --build -d; \
+	else \
+		docker compose --profile frontend up --build -d; \
+	fi
 
 # ============================================================================
 # Utilities
@@ -124,7 +136,7 @@ deploy-web:
 
 stop:
 	@echo "🛑 Stopping all services..."
-	docker compose down
+	docker compose --profile full down
 
 clean:
 	@echo "🧹 Cleaning up Docker resources..."
