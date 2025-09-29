@@ -82,7 +82,7 @@ db-seed:
 	@echo "Starting database if needed..."
 	docker compose --profile database up -d postgres
 	@echo "Loading OSM data with data pipeline..."
-	docker compose --profile database --profile data-pipeline run --rm data-pipeline
+	docker compose --env-file .env --env-file .env.local --profile database --profile data-pipeline run --rm data-pipeline
 
 db-seed-dev:
 	@echo "📊 Loading OSM data into local development database..."
