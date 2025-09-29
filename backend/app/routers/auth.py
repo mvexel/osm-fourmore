@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from ..db import get_db
 from ..auth import OSMAuth, create_access_token, create_or_update_user, JWT_ACCESS_TOKEN_EXPIRE_MINUTES
-from ..models import AuthCallback, Token, APIResponse
+from ..models import AuthCallback, Token, APIResponse, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -54,7 +54,7 @@ async def auth_callback(callback_data: AuthCallback, db: Session = Depends(get_d
         return Token(
             access_token=jwt_token,
             token_type="bearer",
-            user=user
+            user=UserResponse.model_validate(user)
         )
 
     except Exception as e:

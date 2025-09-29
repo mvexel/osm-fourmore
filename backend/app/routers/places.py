@@ -34,8 +34,8 @@ async def get_nearby_places(
     )
 
     # Filter by class if provided
-    if request.class_:
-        query = query.filter(POI.poi_class == request.class_)
+    if request.poi_class:
+        query = query.filter(POI.poi_class == request.poi_class)
 
     # Order by distance, apply offset and limit results
     query = query.order_by(func.ST_Distance(
@@ -48,22 +48,8 @@ async def get_nearby_places(
     # Convert to response format
     pois = []
     for poi, distance in results:
-        poi_data = POIResponse(
-            osm_id=poi.osm_id,
-            osm_type=poi.osm_type,
-            name=poi.name,
-            poi_class=poi.class_,
-            lat=poi.lat,
-            lon=poi.lon,
-            address=poi.address,
-            phone=poi.phone,
-            website=poi.website,
-            opening_hours=poi.opening_hours,
-            tags=poi.tags if poi.tags else {},
-            version=poi.version,
-            timestamp=poi.timestamp,
-            distance=round(distance, 1)  # Round to 1 decimal place
-        )
+        poi_data = POIResponse.model_validate(poi)
+        poi_data.distance = round(distance, 1)  # Round to 1 decimal place
         pois.append(poi_data)
 
     return pois
@@ -81,21 +67,7 @@ async def get_place_details(
     if not poi:
         raise HTTPException(status_code=404, detail="Place not found")
 
-    return POIResponse(
-        osm_id=poi.osm_id,
-        osm_type=poi.osm_type,
-        name=poi.name,
-        poi_class=poi.class_,
-        lat=poi.lat,
-        lon=poi.lon,
-        address=poi.address,
-        phone=poi.phone,
-        website=poi.website,
-        opening_hours=poi.opening_hours,
-        tags=poi.tags if poi.tags else {},
-        version=poi.version,
-        timestamp=poi.timestamp
-    )
+    return POIResponse.model_validate(poi)
 
 @router.get("/classes/list")
 async def get_classes(

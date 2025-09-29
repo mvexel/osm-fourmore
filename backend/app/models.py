@@ -40,7 +40,7 @@ class POINearbyRequest(BaseModel):
     lat: float = Field(..., ge=-90, le=90, description="Latitude")
     lon: float = Field(..., ge=-180, le=180, description="Longitude")
     radius: float = Field(1000, ge=1, le=10000, description="Search radius in meters")
-    class_: Optional[str] = Field(None, alias="class", description="Filter by POI class")
+    poi_class: Optional[str] = Field(None, alias="class", description="Filter by POI class")
     limit: int = Field(20, ge=1, le=100, description="Maximum number of results")
     offset: int = Field(0, ge=0, description="Number of results to skip for pagination")
 
