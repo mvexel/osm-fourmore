@@ -16,8 +16,7 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install gunicorn
 
-# Copy shared Python models and application code
-COPY fourmore_shared ./fourmore_shared
+# Copy application code
 COPY backend/app/ ./app/
 
 # Create non-root user

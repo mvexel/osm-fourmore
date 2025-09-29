@@ -3,10 +3,16 @@
 import os
 import time
 import logging
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from fourmore_shared import Base, POI, User, CheckIn
+from .database_models import Base, POI, User, CheckIn
+
+# Load environment variables from .env and .env.local files
+from dotenv import find_dotenv
+load_dotenv(find_dotenv())  # Automatically finds .env files up the directory tree
+load_dotenv(find_dotenv(".env.local"), override=True)  # .env.local overrides .env values
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-"""Declarative database models shared across FourMore services."""
+"""SQLAlchemy database models for FourMore backend."""
 
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
 from sqlalchemy.orm import declarative_base

@@ -1,127 +1,284 @@
 # FourMore Development Guide
 
-This guide will help you set up and run the FourMore project locally for development.
+This guide will help you set up and run the FourMore project locally for development using a **local-first approach** - meaning you'll run services directly on your machine for the fastest development experience.
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- Node.js 18+ with npm
-- Git
+- **Node.js 18+** with npm
+- **Python 3.11+**
+- **uv** (modern Python package manager) - [Install guide](https://docs.astral.sh/uv/getting-started/installation/)
+- **PostgreSQL** (local installation or managed service like Supabase)
+- **Redis** (local installation or managed service like Upstash)
+- **Git**
+- **Docker** (only for production deployment and data pipeline)
+
+### Installing uv
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or via package managers
+brew install uv        # macOS
+pipx install uv        # Cross-platform
+```
 
 ## Quick Start
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    cd fourmore
-    ```
-
-2.  **Set up environment variables:**
-    - Copy `.env.example` to `.env` for local tooling: `cp .env.example .env`
-    - Copy `.env.development` to `.env.development.local` (gitignored) and store secrets there. The Makefile automatically prefers the `.local` file.
-    - Register an OAuth application on [OpenStreetMap](https://www.openstreetmap.org/oauth2/applications) with the redirect URI `http://127.0.0.1:3000/auth/callback`.
-    - Add your OSM client credentials to `.env.development.local` (for Docker) and `.env` (for local scripts).
-
-3.  **Install frontend dependencies:**
-    ```bash
-    cd frontend
-    npm install
-    ```
-    Repeat only when `package.json` changes.
-
-4.  **Start services:**
-    ```bash
-    make backend-dev
-    make frontend-dev
-    ```
-    Open the app at `http://127.0.0.1:3000` so OSM OAuth callbacks succeed.
-
-5.  **Initialize and seed data (optional):**
-    ```bash
-    make db-init-dev
-    make db-seed-dev
-    ```
-
-**Using system Postgres**: Update `.env.development` so `DATABASE_URL` points to your host instance (e.g., `postgresql://fourmore:password@host.docker.internal:5432/fourmore`) and start with:
+### 1. Clone and Setup
 
 ```bash
-USE_SYSTEM_DB=true make backend-dev
+git clone <repository-url>
+cd fourmore
 ```
 
-Also adjust `DATABASE_HOST`/`DATABASE_PORT` for the data pipeline if you plan to run `make db-seed-dev` against the external database.
+### 2. Environment Configuration
+
+Copy the main environment file and customize it with your secrets:
+
+```bash
+# The .env file contains sensible defaults
+# Create .env.local for your actual secrets (this file is gitignored)
+cp .env .env.local
+```
+
+Edit `.env.local` to configure:
+- Database connection string
+- OSM OAuth credentials (register at [OpenStreetMap](https://www.openstreetmap.org/oauth2/applications))
+- JWT secret key
+- Redis connection
+
+### 3. Setup Services
+
+**Option A: Local Services (Recommended for Development)**
+```bash
+# Install and start PostgreSQL locally
+# Install and start Redis locally
+# Or use managed services like Supabase + Upstash
+```
+
+**Option B: Docker Database (Alternative)**
+```bash
+# If you prefer to use Docker for the database
+make db-setup
+```
+
+### 4. Install Dependencies
+
+```bash
+# Backend dependencies (creates virtual environment with uv)
+make setup-backend
+
+# Frontend dependencies
+make install-frontend
+```
+
+### 5. Start Development
+
+```bash
+# Start both frontend and backend in development mode
+make dev
+
+# Or start them separately:
+make frontend  # React dev server on http://127.0.0.1:3000
+make backend   # FastAPI server on http://127.0.0.1:8000
+```
+
+### 6. Load Data (Optional)
+
+```bash
+# Load OSM data for your area
+make db-seed
+```
 
 ## Development Workflow
 
-### Starting Development
+### Daily Development
 
-1.  **Backend stack** (API, Postgres, Redis):
-    ```bash
-    make backend-dev
-    ```
-    Services are available on:
-    - Backend API & docs: http://127.0.0.1:8000
-    - Postgres: localhost:5432
-    - Redis: localhost:6379
+The fastest development experience comes from running everything locally:
 
-2.  **Frontend:**
-    ```bash
-    make frontend-dev
-    ```
-    Vite binds to http://127.0.0.1:3000 (OSM OAuth requires the 127.0.0.1 host).
+```bash
+# Start both services
+make dev
 
-3.  **Stop containers:**
-    ```bash
-    make stop-dev
-    ```
+# Or individually:
+make frontend  # Vite dev server with hot reload
+make backend   # uvicorn with auto-reload
+```
+
+### Configuration Management
+
+- **`.env`** - Default configuration (tracked in git)
+- **`.env.local`** - Your local secrets and overrides (gitignored)
+
+The `.env.local` file automatically overrides values from `.env`.
+
+### Virtual Environment Management
+
+The backend uses **uv** for fast dependency management and virtual environment isolation:
+
+```bash
+# Setup virtual environment (first time)
+make setup-backend
+
+# Run commands in the virtual environment
+cd backend && uv run python your_script.py
+cd backend && uv run pytest
+
+# Add new dependencies
+cd backend && uv add package_name
+
+# Add development dependencies
+cd backend && uv add --dev package_name
+
+# Update all dependencies
+cd backend && uv sync
+
+# Activate virtual environment manually (optional)
+cd backend && source .venv/bin/activate  # Linux/macOS
+cd backend && .venv\Scripts\activate     # Windows
+```
+
+**Benefits of uv:**
+- ⚡ **10-100x faster** than pip for installations
+- 🔒 **Automatic virtual environment** creation and management
+- 🔄 **Lock file support** for reproducible builds
+- 🎯 **Better dependency resolution** than pip
+
+### Model Architecture
+
+FourMore uses a clean separation between different types of models:
+
+- **SQLAlchemy Database Models** (`backend/app/database_models.py`) - Define database tables and relationships
+- **Pydantic API Models** (`backend/app/models.py`) - Define API request/response schemas
+- **Data Pipeline Schema** (`data-pipeline/pois.lua`) - osm2pgsql table definitions for populating data
+
+This separation provides:
+- ✅ **Clear responsibilities** - Each model type serves a specific purpose
+- ✅ **Type safety** - Both database and API layers are strongly typed
+- ✅ **Flexibility** - API can evolve independently of database schema
+- ✅ **Validation** - Pydantic validates all API inputs/outputs
 
 ### Database Management
 
-- **Initialize schema**: `make db-init-dev`
-- **Seed from OSM snapshot**: `make db-seed-dev`
-- **System Postgres**: manage schema/seed manually or point commands at your local instance
+**Using Local PostgreSQL:**
+```bash
+# Connect to your local database
+psql postgresql://fourmore:your_password@localhost:5432/fourmore
+```
 
-### Useful Commands
+**Using Docker PostgreSQL:**
+```bash
+# Start database container
+make db-setup
 
-- **Stop containers**: `make stop-dev`
-- **Production equivalents**: append `-prod` (e.g., `make backend-prod`)
+# Connect to containerized database
+docker compose exec postgres psql -U fourmore -d fourmore
+```
 
-## Deployment
+**Loading OSM Data:**
+```bash
+# Downloads and processes OSM data for Utah (configurable)
+make db-seed
+```
 
-### Frontend Deployment
+### Testing and Quality
 
-The frontend is built as static files and can be deployed to any static hosting service:
+```bash
+# Backend
+make test-backend
+make lint-backend
 
-1.  **Build for production:**
-    ```bash
-    cd frontend
-    npm ci --only=production
-    npm run build
-    ```
+# Frontend
+make test-frontend
+make lint-frontend
+```
 
-2.  **Deploy options:**
-    - Copy `frontend/dist/` contents to your web server
-    - Use static hosting (Netlify, Vercel, GitHub Pages)
-    - Serve with nginx/apache
+## Production Deployment
 
-### Backend Deployment
+When you're ready to deploy, use Docker for production:
 
-The backend runs in Docker containers. See `BACKEND_DEPLOYMENT.md` for detailed production deployment instructions.
+```bash
+# Deploy full stack
+make deploy
+
+# Or deploy individual components
+make deploy-api  # Backend + Database + Redis
+make deploy-web  # Frontend only
+```
 
 ## Architecture
 
-- **Backend**: FastAPI (Python) running in Docker
-- **Frontend**: React + Vite (TypeScript) running locally for development
-- **Database**: PostgreSQL with PostGIS extensions
-- **Cache**: Redis
-- **Data Pipeline**: osm2pgsql with custom Lua scripts
+### Development (Local)
+```
+┌─── Your Machine ──────────────────────────────────────────┐
+│  Frontend (Vite)     Backend (uvicorn + uv venv)          │
+│  ↓                   ↓                                    │
+│  http://127.0.0.1:3000   http://127.0.0.1:8000           │
+│                      ↓                                    │
+│  Local PostgreSQL + Redis (or managed services)          │
+└────────────────────────────────────────────────────────────┘
+```
 
-## Environment Variables
-
-The `.env` file in the project root configures backend services. Frontend environment variables must be prefixed with `VITE_` to be accessible.
+### Production (Docker)
+```
+┌─── Docker Compose ─────────────────────────────────────────┐
+│  Frontend (nginx)    Backend (gunicorn)                   │
+│  ↓                   ↓                                    │
+│  :3000               :8000                                │
+│                      ↓                                    │
+│  PostgreSQL + Redis containers                            │
+└────────────────────────────────────────────────────────────┘
+```
 
 ## Troubleshooting
 
-- **Port conflicts**: If port 3000 is in use, Vite automatically selects the next available port
-- **Database connection issues**: Ensure the stack is running (`make backend-dev`) and rerun `make db-init-dev`
-- **Frontend build issues**: Try deleting `node_modules` and `package-lock.json`, then run `npm install`
-- **Docker issues**: Use `make stop-dev` to tear down containers and restart
+### Port Conflicts
+- Frontend: Vite will automatically use the next available port if 3000 is taken
+- Backend: Change `BACKEND_PORT` in your `.env.local`
+
+### Database Connection Issues
+```bash
+# Check if PostgreSQL is running
+pg_isready -h localhost -p 5432
+
+# Or start with Docker
+make db-setup
+```
+
+### Dependencies Issues
+```bash
+# Reset frontend dependencies
+cd frontend && rm -rf node_modules package-lock.json && npm install
+
+# Reset backend dependencies (recreate virtual environment)
+cd backend && rm -rf .venv && uv sync
+
+# Or use the make command
+make setup-backend
+```
+
+### Environment Variables
+```bash
+# Debug environment loading
+make backend  # Check if all variables load correctly
+```
+
+## Why This Approach?
+
+**Local Development Benefits:**
+- ⚡ **Faster startup** - No container overhead
+- 🔄 **Instant hot reload** - Direct file system access
+- 🐛 **Better debugging** - Native debugger support
+- 💾 **Less resource usage** - No virtualization overhead
+- 🔒 **Isolated dependencies** - Virtual environment prevents conflicts
+
+**Production Benefits:**
+- 🚀 **Easy deployment** - Containerized for consistent environments
+- 🔧 **Environment parity** - Docker ensures production consistency
+- 📦 **Dependency isolation** - Containers prevent version conflicts
+
+This gives you the best of both worlds: fast local development with reliable production deployment.
