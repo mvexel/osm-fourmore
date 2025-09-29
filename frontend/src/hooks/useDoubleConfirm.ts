@@ -24,7 +24,7 @@ export function useDoubleConfirm(options: UseDoubleConfirmOptions = {}): UseDoub
     const { resetTimeout = 3000 } = options
     const [isPending, setIsPending] = useState(false)
     const [isExecuting, setIsExecuting] = useState(false)
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const reset = useCallback(() => {
         setIsPending(false)

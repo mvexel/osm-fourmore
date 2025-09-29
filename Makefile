@@ -26,6 +26,8 @@ help:
 	@echo "db-seed-prod  - Seed the production database using the data pipeline"
 	@echo "stop-dev      - Stop and remove development containers"
 	@echo "stop-prod     - Stop and remove production containers"
+	@echo "rebuild-dev   - Rebuild and restart development containers"
+	@echo "rebuild-prod  - Rebuild and restart production containers"
 	@echo ""
 	@echo "Tip: set USE_SYSTEM_DB=true to skip the Postgres container"
 

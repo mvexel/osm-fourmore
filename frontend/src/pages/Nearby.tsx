@@ -174,7 +174,7 @@ export function Nearby() {
       </div>
 
       {/* Debug Info - Only show in development */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.DEV && (
         <div className="bg-yellow-100 p-2 text-xs">
           <strong>Debug:</strong> Page: {page}, HasNext: {hasNextPage.toString()}, Loading: {isLoadingMore.toString()}, POIs: {pois.length}
         </div>
