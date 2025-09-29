@@ -13,6 +13,7 @@ export function CheckinSuccess() {
   const [checkin, setCheckin] = useState<CheckIn | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [osmContributionExpanded, setOsmContributionExpanded] = useState(false)
 
   useEffect(() => {
     const fetchCheckinDetails = async () => {
@@ -117,7 +118,14 @@ export function CheckinSuccess() {
         </div>
 
         {/* OSM Contribution Section */}
-        <OSMContribution osmType={checkin.poi.osm_type} osmId={checkin.poi.osm_id} className="mt-8" />
+        <OSMContribution
+          osmType={checkin.poi.osm_type}
+          osmId={checkin.poi.osm_id}
+          tags={checkin.poi.tags}
+          isExpanded={osmContributionExpanded}
+          onToggleExpanded={setOsmContributionExpanded}
+          className="mt-8"
+        />
       </div>
     </div>
   )

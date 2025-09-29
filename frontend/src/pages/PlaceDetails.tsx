@@ -16,6 +16,7 @@ export function PlaceDetails() {
   const [checkinLoading, setCheckinLoading] = useState(false)
   const [comment, setComment] = useState('')
   const [showCheckInForm, setShowCheckInForm] = useState(false)
+  const [osmContributionExpanded, setOsmContributionExpanded] = useState(false)
 
   const fetchPlaceDetails = useCallback(async (type: string, id: number) => {
     try {
@@ -179,7 +180,13 @@ export function PlaceDetails() {
         </div>
 
         {/* OSM Contribution Section */}
-        <OSMContribution osmType={poi.osm_type} osmId={poi.osm_id} />
+        <OSMContribution
+          osmType={poi.osm_type}
+          osmId={poi.osm_id}
+          tags={poi.tags}
+          isExpanded={osmContributionExpanded}
+          onToggleExpanded={setOsmContributionExpanded}
+        />
 
         {/* Check-in Section */}
         <div className="border-t border-gray-200 pt-6">
