@@ -5,22 +5,26 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 30s
-      timeout: 10s
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
       retries: 5
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -37,8 +41,11 @@ services:
       REDIS_URL: ${REDIS_URL}
       ENVIRONMENT: production
       DEBUG: ${DEBUG}
+    volumes:
+      - ./backend/app:/app/app
+      - ./fourmore_shared:/app/fourmore_shared
     ports:
-      - "127.0.0.1:${BACKEND_PORT}:8000"
+      - "127.0.0.1:${BACKEND_PORT}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,25 +53,12 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: production
-    env_file:
-      - ${FOURMORE_ENV_FILE:-.env.production}
-    ports:
-      - "${FRONTEND_PORT}:80"
-    depends_on:
-      - backend
-    restart: unless-stopped
-
   data-pipeline:
     build:
       context: .
       dockerfile: data-pipeline/Dockerfile
     env_file:
-      - .env.production
+      - ${FOURMORE_ENV_FILE:-.env.production
     environment:
       DATABASE_NAME: ${DATABASE_NAME}
       DATABASE_HOST: ${DATABASE_HOST}
@@ -73,7 +67,7 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       OSM_DATA_FILE: ${OSM_DATA_FILE}
     volumes:
-      - data_pipeline_cache:/app/data
+      - ./data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -81,4 +75,3 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  data_pipeline_cache:
