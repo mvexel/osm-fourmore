@@ -2,109 +2,73 @@ services:
   postgres:
     image: postgis/postgis:15-3.4
     environment:
-      POSTGRES_DB: fourmore
-      POSTGRES_USER: fourmore
-      POSTGRES_PASSWORD: fourmore_dev_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U fourmore -d fourmore" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - fourmore-network
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - fourmore-network
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
     env_file:
-      - .env
+      - ${FOURMORE_ENV_FILE:-.env.development}
     environment:
-      - DATABASE_URL=postgresql://fourmore:fourmore_dev_password@postgres:5432/fourmore
-      - DEBUG=True
-      - ENVIRONMENT=development
-      - REDIS_URL=redis://redis:6379
-      - JWT_SECRET_KEY=dev_jwt_secret_key_replace_in_production
-      - JWT_ALGORITHM=HS256
-      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=1440
-    ports:
-      - "8000:8000"
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      ENVIRONMENT: development
+      DEBUG: "true"
     volumes:
-      - ./backend/app:/app/app:ro
+      - ./backend/app:/app/app
+      - ./fourmore_shared:/app/fourmore_shared
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]
+    ports:
+      - "${BACKEND_PORT}:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
-    command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug" ]
-    networks:
-      - fourmore-network
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: development
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app:cached
-      - ./frontend/src/generated:/app/src/generated:ro
-    environment:
-      - NODE_ENV=development
-      - VITE_API_BASE_URL=/api
-    depends_on:
-      - backend
-    restart: unless-stopped
-    networks:
-      - fourmore-network
 
   data-pipeline:
     build:
       context: .
       dockerfile: data-pipeline/Dockerfile
+    env_file:
+      - ${FOURMORE_ENV_FILE:-.env.development}
     environment:
-      - DATABASE_NAME=fourmore
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_USER=fourmore
-      - DATABASE_PASSWORD=fourmore_dev_password
-      - OSM_DATA_FILE=/app/data/utah-latest.osm.pbf
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      OSM_DATA_FILE: ${OSM_DATA_FILE}
     volumes:
       - ./data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
-    profiles:
-      - tools
-    networks:
-      - fourmore-network
 
 volumes:
   postgres_data:
   redis_data:
-
-
-networks:
-  fourmore-network:
-    driver: bridge

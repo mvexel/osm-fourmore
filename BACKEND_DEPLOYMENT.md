@@ -110,7 +110,7 @@ docker-compose -f docker-compose.prod.yml logs -f backend
 
 ```bash
 # Initialize database tables using the data-pipeline container
-docker-compose -f docker-compose.prod.yml --profile tools run --rm data-pipeline python pipeline.py init-db
+docker-compose --env-file .env.production -f docker-compose.prod.yml run --rm data-pipeline python pipeline.py init-db
 
 # Verify database initialization
 docker-compose -f docker-compose.prod.yml exec postgres psql -U fourmore -d fourmore -c "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
@@ -122,7 +122,7 @@ docker-compose -f docker-compose.prod.yml exec postgres psql -U fourmore -d four
 
 ```bash
 # Create data directory and download Delaware data
-docker-compose -f docker-compose.prod.yml --profile tools run --rm data-pipeline bash -c "
+docker-compose --env-file .env.production -f docker-compose.prod.yml run --rm data-pipeline bash -c "
   cd /app/data &&
   wget https://download.geofabrik.de/north-america/us/delaware-latest.osm.pbf &&
   cd /app/src &&
@@ -134,7 +134,7 @@ docker-compose -f docker-compose.prod.yml --profile tools run --rm data-pipeline
 
 ```bash
 # Download and process Utah OSM data
-docker-compose -f docker-compose.prod.yml --profile tools run --rm data-pipeline bash -c "
+docker-compose --env-file .env.production -f docker-compose.prod.yml run --rm data-pipeline bash -c "
   cd /app/data &&
   wget https://download.geofabrik.de/north-america/us/utah-latest.osm.pbf &&
   cd /app/src &&
@@ -158,12 +158,12 @@ FROM pois;
 
 ```bash
 # This will download ~8GB and take several hours
-docker-compose -f docker-compose.prod.yml --profile tools run --rm data-pipeline bash -c "
+docker-compose --env-file .env.production -f docker-compose.prod.yml run --rm data-pipeline bash -c "
   cd /app/src && python pipeline.py full-rebuild
 "
 
 # Monitor progress in another terminal
-docker-compose -f docker-compose.prod.yml --profile tools logs -f data-pipeline
+docker-compose --env-file .env.production -f docker-compose.prod.yml logs -f data-pipeline
 ```
 
 ### Verify Data Loading
@@ -362,7 +362,7 @@ echo "$(date): Starting data update..." >> $LOG_FILE
 export $(cat .env.production | grep -v '^#' | xargs)
 
 # Run data pipeline (Utah data update)
-docker-compose -f docker-compose.prod.yml --profile tools run --rm data-pipeline bash -c "
+docker-compose --env-file .env.production -f docker-compose.prod.yml run --rm data-pipeline bash -c "
   cd /app/data &&
   rm -f utah-latest.osm.pbf &&
   wget https://download.geofabrik.de/north-america/us/utah-latest.osm.pbf &&
@@ -633,13 +633,13 @@ sudo certbot certificates
 **Data loading issues:**
 ```bash
 # Check data pipeline logs
-docker-compose -f docker-compose.prod.yml --profile tools logs data-pipeline
+docker-compose --env-file .env.production -f docker-compose.prod.yml logs data-pipeline
 
 # Verify data directory
-docker-compose -f docker-compose.prod.yml --profile tools run --rm data-pipeline ls -la /app/data/
+docker-compose --env-file .env.production -f docker-compose.prod.yml run --rm data-pipeline ls -la /app/data/
 
 # Manual data processing
-docker-compose -f docker-compose.prod.yml --profile tools run --rm data-pipeline python pipeline.py --help
+docker-compose --env-file .env.production -f docker-compose.prod.yml run --rm data-pipeline python pipeline.py --help
 ```
 
 **Out of disk space:**
@@ -949,7 +949,7 @@ echo "$(date): Starting data update..." >> $LOG_FILE
 export $(cat .env.production | grep -v '^#' | xargs)
 
 # Run data pipeline (Utah data update)
-docker-compose -f docker-compose.prod.yml --profile tools run --rm data-pipeline bash -c "
+docker-compose --env-file .env.production -f docker-compose.prod.yml run --rm data-pipeline bash -c "
   cd /app/data &&
   rm -f utah-latest.osm.pbf &&
   wget https://download.geofabrik.de/north-america/us/utah-latest.osm.pbf &&
@@ -1220,13 +1220,13 @@ sudo certbot certificates
 **Data loading issues:**
 ```bash
 # Check data pipeline logs
-docker-compose -f docker-compose.prod.yml --profile tools logs data-pipeline
+docker-compose --env-file .env.production -f docker-compose.prod.yml logs data-pipeline
 
 # Verify data directory
-docker-compose -f docker-compose.prod.yml --profile tools run --rm data-pipeline ls -la /app/data/
+docker-compose --env-file .env.production -f docker-compose.prod.yml run --rm data-pipeline ls -la /app/data/
 
 # Manual data processing
-docker-compose -f docker-compose.prod.yml --profile tools run --rm data-pipeline python pipeline.py --help
+docker-compose --env-file .env.production -f docker-compose.prod.yml run --rm data-pipeline python pipeline.py --help
 ```
 
 **Out of disk space:**

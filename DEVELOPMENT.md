@@ -16,52 +16,112 @@ This guide will help you set up and run the FourMore project locally for develop
     cd fourmore
     ```
 
-2.  **Set up your environment:**
-    - Create a `.env` file from the example: `cp .env.example .env`
+2.  **Set up environment variables:**
+    - Copy `.env.example` to `.env` for local tooling: `cp .env.example .env`
+    - Copy `.env.development` to `.env.development.local` (gitignored) and store secrets there. The Makefile automatically prefers the `.local` file.
     - Register an OAuth application on [OpenStreetMap](https://www.openstreetmap.org/oauth2/applications) with the redirect URI `http://127.0.0.1:3000/auth/callback`.
-    - Update your `.env` file with the `OSM_CLIENT_ID` and `OSM_CLIENT_SECRET` from OSM.
+    - Add your OSM client credentials to `.env.development.local` (for Docker) and `.env` (for local scripts).
 
 3.  **Install frontend dependencies:**
     ```bash
     cd frontend
     npm install
-    cd ..
     ```
+    Repeat only when `package.json` changes.
 
-4.  **Prepare the data:**
-    - Download an OSM data file (e.g., from [Geofabrik](https://download.geofabrik.de/)) and place it in the `data` directory at the root of the project.
-
-5.  **Start the development environment:**
+4.  **Start services:**
     ```bash
-    make up
+    make backend-dev
+    make frontend-dev
     ```
-    This will start the backend, database, and Redis.
+    Open the app at `http://127.0.0.1:3000` so OSM OAuth callbacks succeed.
 
-6.  **Start the frontend:**
+5.  **Initialize and seed data (optional):**
     ```bash
-    cd frontend
-    npm run dev
+    make db-init-dev
+    make db-seed-dev
     ```
-    Your application will be available at `http://localhost:3000`.
 
-7.  **Initialize the database and load data:**
-    ```bash
-    # Create the database schema
-    make init-db
+**Using system Postgres**: Update `.env.development` so `DATABASE_URL` points to your host instance (e.g., `postgresql://fourmore:password@host.docker.internal:5432/fourmore`) and start with:
 
-    # Load the OSM data
-    make load-data
-    ```
-    This command will automatically process the `.osm.pbf` file in your `data` directory. If you have multiple `.osm.pbf` files in the `data` directory, you will need to specify which one to use:
-    `docker-compose -f docker-compose.dev.yml --profile tools run --rm data-pipeline python pipeline.py full-rebuild --file-name your-file-name.osm.pbf`
+```bash
+USE_SYSTEM_DB=true make backend-dev
+```
+
+Also adjust `DATABASE_HOST`/`DATABASE_PORT` for the data pipeline if you plan to run `make db-seed-dev` against the external database.
 
 ## Development Workflow
 
--   **Start all services**: `make up` and `npm run dev` in the `frontend` directory.
--   **Stop all services**: `make down` and `Ctrl+C` in the frontend terminal.
--   **Wipe the database**: `make down` will remove the database volume. Run `make up` and `make init-db` to start fresh.
--   **Run tests**: (Instructions to be added)
+### Starting Development
+
+1.  **Backend stack** (API, Postgres, Redis):
+    ```bash
+    make backend-dev
+    ```
+    Services are available on:
+    - Backend API & docs: http://127.0.0.1:8000
+    - Postgres: localhost:5432
+    - Redis: localhost:6379
+
+2.  **Frontend:**
+    ```bash
+    make frontend-dev
+    ```
+    Vite binds to http://127.0.0.1:3000 (OSM OAuth requires the 127.0.0.1 host).
+
+3.  **Stop containers:**
+    ```bash
+    make stop-dev
+    ```
+
+### Database Management
+
+- **Initialize schema**: `make db-init-dev`
+- **Seed from OSM snapshot**: `make db-seed-dev`
+- **System Postgres**: manage schema/seed manually or point commands at your local instance
+
+### Useful Commands
+
+- **Stop containers**: `make stop-dev`
+- **Production equivalents**: append `-prod` (e.g., `make backend-prod`)
+
+## Deployment
+
+### Frontend Deployment
+
+The frontend is built as static files and can be deployed to any static hosting service:
+
+1.  **Build for production:**
+    ```bash
+    cd frontend
+    npm ci --only=production
+    npm run build
+    ```
+
+2.  **Deploy options:**
+    - Copy `frontend/dist/` contents to your web server
+    - Use static hosting (Netlify, Vercel, GitHub Pages)
+    - Serve with nginx/apache
+
+### Backend Deployment
+
+The backend runs in Docker containers. See `BACKEND_DEPLOYMENT.md` for detailed production deployment instructions.
+
+## Architecture
+
+- **Backend**: FastAPI (Python) running in Docker
+- **Frontend**: React + Vite (TypeScript) running locally for development
+- **Database**: PostgreSQL with PostGIS extensions
+- **Cache**: Redis
+- **Data Pipeline**: osm2pgsql with custom Lua scripts
 
 ## Environment Variables
 
-The `.env` file in the project root is used to configure all services. For the frontend, only variables prefixed with `VITE_` are accessible.
+The `.env` file in the project root configures backend services. Frontend environment variables must be prefixed with `VITE_` to be accessible.
+
+## Troubleshooting
+
+- **Port conflicts**: If port 3000 is in use, Vite automatically selects the next available port
+- **Database connection issues**: Ensure the stack is running (`make backend-dev`) and rerun `make db-init-dev`
+- **Frontend build issues**: Try deleting `node_modules` and `package-lock.json`, then run `npm install`
+- **Docker issues**: Use `make stop-dev` to tear down containers and restart

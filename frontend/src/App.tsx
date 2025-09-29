@@ -44,7 +44,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/places/:id"
+        path="/places/:osmType/:osmId"
         element={
           <ProtectedRoute>
             <Layout>

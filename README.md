@@ -12,22 +12,33 @@ From this MVP we will build this out to native mobile apps for Android and iOS u
 
 ## Quick Start
 
-**Prerequisites**: Docker, Docker Compose, Node.js 18+
+**Prerequisites**: Docker, Docker Compose plugin, Node.js 18+
 
 ```bash
 # Get the code and start services
 git clone [your-repo-url]
 cd fourmore
 
-# See SETUP.md for detailed instructions
-# TL;DR: Docker handles backend, you run frontend locally
-docker-compose -f docker-compose.dev.yml up -d
-cd frontend && npm run dev
+# (Optional) create .env.development.local with your secrets
+cp .env.development .env.development.local  # then edit values (file stays gitignored)
+
+# Install frontend deps once
+cd frontend
+npm install
+cd ..
+
+# Bring up the backend stack (API, Postgres, Redis)
+make backend-dev
+
+# In another terminal, start the React dev server (runs on host)
+make frontend-dev
 ```
 
-Visit http://localhost:3000 to use the app!
+Visit http://127.0.0.1:3000 to use the app (OSM OAuth only whitelists 127.0.0.1).
 
-**📋 For complete setup instructions, see [SETUP.md](SETUP.md)**
+Need a clean database? Run `make db-init-dev` followed by `make db-seed-dev`.
+
+Prefer your local Postgres instance? Point `DATABASE_URL` at it (e.g., `postgresql://<user>:<pass>@host.docker.internal:5432/fourmore`) and run `USE_SYSTEM_DB=true make backend-dev` to skip the containerized database container.
 
 ## Full Documentation
 

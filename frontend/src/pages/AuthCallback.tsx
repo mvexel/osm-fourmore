@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { authApi } from '../services/api'
@@ -9,46 +9,44 @@ export function AuthCallback() {
   const navigate = useNavigate()
   const { login } = useAuth()
   const [error, setError] = useState<string | null>(null)
+  const lastCodeRef = useRef<string | null>(null)
 
   useEffect(() => {
-    let cancelled = false
-
+    
     const handleCallback = async () => {
       const code = searchParams.get('code')
       const error = searchParams.get('error')
 
+      if (code && lastCodeRef.current === code) {
+        return
+      }
+
       if (error) {
-        if (!cancelled) setError('Authentication was cancelled or failed')
-        setTimeout(() => !cancelled && navigate('/login'), 3000)
+        setError('Authentication was cancelled or failed')
+        setTimeout(() => navigate('/login'), 3000)
         return
       }
 
       if (!code) {
-        if (!cancelled) setError('No authorization code received')
-        setTimeout(() => !cancelled && navigate('/login'), 3000)
+        setError('No authorization code received')
+        setTimeout(() => navigate('/login'), 3000)
         return
       }
 
       try {
+        lastCodeRef.current = code
         const authData = await authApi.handleCallback(code)
-        if (!cancelled) {
-          login(authData.access_token, authData.user)
-          navigate('/nearby')
-        }
+        login(authData.access_token, authData.user)
+        navigate('/nearby')
       } catch (err) {
         console.error('Auth callback error:', err)
-        if (!cancelled) {
-          setError('Failed to complete authentication')
-          setTimeout(() => !cancelled && navigate('/login'), 3000)
-        }
+        lastCodeRef.current = null
+        setError('Failed to complete authentication')
+        setTimeout(() => navigate('/login'), 3000)
       }
     }
 
     void handleCallback()
-
-    return () => {
-      cancelled = true
-    }
   }, [searchParams, navigate, login])
 
   return (

@@ -20,7 +20,7 @@ export function Nearby() {
   const [page, setPage] = useState(0)
   const [lastScrollTime, setLastScrollTime] = useState(0)
 
-  const radius = 1000 // TODO - this should be a constant. We keep this really small for performance and to prevent users from checking in too far away
+  const radius = 1000 // TODO - this should be a constant. 
 
   const fetchNearbyPlaces = useCallback(async (reset = false, pageOverride?: number) => {
     if (!latitude || !longitude) return

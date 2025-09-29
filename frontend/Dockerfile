@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for React frontend
-FROM node:18-alpine as base
+FROM --platform=linux/amd64 node:18-alpine AS base
 
 # Set working directory
 WORKDIR /app
@@ -14,18 +14,20 @@ RUN npm ci --only=production && npm cache clean --force
 COPY . .
 
 # Development stage
-FROM base as development
-RUN npm ci && npm cache clean --force
+FROM base AS development
+RUN rm -rf node_modules package-lock.json
+RUN npm install && npm cache clean --force
 EXPOSE 3000
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
 
 # Build stage
-FROM base as build
-RUN npm ci && npm cache clean --force
+FROM base AS build
+RUN rm -rf node_modules package-lock.json
+RUN npm install && npm cache clean --force
 RUN npm run build
 
 # Production stage
-FROM nginx:alpine as production
+FROM nginx:alpine AS production
 # Copy custom nginx config if needed
 # COPY nginx.conf /etc/nginx/nginx.conf
 

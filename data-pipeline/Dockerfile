@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
 # Install osm2pgsql and PostgreSQL client
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y -t bookworm-backports \
     osm2pgsql \
     postgresql-client \
     tzdata \

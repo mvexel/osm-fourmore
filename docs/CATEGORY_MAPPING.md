@@ -117,14 +117,14 @@ Simply add new patterns to the `matches` array:
 
 ### Quick Commands
 ```bash
-# Full build (generate mappings + build frontend)
-make build
+# Regenerate Lua + TypeScript outputs from the JSON source
+./scripts/generate-mappings.sh
 
-# Just generate mappings
-make generate-mappings
+# Rebuild the frontend bundle (optional but recommended)
+cd frontend && npm run build
 
-# Full rebuild (with Docker services)
-make rebuild
+# Reload POI data after mapping changes
+make db-seed-dev
 ```
 
 ### Manual Workflow
