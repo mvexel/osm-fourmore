@@ -263,18 +263,30 @@ class OSMAPIClient:
                     detail=f"Failed to close changeset: {response.text}"
                 )
 
-    async def add_check_date(self, poi: POIResponse) -> Dict[str, Any]:
-        """Add or update check_date tag on an element."""
-        element_data = await self.get_element(poi.osm_id, poi.osm_type)
+    async def update_element_tags(
+        self,
+        poi: POIResponse,
+        new_tags: Dict[str, str],
+        changeset_comment: str
+    ) -> Dict[str, Any]:
+        """
+        Update tags on an OSM element (node or way).
 
+        Args:
+            poi: POI with osm_id, osm_type, lat, lon
+            new_tags: Dictionary of tags to add/update
+            changeset_comment: Comment for the changeset
+
+        Returns:
+            Dict with osm_id, osm_type, new_version, changeset_id, and updated tags
+        """
+        element_data = await self.get_element(poi.osm_id, poi.osm_type)
         logger.info(f"Retrieved OSM element data: {element_data}")
 
         tags = element_data['tags'].copy()
-        tags['check_date'] = datetime.now().strftime('%Y-%m-%d')
+        tags.update(new_tags)
 
-        changeset_id = await self.create_changeset(
-            comment=f"Confirmed POI information via FourMore check-in"
-        )
+        changeset_id = await self.create_changeset(comment=changeset_comment)
 
         new_version = None
 
@@ -297,7 +309,7 @@ class OSMAPIClient:
                     changeset_id=changeset_id
                 )
 
-            logger.info(f"Updated {poi.osm_type} {poi.osm_id} to version {new_version} with check_date tag")
+            logger.info(f"Updated {poi.osm_type} {poi.osm_id} to version {new_version}")
 
             await self.close_changeset(changeset_id)
 
@@ -306,11 +318,24 @@ class OSMAPIClient:
                 'osm_type': poi.osm_type,
                 'new_version': new_version,
                 'changeset_id': changeset_id,
-                'check_date': tags['check_date']
+                'updated_tags': new_tags
             }
         except Exception as e:
             await self.close_changeset(changeset_id)
             raise e
+
+    async def add_check_date(self, poi: POIResponse) -> Dict[str, Any]:
+        """Add or update check_date tag on an element."""
+        check_date = datetime.now().strftime('%Y-%m-%d')
+
+        result = await self.update_element_tags(
+            poi=poi,
+            new_tags={'check_date': check_date},
+            changeset_comment="Confirmed POI information via FourMore check-in"
+        )
+
+        result['check_date'] = check_date
+        return result
     
     async def create_note(self, lat: float, lon: float, text: str) -> int:
         """Create a new note."""

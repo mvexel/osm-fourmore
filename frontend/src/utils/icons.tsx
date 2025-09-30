@@ -3,6 +3,7 @@ import {
   IconMapPin,
   IconPhone,
   IconWorld,
+  IconCheck,
   IconClock,
   IconMap,
   IconConfetti,
@@ -47,6 +48,7 @@ export const ContactIcons = {
 // UI state icons (unchanged)
 export const UIIcons = {
   success: (props: IconProps = {}) => <IconConfetti {...props} />,
+  checked_in: (props: IconProps = {}) => <IconCheck {...props} />,
   error: (props: IconProps = {}) => <IconMoodSad {...props} />,
   idea: (props: IconProps = {}) => <IconBulb {...props} />,
   secure: (props: IconProps = {}) => <IconLock {...props} />,

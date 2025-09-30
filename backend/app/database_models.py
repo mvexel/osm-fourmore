@@ -1,6 +1,6 @@
 """SQLAlchemy database models for FourMore backend."""
 
-from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Text, Boolean
+from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Text, Boolean, Index, UniqueConstraint
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -112,3 +112,31 @@ class CheckIn(Base):
     comment = Column(Text)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class QuestResponse(Base):
+    """Quest response model - tracks completed quests globally."""
+
+    __tablename__ = "quest_responses"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Reference POI by composite key
+    poi_osm_type = Column(String(1), nullable=False)
+    poi_osm_id = Column(BigInteger, nullable=False)
+
+    # Quest identifier (references quest definition)
+    quest_id = Column(String, nullable=False)
+
+    # User's answer (e.g., 'yes', 'no')
+    answer = Column(String, nullable=False)
+
+    # OSM changeset ID (null if OSM edit failed)
+    osm_changeset_id = Column(String, nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Unique constraint prevents duplicate quest responses (also creates index)
+    __table_args__ = (
+        UniqueConstraint('poi_osm_type', 'poi_osm_id', 'quest_id', name='uq_poi_quest'),
+    )

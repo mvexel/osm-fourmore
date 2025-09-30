@@ -45,12 +45,6 @@ async def confirm_poi_info(
     db: Session = Depends(get_db)
 ):
     """Confirm POI information is correct by adding check_date tag."""
-    if not current_user.osm_access_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="OSM access token not available. Please re-authenticate."
-        )
-
     poi = db.query(POI).filter(POI.osm_type == request.poi_osm_type, POI.osm_id == request.poi_osm_id).first()
     logger.info(f"User {current_user.username} is confirming info for POI {request.poi_osm_type}/{request.poi_osm_id}")
     if not poi:
@@ -114,11 +108,6 @@ async def create_osm_note(
     db: Session = Depends(get_db)
 ):
     """Create a note in OpenStreetMap."""
-    if not current_user.osm_access_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="OSM access token not available. Please re-authenticate."
-        )
 
     poi = db.query(POI).filter(POI.osm_type == request.poi_osm_type, POI.osm_id == request.poi_osm_id).first()
     if not poi:

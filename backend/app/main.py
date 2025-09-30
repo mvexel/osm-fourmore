@@ -30,7 +30,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Import routers
-from .routers import auth, places, checkins, osm_edits, categories
+from .routers import auth, places, checkins, osm_edits, categories, quests
 from .database import create_tables
 
 @asynccontextmanager
@@ -72,6 +72,7 @@ app.include_router(places.router)
 app.include_router(checkins.router)
 app.include_router(osm_edits.router)
 app.include_router(categories.router)
+app.include_router(quests.router)
 
 @app.get("/")
 async def root():

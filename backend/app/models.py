@@ -126,3 +126,28 @@ class APIResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+# Quest Models
+class QuestApplicableResponse(BaseModel):
+    id: str
+    question: str
+
+class QuestApplicableListResponse(BaseModel):
+    quests: List[QuestApplicableResponse]
+    total: int
+
+class QuestRespondRequest(BaseModel):
+    poi_osm_type: str
+    poi_osm_id: int
+    quest_id: str
+    answer: str
+
+    @field_validator('poi_osm_type')
+    @classmethod
+    def serialize_osm_type(cls, v: str) -> str:
+        return osm_type_validator_to_short(v)
+
+class QuestRespondResponse(BaseModel):
+    success: bool
+    changeset_id: Optional[str]
+    message: str

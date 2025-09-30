@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { POI } from '../types'
-import { placesApi, checkinsApi } from '../services/api'
+import { POI, Quest } from '../types'
+import { placesApi, checkinsApi, questsApi } from '../services/api'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { OSMContribution } from '../components/OSMContribution'
+import { QuestDialog } from '../components/QuestDialog'
 import { getCategoryIcon, getCategoryLabel, ContactIcons, UIIcons } from '../utils/icons'
 
 export function PlaceDetails() {
@@ -17,11 +18,16 @@ export function PlaceDetails() {
   const [comment, setComment] = useState('')
   const [showCheckInForm, setShowCheckInForm] = useState(false)
   const [osmContributionExpanded, setOsmContributionExpanded] = useState(false)
+  const [justCheckedIn, setJustCheckedIn] = useState(false)
+  const [quests, setQuests] = useState<Quest[]>([])
+  const [showQuestDialog, setShowQuestDialog] = useState(false)
+  const [loadingQuests, setLoadingQuests] = useState(false)
 
   const fetchPlaceDetails = useCallback(async (type: string, id: number) => {
     try {
       setLoading(true)
       setError(null)
+      console.log(`Fetching place details for ${type}/${id}`)
       const poiData = await placesApi.getDetails(type, id)
       setPoi(poiData)
     } catch (err) {
@@ -38,6 +44,29 @@ export function PlaceDetails() {
     }
   }, [fetchPlaceDetails, osmType, osmId])
 
+  const fetchApplicableQuests = async () => {
+    if (!poi) return
+
+    try {
+      setLoadingQuests(true)
+      console.log(`Fetching applicable quests for ${poi.osm_type}/${poi.osm_id}`)
+      const result = await questsApi.getApplicable(poi.osm_type, poi.osm_id)
+      console.log(`Found ${result.quests.length} applicable quests`)
+      setQuests(result.quests)
+
+      if (result.quests.length > 0) {
+        setShowQuestDialog(true)
+      } else {
+        setOsmContributionExpanded(true)
+      }
+    } catch (err) {
+      console.error('Failed to fetch quests:', err)
+      setOsmContributionExpanded(true)
+    } finally {
+      setLoadingQuests(false)
+    }
+  }
+
   const handleCheckIn = async () => {
     if (!poi) return
 
@@ -52,11 +81,12 @@ export function PlaceDetails() {
         user_lon: longitude || undefined,
       })
 
-      // Navigate to check-ins history
-      navigate('/checkins')
+      setJustCheckedIn(true)
+      setShowCheckInForm(false)
+      console.log('Check-in successful, now fetching quests')
+      await fetchApplicableQuests()
     } catch (err) {
       console.error('Check-in failed:', err)
-      // Show error - in a real app, you'd use a toast notification
       alert('Check-in failed. Please try again.')
     } finally {
       setCheckinLoading(false)
@@ -179,24 +209,33 @@ export function PlaceDetails() {
           </div>
         </div>
 
-        {/* OSM Contribution Section */}
-        <OSMContribution
-          osmType={poi.osm_type}
-          osmId={poi.osm_id}
-          tags={poi.tags}
-          isExpanded={osmContributionExpanded}
-          onToggleExpanded={setOsmContributionExpanded}
-        />
+        {/* OSM Contribution Section - only show if just checked in */}
+        {justCheckedIn && (
+          <OSMContribution
+            osmType={poi.osm_type}
+            osmId={poi.osm_id}
+            tags={poi.tags}
+            isExpanded={osmContributionExpanded}
+            onToggleExpanded={setOsmContributionExpanded}
+          />
+        )}
 
         {/* Check-in Section */}
         <div className="border-t border-gray-200 pt-6">
-          {!showCheckInForm ? (
+          {!showCheckInForm && !justCheckedIn ? (
             <button
               onClick={() => setShowCheckInForm(true)}
               className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
             >
               Check In Here
             </button>
+          ) : justCheckedIn ? (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2 text-green-800">
+                {UIIcons.checked_in({ size: 20 })}
+                <span className="font-medium">Checked in successfully!</span>
+              </div>
+            </div>
           ) : (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Check In</h3>
@@ -237,6 +276,22 @@ export function PlaceDetails() {
           )}
         </div>
       </div>
+
+      {/* Quest Dialog */}
+      {showQuestDialog && quests.length > 0 && (
+        <QuestDialog
+          osmType={poi.osm_type}
+          osmId={poi.osm_id}
+          quests={quests}
+          onClose={() => {
+            setShowQuestDialog(false)
+            setOsmContributionExpanded(true)
+          }}
+          onComplete={() => {
+            setQuests([])
+          }}
+        />
+      )}
     </div>
   )
 }

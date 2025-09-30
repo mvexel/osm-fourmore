@@ -88,3 +88,26 @@ export interface CheckinStats {
   favorite_class: string | null
   member_since: string | null
 }
+
+export interface Quest {
+  id: string
+  question: string
+}
+
+export interface QuestApplicableResponse {
+  quests: Quest[]
+  total: number
+}
+
+export interface QuestRespondRequest {
+  poi_osm_type: string
+  poi_osm_id: number
+  quest_id: string
+  answer: string
+}
+
+export interface QuestRespondResponse {
+  success: boolean
+  changeset_id: string | null
+  message: string
+}

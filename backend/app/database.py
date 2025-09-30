@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .database_models import Base, POI, User, CheckIn
+from .database_models import Base, POI, User, CheckIn, QuestResponse
 
 # Load environment variables from .env and .env.local files
 from dotenv import find_dotenv

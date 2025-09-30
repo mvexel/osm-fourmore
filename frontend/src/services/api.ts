@@ -9,6 +9,9 @@ import {
   ClassesListEntry,
   CheckinHistory,
   CheckinStats,
+  QuestApplicableResponse,
+  QuestRespondRequest,
+  QuestRespondResponse,
 } from '../types'
 
 type LoginUrlResponse = { auth_url: string }
@@ -133,6 +136,18 @@ export const osmApi = {
 
   async createNote(osmType: string, osmId: number, text: string): Promise<CreateNoteResponse> {
     const response = await api.post<CreateNoteResponse>('/osm/note', { poi_osm_type: osmType, poi_osm_id: osmId, text })
+    return unwrap(response)
+  },
+}
+
+export const questsApi = {
+  async getApplicable(osmType: string, osmId: number): Promise<QuestApplicableResponse> {
+    const response = await api.get<QuestApplicableResponse>(`/quests/applicable/${osmType}/${osmId}`)
+    return unwrap(response)
+  },
+
+  async respond(request: QuestRespondRequest): Promise<QuestRespondResponse> {
+    const response = await api.post<QuestRespondResponse>('/quests/respond', request)
     return unwrap(response)
   },
 }

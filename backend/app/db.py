@@ -11,7 +11,7 @@ load_dotenv(find_dotenv())  # Automatically finds .env files up the directory tr
 load_dotenv(find_dotenv(".env.local"), override=True)  # .env.local overrides .env values
 
 # Import models from local database module (copied from data-pipeline)
-from .database import Base, POI, User, CheckIn
+from .database import Base, POI, User, CheckIn, QuestResponse
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://fourmore:fourmore_dev_password@localhost:5432/fourmore")  # TODO: no magic!
 
