@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Quest } from '../types'
 import { questsApi } from '../services/api'
 import { UIIcons } from '../utils/icons'

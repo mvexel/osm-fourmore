@@ -15,7 +15,6 @@ interface OSMContributionProps {
 export function OSMContribution({
   osmType,
   osmId,
-  tags,
   isExpanded = false,
   onToggleExpanded,
   className
