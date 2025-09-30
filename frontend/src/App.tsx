@@ -66,6 +66,7 @@ function AppRoutes() {
       <Route
         path="/checkin-success/:checkinId"
         element={
+          /* Currently not used */
           <ProtectedRoute>
             <Layout>
               <CheckinSuccess />

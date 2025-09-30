@@ -68,36 +68,6 @@ export function BusinessDetailsCard({ poi }: BusinessDetailsCardProps) {
           </div>
         )}
       </div>
-
-      {/* Map Link */}
-      <div className="mt-6 pt-4 border-t border-gray-100">
-        <a
-          href={`https://www.openstreetmap.org/?mlat=${poi.lat}&mlon=${poi.lon}&zoom=18`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center space-x-2 text-sm text-gray-600 hover:text-primary-600 transition-colors"
-        >
-          <div className="text-gray-600">{ContactIcons.map({ size: 16 })}</div>
-          <span>View on OpenStreetMap</span>
-        </a>
-      </div>
-
-      {/* Additional Tags */}
-      {poi.tags && Object.keys(poi.tags).length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Additional Information</h4>
-          <div className="flex flex-wrap gap-1">
-            {Object.entries(poi.tags).slice(0, 5).map(([key, value]) => (
-              <span
-                key={key}
-                className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded"
-              >
-                {key}: {String(value)}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

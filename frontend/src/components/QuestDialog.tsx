@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { IconX, IconCheck, IconAlertCircle } from '@tabler/icons-react'
 import { Quest } from '../types'
 import { questsApi } from '../services/api'
+import { UIIcons } from '../utils/icons'
 
 interface QuestDialogProps {
   osmType: string
@@ -62,7 +62,7 @@ export function QuestDialog({ osmType, osmId, quests, onClose, onComplete }: Que
         <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-              <IconCheck size={32} className="text-green-600" />
+              {UIIcons.checked_in({ size: 32, className: 'text-green-600' })}
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">
               Thank you for contributing!
@@ -89,7 +89,7 @@ export function QuestDialog({ osmType, osmId, quests, onClose, onComplete }: Que
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
           >
-            <IconX size={20} />
+            {UIIcons.close({ size: 20 })}
           </button>
         </div>
 
@@ -102,7 +102,7 @@ export function QuestDialog({ osmType, osmId, quests, onClose, onComplete }: Que
 
             {error && (
               <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md mb-4">
-                <IconAlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                {UIIcons.alert({ size: 20, className: 'text-red-600 flex-shrink-0 mt-0.5' })}
                 <div>
                   <p className="text-sm text-red-800">{error}</p>
                   <button

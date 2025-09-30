@@ -44,6 +44,7 @@ class POIResponse(POIBase):
     version: int
     timestamp: datetime
     distance: Optional[float] = Field(None, description="Distance in meters from user location")
+    is_checked_in: Optional[bool] = Field(None, description="Whether current user has checked in recently (within 24 hours)")
 
     @field_validator('osm_type')
     def serialize_osm_type(cls, v: str) -> str:

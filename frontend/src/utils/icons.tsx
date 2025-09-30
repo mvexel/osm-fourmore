@@ -18,6 +18,11 @@ import {
   IconInfoCircle,
   IconHeart,
   IconHeartFilled,
+  IconX,
+  IconAlertCircle,
+  IconChevronUp,
+  IconChevronDown,
+  IconMessagePlus,
 } from '@tabler/icons-react'
 
 // Import the generated category metadata
@@ -45,13 +50,17 @@ export const ContactIcons = {
   map: (props: IconProps = {}) => <IconMap {...props} />,
 }
 
-// UI state icons (unchanged)
+// UI state icons
 export const UIIcons = {
   success: (props: IconProps = {}) => <IconConfetti {...props} />,
   checked_in: (props: IconProps = {}) => <IconCheck {...props} />,
   error: (props: IconProps = {}) => <IconMoodSad {...props} />,
   idea: (props: IconProps = {}) => <IconBulb {...props} />,
   secure: (props: IconProps = {}) => <IconLock {...props} />,
+  close: (props: IconProps = {}) => <IconX {...props} />,
+  alert: (props: IconProps = {}) => <IconAlertCircle {...props} />,
+  chevronUp: (props: IconProps = {}) => <IconChevronUp {...props} />,
+  chevronDown: (props: IconProps = {}) => <IconChevronDown {...props} />,
 }
 
 export const ActionIcons = {
@@ -60,6 +69,7 @@ export const ActionIcons = {
   info: (props: IconProps = {}) => <IconInfoCircle {...props} />,
   favorite: (props: IconProps = {}) => <IconHeart {...props} />,
   favoriteFilled: (props: IconProps = {}) => <IconHeartFilled {...props} />,
+  addNote: (props: IconProps = {}) => <IconMessagePlus {...props} />,
 }
 
 // Navigation icons (unchanged)

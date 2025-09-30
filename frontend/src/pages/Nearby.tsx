@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { POI } from '../types'
+import { POI, CheckIn } from '../types'
 import { placesApi, checkinsApi } from '../services/api'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { POICard } from '../components/POICard'
+import { CheckedInStatus } from '../components/CheckedInStatus'
 import { UIIcons, NavIcons } from '../utils/icons'
 import { IconSearch } from '@tabler/icons-react'
 
@@ -14,13 +15,13 @@ export function Nearby() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedClass] = useState<string>('')
-  const [checkinLoading, setCheckinLoading] = useState<string | null>(null)
   const [hasNextPage, setHasNextPage] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [page, setPage] = useState(0)
   const [lastScrollTime, setLastScrollTime] = useState(0)
+  const [currentCheckin, setCurrentCheckin] = useState<CheckIn | null>(null)
 
-  const radius = 1000 // TODO - this should be a constant. 
+  const radius = 1000 // TODO - this should be a constant.
 
   const fetchNearbyPlaces = useCallback(async (reset = false, pageOverride?: number) => {
     if (!latitude || !longitude) return
@@ -50,11 +51,14 @@ export function Nearby() {
 
       console.log('API response:', { count: nearbyPois.length, hasMore: nearbyPois.length === limit })
 
+      // Filter out the checked-in POI if it exists in the results
+      const filteredPois = nearbyPois.filter(poi => !poi.is_checked_in)
+
       if (reset) {
-        setPois(nearbyPois)
+        setPois(filteredPois)
         setPage(1)
       } else {
-        setPois(prev => [...prev, ...nearbyPois])
+        setPois(prev => [...prev, ...filteredPois])
         setPage(prev => prev + 1)
       }
 
@@ -69,6 +73,20 @@ export function Nearby() {
     }
   }, [latitude, longitude, radius, selectedClass])
 
+  // Fetch current check-in
+  const fetchCurrentCheckin = useCallback(async () => {
+    try {
+      const history = await checkinsApi.getHistory(1, 1)
+      if (history.checkins.length > 0) {
+        setCurrentCheckin(history.checkins[0])
+      } else {
+        setCurrentCheckin(null)
+      }
+    } catch (err) {
+      console.error('Error fetching current check-in:', err)
+    }
+  }, [])
+
   // Fetch nearby places when location is available
   useEffect(() => {
     if (latitude && longitude) {
@@ -77,6 +95,24 @@ export function Nearby() {
       void fetchNearbyPlaces(true)
     }
   }, [fetchNearbyPlaces, latitude, longitude, selectedClass])
+
+  // Fetch current check-in on mount
+  useEffect(() => {
+    void fetchCurrentCheckin()
+  }, [fetchCurrentCheckin])
+
+  // Refresh check-in when returning to this page
+  useEffect(() => {
+    const handleFocus = () => {
+      void fetchCurrentCheckin()
+      // Also refresh the nearby list to update is_checked_in flags
+      if (latitude && longitude) {
+        void fetchNearbyPlaces(true)
+      }
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [fetchCurrentCheckin, fetchNearbyPlaces, latitude, longitude])
 
   const loadMorePlaces = useCallback(async () => {
     console.log('loadMorePlaces called:', { hasNextPage, isLoadingMore, loading })
@@ -109,28 +145,6 @@ export function Nearby() {
     if (distanceFromBottom <= 200 && hasNextPage && !isLoadingMore && !loading) {
       console.log('Near bottom, triggering load more')
       void loadMorePlaces()
-    }
-  }
-
-  const handleCheckIn = async (poi: POI) => {
-    try {
-      const poiKey = `${poi.osm_type}-${poi.osm_id}`
-      setCheckinLoading(poiKey)
-
-      const checkin = await checkinsApi.create({
-        poi_osm_type: poi.osm_type,
-        poi_osm_id: poi.osm_id,
-        user_lat: latitude || undefined,
-        user_lon: longitude || undefined,
-      })
-
-      // Navigate to success page with checkin ID
-      navigate(`/checkin-success/${checkin.id}`)
-    } catch (err) {
-      console.error('Check-in failed:', err)
-      // You could show a toast notification here
-    } finally {
-      setCheckinLoading(null)
     }
   }
 
@@ -169,9 +183,18 @@ export function Nearby() {
   return (
     <div className="pb-20" onScroll={handleScroll} style={{ height: '100vh', overflowY: 'auto' }}>
       {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 space-y-4">
+      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 space-y-4 z-10">
         <h1 className="text-xl font-semibold text-gray-900">Nearby Places</h1>
       </div>
+
+      {/* Current Check-in Status */}
+      {currentCheckin && (
+        <CheckedInStatus
+          poi={currentCheckin.poi}
+          checkedInAt={currentCheckin.created_at}
+          onClick={() => navigate(`/places/${currentCheckin.poi.osm_type}/${currentCheckin.poi.osm_id}`)}
+        />
+      )}
 
       {/* Debug Info - Only show in development */}
       {import.meta.env.DEV && (
@@ -216,9 +239,6 @@ export function Nearby() {
                   key={`${poi.osm_type}-${poi.osm_id}`}
                   poi={poi}
                   onClick={() => handlePOIClick(poi)}
-                  showCheckInButton
-                  onCheckIn={() => handleCheckIn(poi)}
-                  isCheckingIn={checkinLoading === `${poi.osm_type}-${poi.osm_id}`}
                 />
               ))}
             </div>

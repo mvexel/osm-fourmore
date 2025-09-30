@@ -18,6 +18,7 @@ export interface POI {
   version: number
   timestamp: string
   distance?: number
+  is_checked_in?: boolean
 }
 
 export interface User {

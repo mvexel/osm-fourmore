@@ -1,10 +1,11 @@
 """Places/POI endpoints."""
 
 from typing import List
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
-from ..db import get_db, POI
+from ..db import get_db, POI, CheckIn
 from ..auth import get_current_user, User
 from ..models import NormalizeOsmType, POIResponse, POINearbyRequest, APIResponse
 
@@ -45,11 +46,25 @@ async def get_nearby_places(
 
     results = query.all()
 
+    # Get user's most recent check-in (current location)
+    most_recent_checkin = db.query(
+        CheckIn.poi_osm_type,
+        CheckIn.poi_osm_id
+    ).filter(
+        CheckIn.user_id == current_user.id
+    ).order_by(CheckIn.created_at.desc()).first()
+
+    # Get the current checked-in POI (if any)
+    current_checkin_poi = None
+    if most_recent_checkin:
+        current_checkin_poi = (most_recent_checkin.poi_osm_type, most_recent_checkin.poi_osm_id)
+
     # Convert to response format
     pois = []
     for poi, distance in results:
         poi_data = POIResponse.model_validate(poi)
         poi_data.distance = round(distance, 1)  # Round to 1 decimal place
+        poi_data.is_checked_in = current_checkin_poi == (poi.osm_type, poi.osm_id)
         pois.append(poi_data)
 
     return pois

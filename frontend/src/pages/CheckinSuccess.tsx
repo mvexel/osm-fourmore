@@ -76,7 +76,7 @@ export function CheckinSuccess() {
           >
             ← Back
           </button>
-          <h1 className="text-xl font-semibold text-gray-900">Check-in Success</h1>
+          <h1 className="text-xl font-semibold text-gray-900">You're here!</h1>
           <div className="w-6"></div> {/* Spacer for center alignment */}
         </div>
       </div>
@@ -84,8 +84,8 @@ export function CheckinSuccess() {
       <div className="p-4 space-y-6">
         {/* Success Celebration */}
         <div className="text-center py-6">
-          <div className="text-primary-600 mb-3">{UIIcons.success({ size: 64 })}</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Check-in Successful!</h2>
+          <div className="flex justify-center text-primary-600 mb-3">{UIIcons.success({ size: 64 })}</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">You have arrived!</h2>
           <p className="text-gray-600">
             Checked in on {format(new Date(checkin.created_at), 'MMM d, yyyy')} at{' '}
             {format(new Date(checkin.created_at), 'h:mm a')}
@@ -100,7 +100,7 @@ export function CheckinSuccess() {
         {/* Business Details */}
         <BusinessDetailsCard poi={checkin.poi} />
 
-        {/* Action Buttons */}
+        {/* Action Buttons
         <div className="space-y-3">
           <Link
             to="/nearby"
@@ -115,7 +115,7 @@ export function CheckinSuccess() {
           >
             View Check-in History
           </Link>
-        </div>
+        </div> */}
 
         {/* OSM Contribution Section */}
         <OSMContribution
