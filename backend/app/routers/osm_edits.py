@@ -94,6 +94,11 @@ class NoteRequest(BaseModel):
     poi_osm_id: int
     text: str
 
+    @field_validator('poi_osm_type')
+    @classmethod
+    def serialize_osm_type(cls, v: str) -> str:
+        return osm_type_validator_to_short(v)
+
 
 class NoteResponse(BaseModel):
     success: bool
