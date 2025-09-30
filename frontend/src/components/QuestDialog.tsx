@@ -117,20 +117,29 @@ export function QuestDialog({ osmType, osmId, quests, onClose, onComplete }: Que
           </div>
 
           {/* Answer Buttons */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleAnswer('yes')}
+                disabled={isSubmitting}
+                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+              >
+                {isSubmitting ? 'Submitting...' : 'Yes'}
+              </button>
+              <button
+                onClick={() => handleAnswer('no')}
+                disabled={isSubmitting}
+                className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+              >
+                {isSubmitting ? 'Submitting...' : 'No'}
+              </button>
+            </div>
             <button
-              onClick={() => handleAnswer('yes')}
+              onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+              className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
             >
-              {isSubmitting ? 'Submitting...' : 'Yes'}
-            </button>
-            <button
-              onClick={() => handleAnswer('no')}
-              disabled={isSubmitting}
-              className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
-            >
-              {isSubmitting ? 'Submitting...' : 'No'}
+              Not Sure
             </button>
           </div>
 

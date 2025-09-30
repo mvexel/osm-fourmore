@@ -26,11 +26,16 @@ class QuestDefinition:
 
     def matches_poi_class(self, poi_class: str) -> bool:
         """Check if quest applies to the given POI class."""
-        return self.applies_to.get("poi_class") == poi_class
+        poi_classes = self.applies_to.get("poi_classes", [])
+        return poi_class in poi_classes
 
     def matches_required_tags(self, tags: Dict[str, Any]) -> bool:
         """Check if POI has all required tags with correct values."""
         required_tags = self.applies_to.get("required_tags", {})
+        # If no required tags specified, match all
+        if not required_tags:
+            return True
+        # Check all required tags match
         for key, value in required_tags.items():
             if tags.get(key) != value:
                 return False

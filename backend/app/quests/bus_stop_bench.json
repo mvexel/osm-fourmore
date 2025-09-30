@@ -1,7 +1,9 @@
 {
   "question": "Does this bus stop have a bench?",
   "applies_to": {
-    "poi_class": "transport",
+    "poi_classes": [
+      "transport"
+    ],
     "required_tags": {
       "highway": "bus_stop"
     }
