@@ -143,7 +143,7 @@ export function CheckIns() {
           </div>
         ) : checkins.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-gray-600 mb-4">{NavIcons.nearby({ size: 56 })}</div>
+            <div className="flex justify-center text-gray-600 mb-4">{NavIcons.nearby({ size: 56 })}</div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No check-ins yet</h3>
             <p className="text-gray-600 mb-6">
               Start exploring and checking in to places around you!

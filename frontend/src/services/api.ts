@@ -126,6 +126,21 @@ export const checkinsApi = {
       member_since: null,
     }
   },
+
+  async exportCsv(): Promise<void> {
+    const response = await api.get('/checkins/export/csv', {
+      responseType: 'blob',
+    })
+    const blob = new Blob([response.data], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `fourmore_checkins.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  },
 }
 
 export const osmApi = {
@@ -148,6 +163,13 @@ export const questsApi = {
 
   async respond(request: QuestRespondRequest): Promise<QuestRespondResponse> {
     const response = await api.post<QuestRespondResponse>('/quests/respond', request)
+    return unwrap(response)
+  },
+}
+
+export const usersApi = {
+  async deleteAccount(): Promise<ApiResponse> {
+    const response = await api.delete<ApiResponse>('/users/delete')
     return unwrap(response)
   },
 }

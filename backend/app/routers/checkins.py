@@ -2,7 +2,10 @@
 
 from typing import List
 from datetime import datetime
+from io import StringIO
+import csv
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from ..db import get_db, CheckIn, POI, User
@@ -162,6 +165,47 @@ async def get_checkin_stats(
             "unique_places": unique_places,
             "favorite_class": favorite_class,
             "member_since": first_checkin.created_at if first_checkin else None
+        }
+    )
+
+@router.get("/export/csv")
+async def export_checkins_csv(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Export all user checkins as CSV."""
+    # Get all checkins with POI details
+    checkins = db.query(CheckIn, POI).join(
+        POI,
+        (CheckIn.poi_osm_type == POI.osm_type) & (CheckIn.poi_osm_id == POI.osm_id)
+    ).filter(
+        CheckIn.user_id == current_user.id
+    ).order_by(desc(CheckIn.created_at)).all()
+
+    # Create CSV in memory
+    output = StringIO()
+    writer = csv.writer(output)
+
+    # Write header
+    writer.writerow(['datetime', 'osm_type', 'osm_id', 'name'])
+
+    # Write data rows
+    for checkin, poi in checkins:
+        osm_type_full = {"N": "node", "W": "way"}.get(checkin.poi_osm_type, checkin.poi_osm_type)
+        writer.writerow([
+            checkin.created_at.isoformat(),
+            osm_type_full,
+            checkin.poi_osm_id,
+            poi.name or ''
+        ])
+
+    # Prepare response
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=fourmore_checkins_{current_user.username}.csv"
         }
     )
 

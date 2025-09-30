@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import { useAuth } from '../hooks/useAuth'
-import { checkinsApi } from '../services/api'
+import { checkinsApi, usersApi } from '../services/api'
 import { NavIcons, ActionIcons, getCategoryLabel } from '../utils/icons'
 import { CheckinStats } from '../types'
 
@@ -9,6 +9,9 @@ export function Profile() {
   const { user, logout } = useAuth()
   const [stats, setStats] = useState<CheckinStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchStats = useCallback(async () => {
     try {
@@ -24,6 +27,38 @@ export function Profile() {
   useEffect(() => {
     void fetchStats()
   }, [fetchStats])
+
+  const handleExportCsv = async () => {
+    try {
+      setIsExporting(true)
+      await checkinsApi.exportCsv()
+    } catch (err) {
+      console.error('Error exporting CSV:', err)
+      alert('Failed to export checkins')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!deleteConfirm) {
+      setDeleteConfirm(true)
+      setTimeout(() => setDeleteConfirm(false), 5000)
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+      await usersApi.deleteAccount()
+      localStorage.removeItem('fourmore_token')
+      localStorage.removeItem('fourmore_user')
+      window.location.href = '/login'
+    } catch (err) {
+      console.error('Error deleting account:', err)
+      alert('Failed to delete account')
+      setIsDeleting(false)
+    }
+  }
 
   if (!user) return null
 
@@ -147,14 +182,14 @@ export function Profile() {
           <h3 className="text-lg font-medium text-gray-900 mb-4">About FourMore</h3>
           <div className="space-y-3 text-sm text-gray-600">
             <p>
-              FourMore is a social check-in app that uses OpenStreetMap data to help you discover and share places.
+              FourMore lets you "check in" to places you visit, helping you keep track of where you have been. Your check-ins are private and only visible to you.
             </p>
             <p>
-              By checking in to places, you&apos;re building a personal map of your experiences while contributing to the OpenStreetMap community.
+              FourMore uses OpenStreetMap data to provide information about places. OpenStreetMap is like the Wikipedia for maps—Anyone can contribute information to it. When you check in to a place with FourMore, you can answer questions about it or add notes to help improve the map for everyone.
             </p>
             <div className="pt-3 border-t border-gray-100">
               <p className="text-xs text-gray-500">
-                Version 1.0.0 • Built with <span className="inline-flex items-center text-red-500">{ActionIcons.favoriteFilled({ size: 14 })}</span> for the OSM community
+                Version 1.0.0 • Github
               </p>
             </div>
           </div>
@@ -163,11 +198,39 @@ export function Profile() {
         {/* Actions */}
         <div className="space-y-3">
           <button
+            onClick={handleExportCsv}
+            disabled={isExporting}
+            className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? 'Exporting...' : 'Export Check-ins as CSV'}
+          </button>
+
+          <button
             onClick={logout}
-            className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+            className="w-full py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
           >
             Sign Out
           </button>
+
+          <button
+            onClick={handleDeleteAccount}
+            disabled={isDeleting}
+            className={`w-full py-3 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed ${deleteConfirm
+              ? 'bg-red-700 hover:bg-red-800'
+              : 'bg-red-600 hover:bg-red-700'
+              }`}
+          >
+            {isDeleting
+              ? 'Deleting...'
+              : deleteConfirm
+                ? 'Click again to confirm deletion'
+                : 'Delete Account & Data'}
+          </button>
+          {deleteConfirm && (
+            <p className="text-sm text-red-600 text-center">
+              This will permanently delete your account and all check-ins. This cannot be undone.
+            </p>
+          )}
         </div>
       </div>
     </div>

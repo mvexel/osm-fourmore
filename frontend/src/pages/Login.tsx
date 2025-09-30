@@ -50,7 +50,7 @@ export function Login() {
             </div>
             <div className="flex items-center space-x-3 text-sm text-gray-600">
               <span><IconBook /></span>
-              <span>Keep a life log of your adventures</span>
+              <span>Keep a life log that is private and secure</span>
             </div>
             <div className="flex items-center space-x-3 text-sm text-gray-600">
               <span><IconMoodSmile /></span>
@@ -85,7 +85,7 @@ export function Login() {
           </button>
 
           <p className="text-xs text-gray-500 text-center">
-            FourMore requires an OpenStreetMap account to log in. An account with that username is then created for you on FourMore. We do not know or store your OpenStreetMap password. Your check-ins are private unless you choose to share them. Feedback is welcome! Send your thoughts to m@rtijn.org
+            FourMore requires an OpenStreetMap account to log in. We do not know or store your OpenStreetMap password, nor do we retrieve any information from your OSM account other than your username. Your check-ins are private. You can export them at any time, or delete your account and any associated data, including your check-ins, from the Profile page. Feedback is welcome! Send your thoughts to m@rtijn.org
           </p>
         </div>
       </div>

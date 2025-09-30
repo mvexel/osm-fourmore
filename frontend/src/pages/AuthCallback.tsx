@@ -12,7 +12,7 @@ export function AuthCallback() {
   const lastCodeRef = useRef<string | null>(null)
 
   useEffect(() => {
-    
+
     const handleCallback = async () => {
       const code = searchParams.get('code')
       const error = searchParams.get('error')
@@ -61,7 +61,7 @@ export function AuthCallback() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="text-primary-600">{UIIcons.secure({ size: 64 })}</div>
+            <div className="flex justify-center text-primary-600">{UIIcons.secure({ size: 64 })}</div>
             <h2 className="text-xl font-semibold text-gray-900">Completing Sign In</h2>
             <p className="text-gray-600">Please wait while we finish setting up your account...</p>
             <div className="flex justify-center">
