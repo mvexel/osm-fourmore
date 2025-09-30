@@ -1,12 +1,12 @@
 """Places/POI endpoints."""
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 from ..db import get_db, POI
 from ..auth import get_current_user, User
-from ..models import POIResponse, POINearbyRequest, APIResponse
+from ..models import NormalizeOsmType, POIResponse, POINearbyRequest, APIResponse
 
 router = APIRouter(prefix="/places", tags=["places"])
 
@@ -56,10 +56,9 @@ async def get_nearby_places(
 
 @router.get("/{osm_type}/{osm_id}", response_model=POIResponse)
 async def get_place_details(
-    osm_type: str,
     osm_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    osm_type: str = Depends(NormalizeOsmType),
 ):
     """Get detailed information about a specific POI."""
     poi = db.query(POI).filter(POI.osm_type == osm_type, POI.osm_id == osm_id).first()

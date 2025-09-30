@@ -2,7 +2,20 @@
 
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from fastapi import Path
+from pydantic import BaseModel, Field, field_validator, field_serializer
+
+# for field validation (returning "node" instead of "N" for osm_type and "way" instead of "W")
+# we need this because osm2pgsql uses "N" and "W" in the database and we want to use "node" and "way" in the API
+def osm_type_validator_to_full(value: str) -> str:
+    return {"N": "node", "W": "way"}.get(value, value)
+
+def osm_type_validator_to_short(value: str) -> str:
+    return {"node": "N", "way": "W"}.get(value, value)
+
+# and for the API routes:
+def NormalizeOsmType(osm_type: str = Path(..., description="OSM type: 'node' or 'way'")) -> str:
+    return osm_type_validator_to_short(osm_type)
 
 # POI Models
 class POIBase(BaseModel):
@@ -31,6 +44,10 @@ class POIResponse(POIBase):
     version: int
     timestamp: datetime
     distance: Optional[float] = Field(None, description="Distance in meters from user location")
+
+    @field_validator('osm_type')
+    def serialize_osm_type(cls, v: str) -> str:
+        return osm_type_validator_to_full(v)
 
     class Config:
         from_attributes = True
@@ -69,6 +86,11 @@ class CheckInCreate(CheckInBase):
     poi_osm_id: int
     user_lat: Optional[float] = Field(None, ge=-90, le=90)
     user_lon: Optional[float] = Field(None, ge=-180, le=180)
+
+    @field_validator('poi_osm_type')
+    @classmethod
+    def serialize_osm_type(cls, v: str) -> str:
+        return osm_type_validator_to_short(v)
 
 class CheckInResponse(CheckInBase):
     id: int

@@ -7,6 +7,8 @@ from typing import Dict, Any
 from fastapi import HTTPException, status
 import xml.etree.ElementTree as ET
 
+from .models import POIResponse, osm_type_validator_to_full
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,8 +47,11 @@ class OSMAPIClient:
             "Content-Type": "text/xml"
         }
 
-    async def get_element(self, osm_id: str, osm_type: str) -> Dict[str, Any]:
+    async def get_element(self, osm_id: int, osm_type: str) -> Dict[str, Any]:
         """Fetch current element (node/way) data from OSM API."""
+
+        osm_type = osm_type_validator_to_full(osm_type)
+        
         if osm_type not in ['node', 'way']:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -108,6 +113,7 @@ class OSMAPIClient:
         ET.SubElement(changeset_el, 'tag', attrib={'k': 'comment', 'v': comment})
 
         changeset_xml = _serialize_osm_element(root)
+        _log_snippet(changeset_xml)
 
         url = f"{OSM_API_BASE}/changeset/create"
         async with httpx.AsyncClient() as client:
@@ -257,9 +263,11 @@ class OSMAPIClient:
                     detail=f"Failed to close changeset: {response.text}"
                 )
 
-    async def add_check_date(self, osm_id: str, osm_type: str) -> Dict[str, Any]:
+    async def add_check_date(self, poi: POIResponse) -> Dict[str, Any]:
         """Add or update check_date tag on an element."""
-        element_data = await self.get_element(osm_id, osm_type)
+        element_data = await self.get_element(poi.osm_id, poi.osm_type)
+
+        logger.info(f"Retrieved OSM element data: {element_data}")
 
         tags = element_data['tags'].copy()
         tags['check_date'] = datetime.now().strftime('%Y-%m-%d')
@@ -268,30 +276,34 @@ class OSMAPIClient:
             comment=f"Confirmed POI information via FourMore check-in"
         )
 
+        new_version = None
+
         try:
-            if osm_type == 'node':
+            if poi.osm_type == 'node':
                 new_version = await self.update_node(
-                    node_id=osm_id,
+                    node_id=str(poi.osm_id),
                     version=element_data['version'],
-                    lat=element_data['lat'],
-                    lon=element_data['lon'],
+                    lat=poi.lat,
+                    lon=poi.lon,
                     tags=tags,
                     changeset_id=changeset_id
                 )
-            elif osm_type == 'way':
+            elif poi.osm_type == 'way':
                 new_version = await self.update_way(
-                    way_id=osm_id,
+                    way_id=str(poi.osm_id),
                     version=element_data['version'],
                     nodes=element_data['nodes'],
                     tags=tags,
                     changeset_id=changeset_id
                 )
 
+            logger.info(f"Updated {poi.osm_type} {poi.osm_id} to version {new_version} with check_date tag")
+
             await self.close_changeset(changeset_id)
 
             return {
-                'osm_id': osm_id,
-                'osm_type': osm_type,
+                'osm_id': poi.osm_id,
+                'osm_type': poi.osm_type,
                 'new_version': new_version,
                 'changeset_id': changeset_id,
                 'check_date': tags['check_date']
@@ -299,7 +311,7 @@ class OSMAPIClient:
         except Exception as e:
             await self.close_changeset(changeset_id)
             raise e
-
+    
     async def create_note(self, lat: float, lon: float, text: str) -> int:
         """Create a new note."""
         logger = logging.getLogger(__name__)
