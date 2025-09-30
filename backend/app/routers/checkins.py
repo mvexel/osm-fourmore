@@ -175,8 +175,13 @@ def get_checkin_with_poi(db: Session, checkin: CheckIn) -> CheckInResponse:
     if not poi:
         raise HTTPException(status_code=404, detail="Associated place not found")
 
-    # Create CheckInResponse using model_validate and add the POI separately
-    checkin_data = CheckInResponse.model_validate(checkin)
-    checkin_data.poi = POIResponse.model_validate(poi)
-
-    return checkin_data
+    # Create CheckInResponse with POI included
+    return CheckInResponse(
+        id=checkin.id,
+        poi_osm_type=checkin.poi_osm_type,
+        poi_osm_id=checkin.poi_osm_id,
+        user_id=checkin.user_id,
+        created_at=checkin.created_at,
+        comment=checkin.comment,
+        poi=POIResponse.model_validate(poi)
+    )

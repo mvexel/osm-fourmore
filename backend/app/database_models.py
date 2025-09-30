@@ -1,6 +1,6 @@
 """SQLAlchemy database models for FourMore backend."""
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
+from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Text, Boolean
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -17,7 +17,7 @@ class POI(Base):
 
     # Composite primary key matching osm2pgsql schema
     osm_type = Column(String(1), primary_key=True, nullable=False)
-    osm_id = Column(Integer, primary_key=True, nullable=False)
+    osm_id = Column(BigInteger, primary_key=True, nullable=False)
 
     name = Column(Text)
     poi_class = Column("class", Text, nullable=False, index=True)  # 'class' is reserved in Python
@@ -104,7 +104,7 @@ class CheckIn(Base):
 
     # Reference POI by composite key
     poi_osm_type = Column(String(1), nullable=False, index=True)
-    poi_osm_id = Column(Integer, nullable=False, index=True)
+    poi_osm_id = Column(BigInteger, nullable=False, index=True)
 
     # User's location when checking in (may differ slightly from POI location)
     user_location = Column(Geometry("POINT", srid=4326))
