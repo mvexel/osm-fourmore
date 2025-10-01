@@ -82,6 +82,9 @@ class UserResponse(UserBase):
 class CheckInBase(BaseModel):
     comment: Optional[str] = Field(None, max_length=500)
 
+class CheckInUpdate(BaseModel):
+    comment: Optional[str] = Field(None, max_length=500)
+
 class CheckInCreate(CheckInBase):
     poi_osm_type: str
     poi_osm_id: int

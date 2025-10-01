@@ -49,7 +49,7 @@ export function OSMContribution({
   }
 
   return (
-    <div className={`border border-blue-200 rounded-lg ${className}`}>
+    <div className={`collapsed border border-blue-200 rounded-lg ${className}`}>
       {/* Collapsible Header */}
       <button
         onClick={() => toggleExpanded(!expanded)}
@@ -65,7 +65,7 @@ export function OSMContribution({
       {expanded && (
         <div className="p-4">
           <p className="text-sm text-gray-600 mb-3">
-            If any of the information about this location is wrong, or you have any details you would like added, please add a note! OpenStreetMap contributors will be able to see your note and improve the map for everyone.
+            If any of the information about this location is wrong, or you have any details you would like added, please add a note! OpenStreetMap contributors will be able to see your note and improve the map for everyone. Your note will be visible to anyone who views this location on OpenStreetMap.
           </p>
           {noteAdded ? (
             <div className="flex items-center gap-2 p-3 bg-blue-100 rounded-md">
@@ -95,7 +95,7 @@ export function OSMContribution({
                   ? 'Adding Note...'
                   : noteAction.isPending
                     ? 'Are you sure?'
-                    : 'Add Note'
+                    : 'Add Public Note for OSM Contributors'
                 }
               </button>
             </>

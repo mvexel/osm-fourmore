@@ -16,7 +16,6 @@ export function PlaceDetails() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [checkinLoading, setCheckinLoading] = useState(false)
-  const [comment, setComment] = useState('')
   const [showCheckInForm, setShowCheckInForm] = useState(false)
   const [osmContributionExpanded, setOsmContributionExpanded] = useState(false)
   const [justCheckedIn, setJustCheckedIn] = useState(false)
@@ -57,12 +56,9 @@ export function PlaceDetails() {
 
       if (result.quests.length > 0) {
         setShowQuestDialog(true)
-      } else {
-        setOsmContributionExpanded(true)
       }
     } catch (err) {
       console.error('Failed to fetch quests:', err)
-      setOsmContributionExpanded(true)
     } finally {
       setLoadingQuests(false)
     }
@@ -74,23 +70,16 @@ export function PlaceDetails() {
     try {
       setCheckinLoading(true)
 
-      await checkinsApi.create({
+      const newCheckin = await checkinsApi.create({
         poi_osm_type: poi.osm_type,
         poi_osm_id: poi.osm_id,
-        comment: comment.trim() || undefined,
         user_lat: latitude || undefined,
         user_lon: longitude || undefined,
       })
 
+      // Stay on this page and show quests
       setJustCheckedIn(true)
       setShowCheckInForm(false)
-
-      // Reload POI details to get updated is_checked_in status
-      console.log('Check-in successful, reloading POI details')
-      await fetchPlaceDetails(osmType, Number(osmId))
-
-      // Now fetch applicable quests
-      console.log('Fetching quests')
       await fetchApplicableQuests()
     } catch (err) {
       console.error('Check-in failed:', err)
@@ -211,7 +200,7 @@ export function PlaceDetails() {
           <div className="flex items-center space-x-3">
             <span className="text-gray-400">{ContactIcons.map({ size: 18 })}</span>
             <a
-              href={`https://www.openstreetmap.org/?mlat=${poi.lat}&mlon=${poi.lon}&zoom=18`}
+              href={`https://www.openstreetmap.org/${poi.osm_type}/${poi.osm_id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary-600 hover:underline"
@@ -221,16 +210,6 @@ export function PlaceDetails() {
           </div>
         </div>
 
-        {/* OSM Contribution Section - only show if just checked in */}
-        {justCheckedIn && (
-          <OSMContribution
-            osmType={poi.osm_type}
-            osmId={poi.osm_id}
-            tags={poi.tags}
-            isExpanded={osmContributionExpanded}
-            onToggleExpanded={setOsmContributionExpanded}
-          />
-        )}
 
         {/* Success Message */}
         {justCheckedIn && (
@@ -240,6 +219,18 @@ export function PlaceDetails() {
               <span className="font-medium">Checked in successfully!</span>
             </div>
           </div>
+        )}
+
+        {/* OSM Contribution Section - only show if just checked in */}
+        {justCheckedIn && (
+
+          <OSMContribution
+            osmType={poi.osm_type}
+            osmId={poi.osm_id}
+            tags={poi.tags}
+            isExpanded={osmContributionExpanded}
+            onToggleExpanded={setOsmContributionExpanded}
+          />
         )}
 
         {/* Quest Loading Indicator */}
@@ -257,53 +248,17 @@ export function PlaceDetails() {
 
         {/* Check-in Section */}
         <div className="border-t border-gray-200 pt-6">
-          {!showCheckInForm && !justCheckedIn ? (
+          {!justCheckedIn ? (
             <button
-              onClick={() => setShowCheckInForm(true)}
+              onClick={handleCheckIn}
+              disabled={checkinLoading}
               className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
             >
-              Check In Here
+              {checkinLoading ? 'Checking in...' : 'Check In'}
             </button>
-          ) : showCheckInForm ? (
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Check In</h3>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Add a comment (optional)
-                </label>
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="How was your visit? Any tips for other visitors?"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  rows={3}
-                  maxLength={500}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {comment.length}/500 characters
-                </p>
-              </div>
-
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowCheckInForm(false)}
-                  className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                  disabled={checkinLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCheckIn}
-                  disabled={checkinLoading || loadingQuests}
-                  className="flex-1 py-2 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 transition-colors"
-                >
-                  {checkinLoading ? 'Checking in...' : 'Check In'}
-                </button>
-              </div>
-            </div>
           ) : null}
         </div>
+
       </div>
 
       {/* Quest Dialog */}
@@ -314,7 +269,6 @@ export function PlaceDetails() {
           quests={quests}
           onClose={() => {
             setShowQuestDialog(false)
-            setOsmContributionExpanded(true)
           }}
           onComplete={() => {
             setQuests([])

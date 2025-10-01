@@ -112,6 +112,11 @@ export const checkinsApi = {
     return unwrap(response)
   },
 
+  async update(checkinId: number, comment: string | null): Promise<CheckIn> {
+    const response = await api.patch<CheckIn>(`/checkins/${checkinId}`, { comment })
+    return unwrap(response)
+  },
+
   async delete(checkinId: number): Promise<CheckinDeleteResponse> {
     const response = await api.delete<CheckinDeleteResponse>(`/checkins/${checkinId}`)
     return unwrap(response)

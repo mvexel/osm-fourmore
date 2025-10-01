@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from ..db import get_db, CheckIn, POI, User
 from ..auth import get_current_user
-from ..models import CheckInCreate, CheckInResponse, CheckInListResponse, POIResponse, APIResponse
+from ..models import CheckInCreate, CheckInUpdate, CheckInResponse, CheckInListResponse, POIResponse, APIResponse
 
 router = APIRouter(prefix="/checkins", tags=["checkins"])
 
@@ -102,6 +102,30 @@ async def get_checkin_details(
 
     if not checkin:
         raise HTTPException(status_code=404, detail="Check-in not found")
+
+    return get_checkin_with_poi(db, checkin)
+
+@router.patch("/{checkin_id}", response_model=CheckInResponse)
+async def update_checkin(
+    checkin_id: int,
+    update_data: CheckInUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update a check-in's comment."""
+    checkin = db.query(CheckIn).filter(
+        CheckIn.id == checkin_id,
+        CheckIn.user_id == current_user.id
+    ).first()
+
+    if not checkin:
+        raise HTTPException(status_code=404, detail="Check-in not found")
+
+    # Update comment
+    checkin.comment = update_data.comment
+
+    db.commit()
+    db.refresh(checkin)
 
     return get_checkin_with_poi(db, checkin)
 

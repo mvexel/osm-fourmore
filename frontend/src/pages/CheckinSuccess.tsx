@@ -14,6 +14,8 @@ export function CheckinSuccess() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [osmContributionExpanded, setOsmContributionExpanded] = useState(false)
+  const [notes, setNotes] = useState('')
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
 
   useEffect(() => {
     const fetchCheckinDetails = async () => {
@@ -26,6 +28,7 @@ export function CheckinSuccess() {
       try {
         const checkinData = await checkinsApi.getDetails(Number(checkinId))
         setCheckin(checkinData)
+        setNotes(checkinData.comment || '')
       } catch (err) {
         console.error('Error fetching check-in details:', err)
         setError('Failed to load check-in details')
@@ -36,6 +39,21 @@ export function CheckinSuccess() {
 
     void fetchCheckinDetails()
   }, [checkinId])
+
+  const handleSaveNotes = async () => {
+    if (!checkin) return
+
+    try {
+      setIsSavingNotes(true)
+      const updatedCheckin = await checkinsApi.update(checkin.id, notes.trim() || null)
+      setCheckin(updatedCheckin)
+    } catch (err) {
+      console.error('Error saving notes:', err)
+      alert('Failed to save notes. Please try again.')
+    } finally {
+      setIsSavingNotes(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -71,7 +89,7 @@ export function CheckinSuccess() {
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(`/places/${checkin.poi.osm_type}/${checkin.poi.osm_id}`)}
             className="text-gray-600 hover:text-gray-900 transition-colors"
           >
             ← Back
@@ -85,16 +103,38 @@ export function CheckinSuccess() {
         {/* Success Celebration */}
         <div className="text-center py-6">
           <div className="flex justify-center text-primary-600 mb-3">{UIIcons.success({ size: 64 })}</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">You have arrived!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Checked in successfully!</h2>
           <p className="text-gray-600">
-            Checked in on {format(new Date(checkin.created_at), 'MMM d, yyyy')} at{' '}
+            {format(new Date(checkin.created_at), 'MMM d, yyyy')} at{' '}
             {format(new Date(checkin.created_at), 'h:mm a')}
           </p>
-          {checkin.comment && (
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <q className="text-sm text-gray-700 italic">{checkin.comment}</q>
-            </div>
-          )}
+        </div>
+
+        {/* Add Notes Section */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-900">
+            Add notes about your visit (optional)
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="What did you think? Any memorable moments?"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            rows={4}
+            maxLength={500}
+          />
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-500">
+              {notes.length}/500 characters
+            </p>
+            <button
+              onClick={handleSaveNotes}
+              disabled={isSavingNotes}
+              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 transition-colors text-sm font-medium"
+            >
+              {isSavingNotes ? 'Saving...' : 'Save Notes'}
+            </button>
+          </div>
         </div>
 
         {/* Business Details */}

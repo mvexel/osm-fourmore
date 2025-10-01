@@ -13,6 +13,9 @@ export function CheckIns() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [editingNotes, setEditingNotes] = useState<number | null>(null)
+  const [editNotes, setEditNotes] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
 
   const fetchCheckins = useCallback(async (pageNum = 1, reset = true) => {
     try {
@@ -65,6 +68,32 @@ export function CheckIns() {
     }
     void fetchCheckins(page + 1, false)
   }, [fetchCheckins, hasMore, isLoadingMore, loading, page])
+
+  const handleEditNotes = (checkin: CheckIn) => {
+    setEditingNotes(checkin.id)
+    setEditNotes(checkin.comment || '')
+  }
+
+  const handleSaveNotes = async (checkinId: number) => {
+    try {
+      setSavingNotes(true)
+      const updatedCheckin = await checkinsApi.update(checkinId, editNotes.trim() || null)
+
+      // Update the checkin in the list
+      setCheckins(prev => prev.map(c => c.id === checkinId ? updatedCheckin : c))
+      setEditingNotes(null)
+    } catch (err) {
+      console.error('Error saving notes:', err)
+      alert('Failed to save notes. Please try again.')
+    } finally {
+      setSavingNotes(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingNotes(null)
+    setEditNotes('')
+  }
 
   const statsContent = useMemo(() => {
     if (!stats) {
@@ -156,63 +185,119 @@ export function CheckIns() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-4">
-            {/* Group by date */}
+          <div className="relative space-y-6">
+            {/* Centered connecting line */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-200 -translate-x-1/2 z-0"></div>
+
+            {/* Timeline - Group by date */}
             {groupedCheckins.map(([date, dayCheckins]) => (
-              <div key={date}>
-                <h3 className="text-sm font-medium text-gray-500 mb-3 sticky top-16 bg-white py-1">
+              <div key={date} className="relative z-10">
+                <h3 className="text-sm font-semibold text-gray-700 mb-4 sticky top-16 bg-white py-1 px-2 inline-block left-1/2 -translate-x-1/2">
                   {format(new Date(date), 'EEEE, MMMM d, yyyy')}
                 </h3>
-                <div className="space-y-3">
-                  {dayCheckins.map((checkin) => (
-                    <div key={checkin.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start space-x-3">
-                        <div className="text-gray-600">
-                          {getCategoryIcon(checkin.poi.class || checkin.poi.category || 'misc', { size: 24 })}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <Link
-                              to={`/places/${checkin.poi.id}`}
-                              className="font-medium text-gray-900 hover:text-primary-600 transition-colors"
-                            >
-                              {checkin.poi.name || 'Unnamed Location'}
-                            </Link>
-                            <span className="text-xs text-gray-500">
-                              {format(new Date(checkin.created_at), 'h:mm a')}
-                            </span>
+                <div className="space-y-3 relative z-20">
+                  {dayCheckins.map((checkin, index) => (
+                    <div key={checkin.id}>
+                      {/* Check-in card */}
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-start space-x-3">
+                          <div className="text-gray-600 flex-shrink-0">
+                            {getCategoryIcon(checkin.poi.class || checkin.poi.category || 'misc', { size: 24 })}
                           </div>
-
-                          <p className="text-sm text-gray-600">
-                            {getCategoryLabel(checkin.poi.class || checkin.poi.category)}
-                          </p>
-
-                          {checkin.poi.address && (
-                            <p className="text-sm text-gray-500 line-clamp-1 flex items-center gap-1">
-                              <span className="text-gray-400">{ContactIcons.location({ size: 14 })}</span>
-                              {checkin.poi.address}
-                            </p>
-                          )}
-
-                          {checkin.comment && (
-                            <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-700">
-                              <q className="italic text-gray-700">{checkin.comment}</q>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <Link
+                                to={`/places/${checkin.poi.osm_type}/${checkin.poi.osm_id}`}
+                                className="font-semibold text-gray-900 hover:text-primary-600 transition-colors line-clamp-1"
+                              >
+                                {checkin.poi.name || 'Unnamed Location'}
+                              </Link>
+                              <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0">
+                                {format(new Date(checkin.created_at), 'h:mm a')}
+                              </span>
                             </div>
-                          )}
 
-                          <div className="mt-2 flex items-center justify-between">
-                            <span className="text-xs text-gray-400">
-                              {formatDistanceToNow(new Date(checkin.created_at), { addSuffix: true })}
-                            </span>
-                            <a
-                              href={`https://www.openstreetmap.org/?mlat=${checkin.poi.lat}&mlon=${checkin.poi.lon}&zoom=18`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-primary-600 hover:underline inline-flex items-center gap-1"
-                            >
-                              <span className="text-gray-400">{ContactIcons.map({ size: 12 })}</span>
-                              View on Map
-                            </a>
+                            <p className="text-sm text-gray-600 mt-0.5">
+                              {getCategoryLabel(checkin.poi.class || checkin.poi.category)}
+                            </p>
+
+                            {checkin.poi.address && (
+                              <p className="text-sm text-gray-500 line-clamp-1 flex items-center gap-1 mt-1">
+                                <span className="text-gray-400">{ContactIcons.location({ size: 14 })}</span>
+                                <span className="truncate">{checkin.poi.address}</span>
+                              </p>
+                            )}
+
+                            {/* Notes section */}
+                            {editingNotes === checkin.id ? (
+                              <div className="mt-3 space-y-2">
+                                <textarea
+                                  value={editNotes}
+                                  onChange={(e) => setEditNotes(e.target.value)}
+                                  placeholder="Add your notes about this visit..."
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                  rows={3}
+                                  maxLength={500}
+                                  autoFocus
+                                />
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-gray-500">
+                                    {editNotes.length}/500
+                                  </span>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={handleCancelEdit}
+                                      disabled={savingNotes}
+                                      className="px-3 py-1 text-sm border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() => handleSaveNotes(checkin.id)}
+                                      disabled={savingNotes}
+                                      className="px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                                    >
+                                      {savingNotes ? 'Saving...' : 'Save'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : checkin.comment ? (
+                              <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-md group relative">
+                                <p className="text-sm text-gray-700 italic">"{checkin.comment}"</p>
+                                <button
+                                  onClick={() => handleEditNotes(checkin)}
+                                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-amber-100 rounded"
+                                  title="Edit notes"
+                                >
+                                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleEditNotes(checkin)}
+                                className="mt-3 text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                              >
+                                + Add notes
+                              </button>
+                            )}
+
+                            <div className="mt-3 flex items-center justify-between text-xs">
+                              <span className="text-gray-400">
+                                {formatDistanceToNow(new Date(checkin.created_at), { addSuffix: true })}
+                              </span>
+                              <a
+                                href={`https://www.openstreetmap.org/${checkin.poi.osm_type}/${checkin.poi.osm_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary-600 hover:underline inline-flex items-center gap-1"
+                              >
+                                <span className="text-gray-400">{ContactIcons.map({ size: 12 })}</span>
+                                View on Map
+                              </a>
+                            </div>
                           </div>
                         </div>
                       </div>
