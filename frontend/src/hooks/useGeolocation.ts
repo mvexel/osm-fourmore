@@ -75,24 +75,10 @@ export function useGeolocation() {
           loading: false,
         })
       },
-      (error) => {
-        let errorMessage = 'Unable to get your location'
-
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Location access was denied'
-            break
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information is unavailable'
-            break
-          case error.TIMEOUT:
-            errorMessage = 'Location request timed out'
-            break
-        }
-
+      () => {
         setState(prev => ({
           ...prev,
-          error: errorMessage,
+          error: 'Unable to get your location',
           loading: false,
         }))
       },

@@ -1,88 +1,58 @@
-"""Database models and connection setup for FourMore backend."""
+"""Database configuration and shared models for the FourMore backend."""
 
 import os
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, Text, Boolean
-from sqlalchemy.ext.declarative import declarative_base
+import time
+import logging
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import JSONB
-from geoalchemy2 import Geometry
 
-Base = declarative_base()
+from .database_models import Base, POI, User, CheckIn, QuestResponse
 
-class POI(Base):
-    """Point of Interest model."""
-    __tablename__ = 'pois'
+# Load environment variables from .env and .env.local files
+from dotenv import find_dotenv
+load_dotenv(find_dotenv())  # Automatically finds .env files up the directory tree
+load_dotenv(find_dotenv(".env.local"), override=True)  # .env.local overrides .env values
 
-    id = Column(Integer, primary_key=True, index=True)
-    osm_id = Column(String, unique=True, index=True, nullable=False)
-    osm_type = Column(String, nullable=False)  # 'node', 'way', 'relation'
-    name = Column(String, index=True)
-    category = Column(String, index=True, nullable=False)
-    subcategory = Column(String, index=True)
+logger = logging.getLogger(__name__)
 
-    # Geometry stored as point (even for polygonal features)
-    location = Column(Geometry('POINT', srid=4326), nullable=False, index=True)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://fourmore:fourmore_dev_password@localhost:5432/fourmore")  ## TODO: no magic!
 
-    # Store original OSM tags as JSONB for better performance and querying
-    tags = Column(JSONB)  # PostgreSQL JSONB type
-
-    # Extracted common fields
-    address = Column(String)
-    phone = Column(String)
-    website = Column(String)
-    opening_hours = Column(String)
-
-    # Metadata
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    is_active = Column(Boolean, default=True, index=True)
-
-    # Add lat/lon properties for easier access
-    @property
-    def lat(self):
-        """Get latitude from location."""
-        if self.location:
-            return self.location.y
-        return None
-
-    @property
-    def lon(self):
-        """Get longitude from location."""
-        if self.location:
-            return self.location.x
-        return None
-
-class User(Base):
-    """User model for check-ins."""
-    __tablename__ = 'users'
-
-    id = Column(Integer, primary_key=True, index=True)
-    osm_user_id = Column(String, unique=True, index=True, nullable=False)
-    username = Column(String, unique=True, index=True, nullable=False)
-    display_name = Column(String)
-    email = Column(String, unique=True, index=True)
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    is_active = Column(Boolean, default=True)
-
-class CheckIn(Base):
-    """Check-in model."""
-    __tablename__ = 'checkins'
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False, index=True)
-    poi_id = Column(Integer, nullable=False, index=True)
-
-    # User's location when checking in (may differ slightly from POI location)
-    user_location = Column(Geometry('POINT', srid=4326))
-
-    comment = Column(Text)
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=300,
+    connect_args={
+        "connect_timeout": 10
+    }
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def create_tables():
-    """Create all tables."""
-    from .db import engine
-    Base.metadata.create_all(bind=engine)
+    """Create all tables with retry logic for database connection."""
+    max_retries = 5
+    retry_delay = 2
+
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Attempting to create tables (attempt {attempt + 1}/{max_retries})")
+            Base.metadata.create_all(bind=engine)
+            logger.info("Tables created successfully")
+            return
+        except Exception as e:
+            logger.warning(f"Failed to create tables on attempt {attempt + 1}: {e}")
+            if attempt < max_retries - 1:
+                logger.info(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                retry_delay *= 2
+            else:
+                logger.error("Max retries reached. Failed to create tables.")
+                raise
+
+def get_db():
+    """Get database session."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

@@ -1,12 +1,14 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { AuthProvider } from './contexts/AuthContext'
+import { useAuth } from './hooks/useAuth'
 import { Layout } from './components/Layout'
 import { Login } from './pages/Login'
 import { AuthCallback } from './pages/AuthCallback'
 import { Nearby } from './pages/Nearby'
 import { PlaceDetails } from './pages/PlaceDetails'
 import { CheckIns } from './pages/CheckIns'
+import { CheckinSuccess } from './pages/CheckinSuccess'
 import { Profile } from './pages/Profile'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -42,7 +44,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/places/:id"
+        path="/places/:osmType/:osmId"
         element={
           <ProtectedRoute>
             <Layout>
@@ -57,6 +59,17 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <CheckIns />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/checkin-success/:checkinId"
+        element={
+          /* Currently not used */
+          <ProtectedRoute>
+            <Layout>
+              <CheckinSuccess />
             </Layout>
           </ProtectedRoute>
         }

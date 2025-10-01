@@ -1,0 +1,22 @@
+{
+  "question": "Does this bus stop have a bench?",
+  "applies_to": {
+    "poi_classes": [
+      "transport"
+    ],
+    "required_tags": {
+      "highway": "bus_stop"
+    }
+  },
+  "condition": {
+    "tag_must_not_exist": "bench"
+  },
+  "answers": {
+    "yes": {
+      "bench": "yes"
+    },
+    "no": {
+      "bench": "no"
+    }
+  }
+}

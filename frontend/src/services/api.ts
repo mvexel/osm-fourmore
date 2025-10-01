@@ -1,27 +1,57 @@
-import axios from 'axios'
-import { POI, CheckIn, AuthToken, NearbyRequest, CheckInCreate, ApiResponse } from '../types'
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
+import {
+  POI,
+  CheckIn,
+  AuthToken,
+  NearbyRequest,
+  CheckInCreate,
+  ApiResponse,
+  ClassesListEntry,
+  CheckinHistory,
+  CheckinStats,
+  QuestApplicableResponse,
+  QuestRespondRequest,
+  QuestRespondResponse,
+} from '../types'
 
-const API_BASE = '/api'
+type LoginUrlResponse = { auth_url: string }
+type NearbyResponse = POI[]
+type PlaceDetailsResponse = POI
+type CheckinDeleteResponse = ApiResponse
+type ConfirmInfoResponse = {
+  success: boolean
+  osm_id: string
+  osm_type: string
+  changeset_id: string
+  new_version: number
+  check_date: string
+  message: string
+}
+type CreateNoteResponse = {
+  success: boolean
+  note_id: number
+  message: string
+}
 
-// Create axios instance with default config
-export const api = axios.create({
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+
+export const api: AxiosInstance = axios.create({
   baseURL: API_BASE,
-  timeout: 10000,
+  timeout: 10_000,
 })
 
-// Add auth token to requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('fourmore_token')
   if (token) {
+    config.headers = config.headers ?? {}
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
-// Handle auth errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  (error: AxiosError) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('fourmore_token')
       localStorage.removeItem('fourmore_user')
@@ -31,71 +61,115 @@ api.interceptors.response.use(
   }
 )
 
-// Auth API
+const unwrap = <T>(response: AxiosResponse<T>): T => response.data
+
 export const authApi = {
-  getLoginUrl: async (): Promise<{ auth_url: string }> => {
-    const response = await api.get('/auth/login')
-    return response.data.data
+  async getLoginUrl(): Promise<LoginUrlResponse> {
+    const response = await api.get<ApiResponse<LoginUrlResponse>>('/auth/login')
+    const data = unwrap(response).data
+    if (!data?.auth_url) {
+      throw new Error('Missing login URL in response')
+    }
+    return data
   },
 
-  handleCallback: async (code: string): Promise<AuthToken> => {
-    const response = await api.post('/auth/callback', { code })
-    return response.data
+  async handleCallback(code: string): Promise<AuthToken> {
+    const response = await api.get<AuthToken>(`/auth/callback?code=${code}`)
+    return unwrap(response)
   },
 }
 
-// Places API
 export const placesApi = {
-  getNearby: async (request: NearbyRequest): Promise<POI[]> => {
-    const response = await api.post('/places/nearby', request)
-    return response.data
+  async getNearby(request: NearbyRequest): Promise<NearbyResponse> {
+    const response = await api.post<NearbyResponse>('/places/nearby', request)
+    return unwrap(response)
   },
 
-  getDetails: async (poiId: number): Promise<POI> => {
-    const response = await api.get(`/places/${poiId}`)
-    return response.data
+  async getDetails(osmType: string, osmId: number): Promise<PlaceDetailsResponse> {
+    const response = await api.get<PlaceDetailsResponse>(`/places/${osmType}/${osmId}`)
+    return unwrap(response)
   },
 
-  getCategories: async (): Promise<ApiResponse<Array<{ category: string; count: number }>>> => {
-    const response = await api.get('/places/categories/list')
-    return response.data
+  async getClasses(): Promise<ClassesListEntry[]> {
+    const response = await api.get<ApiResponse<ClassesListEntry[]>>('/places/classes/list')
+    return unwrap(response).data ?? []
   },
 }
 
-// Check-ins API
 export const checkinsApi = {
-  create: async (checkin: CheckInCreate): Promise<CheckIn> => {
-    const response = await api.post('/checkins', checkin)
-    return response.data
+  async create(checkin: CheckInCreate): Promise<CheckIn> {
+    const response = await api.post<CheckIn>('/checkins', checkin)
+    return unwrap(response)
   },
 
-  getHistory: async (page = 1, perPage = 20): Promise<{
-    checkins: CheckIn[]
-    total: number
-    page: number
-    per_page: number
-  }> => {
-    const response = await api.get(`/checkins?page=${page}&per_page=${perPage}`)
-    return response.data
+  async getHistory(page = 1, perPage = 20): Promise<CheckinHistory> {
+    const response = await api.get<CheckinHistory>(`/checkins?page=${page}&per_page=${perPage}`)
+    return unwrap(response)
   },
 
-  getDetails: async (checkinId: number): Promise<CheckIn> => {
-    const response = await api.get(`/checkins/${checkinId}`)
-    return response.data
+  async getDetails(checkinId: number): Promise<CheckIn> {
+    const response = await api.get<CheckIn>(`/checkins/${checkinId}`)
+    return unwrap(response)
   },
 
-  delete: async (checkinId: number): Promise<ApiResponse> => {
-    const response = await api.delete(`/checkins/${checkinId}`)
-    return response.data
+  async delete(checkinId: number): Promise<CheckinDeleteResponse> {
+    const response = await api.delete<CheckinDeleteResponse>(`/checkins/${checkinId}`)
+    return unwrap(response)
   },
 
-  getStats: async (): Promise<ApiResponse<{
-    total_checkins: number
-    unique_places: number
-    favorite_category: string
-    member_since: string
-  }>> => {
-    const response = await api.get('/checkins/stats/summary')
-    return response.data
+  async getStats(): Promise<CheckinStats> {
+    const response = await api.get<ApiResponse<CheckinStats>>('/checkins/stats/summary')
+    return unwrap(response).data ?? {
+      total_checkins: 0,
+      unique_places: 0,
+      favorite_class: null,
+      member_since: null,
+    }
+  },
+
+  async exportGeojson(): Promise<void> {
+    const response = await api.get('/checkins/export/geojson', {
+      responseType: 'blob',
+    })
+    const blob = new Blob([response.data], { type: 'application/json' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `fourmore_checkins.geojson`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  },
+}
+
+export const osmApi = {
+  async confirmInfo(osmType: string, osmId: number): Promise<ConfirmInfoResponse> {
+    const response = await api.post<ConfirmInfoResponse>('/osm/confirm-info', { poi_osm_type: osmType, poi_osm_id: osmId })
+    return unwrap(response)
+  },
+
+  async createNote(osmType: string, osmId: number, text: string): Promise<CreateNoteResponse> {
+    const response = await api.post<CreateNoteResponse>('/osm/note', { poi_osm_type: osmType, poi_osm_id: osmId, text })
+    return unwrap(response)
+  },
+}
+
+export const questsApi = {
+  async getApplicable(osmType: string, osmId: number): Promise<QuestApplicableResponse> {
+    const response = await api.get<QuestApplicableResponse>(`/quests/applicable/${osmType}/${osmId}`)
+    return unwrap(response)
+  },
+
+  async respond(request: QuestRespondRequest): Promise<QuestRespondResponse> {
+    const response = await api.post<QuestRespondResponse>('/quests/respond', request)
+    return unwrap(response)
+  },
+}
+
+export const usersApi = {
+  async deleteAccount(): Promise<ApiResponse> {
+    const response = await api.delete<ApiResponse>('/users/delete')
+    return unwrap(response)
   },
 }

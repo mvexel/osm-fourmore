@@ -2,51 +2,72 @@
 
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from fastapi import Path
+from pydantic import BaseModel, Field, field_validator, field_serializer
+
+# for field validation (returning "node" instead of "N" for osm_type and "way" instead of "W")
+# we need this because osm2pgsql uses "N" and "W" in the database and we want to use "node" and "way" in the API
+def osm_type_validator_to_full(value: str) -> str:
+    return {"N": "node", "W": "way"}.get(value, value)
+
+def osm_type_validator_to_short(value: str) -> str:
+    return {"node": "N", "way": "W"}.get(value, value)
+
+# and for the API routes:
+def NormalizeOsmType(osm_type: str = Path(..., description="OSM type: 'node' or 'way'")) -> str:
+    return osm_type_validator_to_short(osm_type)
 
 # POI Models
 class POIBase(BaseModel):
     name: Optional[str] = None
-    category: str
-    subcategory: Optional[str] = None
+    poi_class: str = Field(..., alias="class")
     address: Optional[str] = None
     phone: Optional[str] = None
     website: Optional[str] = None
     opening_hours: Optional[str] = None
 
 class POICreate(POIBase):
-    osm_id: str
+    osm_id: int
     osm_type: str
     lat: float
     lon: float
     tags: Dict[str, Any]
+    version: int
+    timestamp: datetime
 
 class POIResponse(POIBase):
-    id: int
-    osm_id: str
+    osm_id: int
     osm_type: str
     lat: float
     lon: float
     tags: Dict[str, Any]
-    created_at: datetime
-    updated_at: Optional[datetime]
+    version: int
+    timestamp: datetime
     distance: Optional[float] = Field(None, description="Distance in meters from user location")
+    is_checked_in: Optional[bool] = Field(None, description="Whether current user has checked in recently (within 24 hours)")
+
+    @field_validator('osm_type')
+    def serialize_osm_type(cls, v: str) -> str:
+        return osm_type_validator_to_full(v)
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 class POINearbyRequest(BaseModel):
     lat: float = Field(..., ge=-90, le=90, description="Latitude")
     lon: float = Field(..., ge=-180, le=180, description="Longitude")
     radius: float = Field(1000, ge=1, le=10000, description="Search radius in meters")
-    category: Optional[str] = Field(None, description="Filter by category")
+    poi_class: Optional[str] = Field(None, alias="class", description="Filter by POI class")
     limit: int = Field(20, ge=1, le=100, description="Maximum number of results")
+    offset: int = Field(0, ge=0, description="Number of results to skip for pagination")
 
 # User Models
 class UserBase(BaseModel):
     username: str
     display_name: Optional[str] = None
     email: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 class UserResponse(UserBase):
     id: int
@@ -62,13 +83,20 @@ class CheckInBase(BaseModel):
     comment: Optional[str] = Field(None, max_length=500)
 
 class CheckInCreate(CheckInBase):
-    poi_id: int
+    poi_osm_type: str
+    poi_osm_id: int
     user_lat: Optional[float] = Field(None, ge=-90, le=90)
     user_lon: Optional[float] = Field(None, ge=-180, le=180)
 
+    @field_validator('poi_osm_type')
+    @classmethod
+    def serialize_osm_type(cls, v: str) -> str:
+        return osm_type_validator_to_short(v)
+
 class CheckInResponse(CheckInBase):
     id: int
-    poi_id: int
+    poi_osm_type: str
+    poi_osm_id: int
     user_id: int
     created_at: datetime
     poi: POIResponse
@@ -99,3 +127,28 @@ class APIResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+# Quest Models
+class QuestApplicableResponse(BaseModel):
+    id: str
+    question: str
+
+class QuestApplicableListResponse(BaseModel):
+    quests: List[QuestApplicableResponse]
+    total: int
+
+class QuestRespondRequest(BaseModel):
+    poi_osm_type: str
+    poi_osm_id: int
+    quest_id: str
+    answer: str
+
+    @field_validator('poi_osm_type')
+    @classmethod
+    def serialize_osm_type(cls, v: str) -> str:
+        return osm_type_validator_to_short(v)
+
+class QuestRespondResponse(BaseModel):
+    success: bool
+    changeset_id: Optional[str]
+    message: str

@@ -1,0 +1,21 @@
+{
+    "question": "Do they accept credit cards here?",
+    "applies_to": {
+        "poi_classes": [
+            "personal_services",
+            "retail"
+        ],
+        "required_tags": {}
+    },
+    "condition": {
+        "tag_must_not_exist": "payment:credit_cards"
+    },
+    "answers": {
+        "yes": {
+            "payment:credit_cards": "yes"
+        },
+        "no": {
+            "payment:credit_cards": "no"
+        }
+    }
+}

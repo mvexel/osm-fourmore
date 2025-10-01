@@ -1,24 +1,165 @@
-version: '3.8'
+# FourMore Docker Compose Configuration
+# For production deployment and data pipeline operations
 
 services:
+  # PostgreSQL Database
   postgres:
     image: postgis/postgis:15-3.4
+    init: true
     environment:
-      POSTGRES_DB: fourmore
-      POSTGRES_USER: fourmore
-      POSTGRES_PASSWORD: fourmore_dev_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+    profiles:
+      - database
+      - full
 
+  # Redis Cache
   redis:
     image: redis:7-alpine
+    init: true
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+    profiles:
+      - cache
+      - full
+
+  # Backend API (for production deployment)
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@postgres:5432/${DATABASE_NAME}
+      REDIS_URL: redis://redis:6379
+      ENVIRONMENT: production
+      DEBUG: false
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES}
+      OSM_CLIENT_ID: ${OSM_CLIENT_ID}
+      OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET}
+      OSM_REDIRECT_URI: ${OSM_REDIRECT_URI}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT}:8000"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - internal
+    profiles:
+      - backend
+      - full
+
+  # Frontend (for production deployment)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT}:80"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost/ || exit 1" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+    profiles:
+      - frontend
+      - full
+
+  # Data Pipeline (for OSM data loading)
+  data-pipeline:
+    build:
+      context: .
+      dockerfile: data-pipeline/Dockerfile
+    environment:
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      OSM_DATA_FILE: ${OSM_DATA_FILE}
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+    profiles:
+      - data-pipeline
 
 volumes:
   postgres_data:
   redis_data:
+
+
+networks:
+  internal:
+    driver: bridge

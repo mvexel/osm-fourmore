@@ -1,12 +1,13 @@
 """Places/POI endpoints."""
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
-from ..db import get_db, POI
+from ..db import get_db, POI, CheckIn
 from ..auth import get_current_user, User
-from ..models import POIResponse, POINearbyRequest, APIResponse
+from ..models import NormalizeOsmType, POIResponse, POINearbyRequest, APIResponse
 
 router = APIRouter(prefix="/places", tags=["places"])
 
@@ -22,100 +23,79 @@ async def get_nearby_places(
     query = db.query(
         POI,
         func.ST_Distance(
-            func.ST_Transform(POI.location, 3857),  # Transform to Web Mercator for accurate distance
+            func.ST_Transform(POI.geom, 3857),  # Transform to Web Mercator for accurate distance
             func.ST_Transform(func.ST_GeomFromText(f'POINT({request.lon} {request.lat})', 4326), 3857)
         ).label('distance')
     ).filter(
         func.ST_DWithin(
-            func.ST_Transform(POI.location, 3857),
+            func.ST_Transform(POI.geom, 3857),
             func.ST_Transform(func.ST_GeomFromText(f'POINT({request.lon} {request.lat})', 4326), 3857),
             request.radius
         )
-    ).filter(POI.is_active == True)
+    )
 
-    # Filter by category if provided
-    if request.category:
-        query = query.filter(POI.category == request.category)
+    # Filter by class if provided
+    if request.poi_class:
+        query = query.filter(POI.poi_class == request.poi_class)
 
-    # Order by distance and limit results
+    # Order by distance, apply offset and limit results
     query = query.order_by(func.ST_Distance(
-        func.ST_Transform(POI.location, 3857),
+        func.ST_Transform(POI.geom, 3857),
         func.ST_Transform(func.ST_GeomFromText(f'POINT({request.lon} {request.lat})', 4326), 3857)
-    )).limit(request.limit)
+    )).offset(request.offset).limit(request.limit)
 
     results = query.all()
+
+    # Get user's most recent check-in (current location)
+    most_recent_checkin = db.query(
+        CheckIn.poi_osm_type,
+        CheckIn.poi_osm_id
+    ).filter(
+        CheckIn.user_id == current_user.id
+    ).order_by(CheckIn.created_at.desc()).first()
+
+    # Get the current checked-in POI (if any)
+    current_checkin_poi = None
+    if most_recent_checkin:
+        current_checkin_poi = (most_recent_checkin.poi_osm_type, most_recent_checkin.poi_osm_id)
 
     # Convert to response format
     pois = []
     for poi, distance in results:
-        poi_data = POIResponse(
-            id=poi.id,
-            osm_id=poi.osm_id,
-            osm_type=poi.osm_type,
-            name=poi.name,
-            category=poi.category,
-            subcategory=poi.subcategory,
-            lat=db.execute(text(f"SELECT ST_Y(location) FROM pois WHERE id = {poi.id}")).scalar(),
-            lon=db.execute(text(f"SELECT ST_X(location) FROM pois WHERE id = {poi.id}")).scalar(),
-            address=poi.address,
-            phone=poi.phone,
-            website=poi.website,
-            opening_hours=poi.opening_hours,
-            tags=eval(poi.tags) if poi.tags else {},  # Convert JSON string back to dict
-            created_at=poi.created_at,
-            updated_at=poi.updated_at,
-            distance=round(distance, 1)  # Round to 1 decimal place
-        )
+        poi_data = POIResponse.model_validate(poi)
+        poi_data.distance = round(distance, 1)  # Round to 1 decimal place
+        poi_data.is_checked_in = current_checkin_poi == (poi.osm_type, poi.osm_id)
         pois.append(poi_data)
 
     return pois
 
-@router.get("/{poi_id}", response_model=POIResponse)
+@router.get("/{osm_type}/{osm_id}", response_model=POIResponse)
 async def get_place_details(
-    poi_id: int,
+    osm_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    osm_type: str = Depends(NormalizeOsmType),
 ):
     """Get detailed information about a specific POI."""
-    poi = db.query(POI).filter(POI.id == poi_id, POI.is_active == True).first()
+    poi = db.query(POI).filter(POI.osm_type == osm_type, POI.osm_id == osm_id).first()
 
     if not poi:
         raise HTTPException(status_code=404, detail="Place not found")
 
-    # Get coordinates
-    coords = db.execute(text(f"SELECT ST_X(location), ST_Y(location) FROM pois WHERE id = {poi.id}")).first()
+    return POIResponse.model_validate(poi)
 
-    return POIResponse(
-        id=poi.id,
-        osm_id=poi.osm_id,
-        osm_type=poi.osm_type,
-        name=poi.name,
-        category=poi.category,
-        subcategory=poi.subcategory,
-        lat=coords[1],
-        lon=coords[0],
-        address=poi.address,
-        phone=poi.phone,
-        website=poi.website,
-        opening_hours=poi.opening_hours,
-        tags=eval(poi.tags) if poi.tags else {},
-        created_at=poi.created_at,
-        updated_at=poi.updated_at
-    )
-
-@router.get("/categories/list")
-async def get_categories(
+@router.get("/classes/list")
+async def get_classes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get list of available POI categories."""
-    categories = db.query(
-        POI.category,
-        func.count(POI.id).label('count')
-    ).filter(POI.is_active == True).group_by(POI.category).all()
+    """Get list of available POI classes."""
+    classes = db.query(
+        POI.poi_class,
+        func.count().label('count')
+    ).group_by(POI.poi_class).all()
 
     return APIResponse(
         success=True,
-        message="Categories retrieved successfully",
-        data=[{"category": cat, "count": count} for cat, count in categories]
+        message="Classes retrieved successfully",
+        data=[{"class": cls, "count": count} for cls, count in classes]
     )

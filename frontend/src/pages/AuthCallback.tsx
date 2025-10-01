@@ -1,18 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { authApi } from '../services/api'
+import { UIIcons } from '../utils/icons'
 
 export function AuthCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { login } = useAuth()
   const [error, setError] = useState<string | null>(null)
+  const lastCodeRef = useRef<string | null>(null)
 
   useEffect(() => {
+
     const handleCallback = async () => {
       const code = searchParams.get('code')
       const error = searchParams.get('error')
+
+      if (code && lastCodeRef.current === code) {
+        return
+      }
 
       if (error) {
         setError('Authentication was cancelled or failed')
@@ -27,17 +34,19 @@ export function AuthCallback() {
       }
 
       try {
+        lastCodeRef.current = code
         const authData = await authApi.handleCallback(code)
         login(authData.access_token, authData.user)
         navigate('/nearby')
       } catch (err) {
         console.error('Auth callback error:', err)
+        lastCodeRef.current = null
         setError('Failed to complete authentication')
         setTimeout(() => navigate('/login'), 3000)
       }
     }
 
-    handleCallback()
+    void handleCallback()
   }, [searchParams, navigate, login])
 
   return (
@@ -45,14 +54,14 @@ export function AuthCallback() {
       <div className="max-w-md w-full text-center">
         {error ? (
           <div className="space-y-4">
-            <div className="text-6xl">😞</div>
+            <div className="text-gray-600">{UIIcons.error({ size: 64 })}</div>
             <h2 className="text-xl font-semibold text-gray-900">Authentication Failed</h2>
             <p className="text-gray-600">{error}</p>
             <p className="text-sm text-gray-500">Redirecting to login page...</p>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="text-6xl">🔐</div>
+            <div className="flex justify-center text-primary-600">{UIIcons.secure({ size: 64 })}</div>
             <h2 className="text-xl font-semibold text-gray-900">Completing Sign In</h2>
             <p className="text-gray-600">Please wait while we finish setting up your account...</p>
             <div className="flex justify-center">

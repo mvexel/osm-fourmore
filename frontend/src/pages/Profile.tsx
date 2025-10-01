@@ -1,25 +1,62 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { checkinsApi } from '../services/api'
+import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
+import { useAuth } from '../hooks/useAuth'
+import { checkinsApi, usersApi } from '../services/api'
+import { NavIcons, ActionIcons, getCategoryLabel } from '../utils/icons'
+import { CheckinStats } from '../types'
 
 export function Profile() {
   const { user, logout } = useAuth()
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<CheckinStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  useEffect(() => {
-    fetchStats()
-  }, [])
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await checkinsApi.getStats()
-      setStats(response.data)
+      setStats(response)
     } catch (err) {
       console.error('Error fetching stats:', err)
     } finally {
       setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void fetchStats()
+  }, [fetchStats])
+
+  const handleExportGeojson = async () => {
+    try {
+      setIsExporting(true)
+      await checkinsApi.exportGeojson()
+    } catch (err) {
+      console.error('Error exporting GeoJSON:', err)
+      alert('Failed to export checkins')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!deleteConfirm) {
+      setDeleteConfirm(true)
+      setTimeout(() => setDeleteConfirm(false), 5000)
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+      await usersApi.deleteAccount()
+      localStorage.removeItem('fourmore_token')
+      localStorage.removeItem('fourmore_user')
+      window.location.href = '/login'
+    } catch (err) {
+      console.error('Error deleting account:', err)
+      alert('Failed to delete account')
+      setIsDeleting(false)
     }
   }
 
@@ -36,9 +73,17 @@ export function Profile() {
         {/* User Info */}
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="text-center space-y-4">
-            <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto">
-              <span className="text-3xl">👤</span>
-            </div>
+            {user.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.display_name || user.username}
+                className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-sm mx-auto"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto text-primary-600">
+                {NavIcons.profile({ size: 40 })}
+              </div>
+            )}
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
                 {user.display_name || user.username}
@@ -77,12 +122,10 @@ export function Profile() {
             </div>
 
             <div className="space-y-3 text-sm">
-              {stats.favorite_category && (
+              {stats.favorite_class && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Favorite Category:</span>
-                  <span className="font-medium capitalize">
-                    {stats.favorite_category.replace('_', ' ')}
-                  </span>
+                  <span className="font-medium">{getCategoryLabel(stats.favorite_class)}</span>
                 </div>
               )}
 
@@ -112,7 +155,7 @@ export function Profile() {
                 rel="noopener noreferrer"
                 className="block text-sm text-primary-600 hover:underline"
               >
-                🔗 View your OSM profile
+                <span className="inline-flex items-center gap-1">{ActionIcons.external({ size: 16 })} View your OSM profile</span>
               </a>
               <a
                 href="https://www.openstreetmap.org/edit"
@@ -120,7 +163,7 @@ export function Profile() {
                 rel="noopener noreferrer"
                 className="block text-sm text-primary-600 hover:underline"
               >
-                ✏️ Edit OpenStreetMap
+                <span className="inline-flex items-center gap-1">{ActionIcons.edit({ size: 16 })} Edit OpenStreetMap</span>
               </a>
               <a
                 href="https://www.openstreetmap.org/about"
@@ -128,7 +171,7 @@ export function Profile() {
                 rel="noopener noreferrer"
                 className="block text-sm text-primary-600 hover:underline"
               >
-                ℹ️ Learn about OpenStreetMap
+                <span className="inline-flex items-center gap-1">{ActionIcons.info({ size: 16 })} Learn about OpenStreetMap</span>
               </a>
             </div>
           </div>
@@ -139,14 +182,14 @@ export function Profile() {
           <h3 className="text-lg font-medium text-gray-900 mb-4">About FourMore</h3>
           <div className="space-y-3 text-sm text-gray-600">
             <p>
-              FourMore is a social check-in app that uses OpenStreetMap data to help you discover and share places.
+              FourMore lets you "check in" to places you visit, helping you keep track of where you have been. Your check-ins are private and only visible to you.
             </p>
             <p>
-              By checking in to places, you're building a personal map of your experiences while contributing to the OpenStreetMap community.
+              FourMore uses OpenStreetMap data to provide information about places. OpenStreetMap is like the Wikipedia for maps—Anyone can contribute information to it. When you check in to a place with FourMore, you can answer questions about it or add notes to help improve the map for everyone.
             </p>
             <div className="pt-3 border-t border-gray-100">
               <p className="text-xs text-gray-500">
-                Version 1.0.0 • Built with ❤️ for the OSM community
+                Version 1.0.0 • Github
               </p>
             </div>
           </div>
@@ -155,11 +198,39 @@ export function Profile() {
         {/* Actions */}
         <div className="space-y-3">
           <button
+            onClick={handleExportGeojson}
+            disabled={isExporting}
+            className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? 'Exporting...' : 'Export Check-ins as GeoJSON'}
+          </button>
+
+          <button
             onClick={logout}
-            className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+            className="w-full py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
           >
             Sign Out
           </button>
+
+          <button
+            onClick={handleDeleteAccount}
+            disabled={isDeleting}
+            className={`w-full py-3 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed ${deleteConfirm
+              ? 'bg-red-700 hover:bg-red-800'
+              : 'bg-red-600 hover:bg-red-700'
+              }`}
+          >
+            {isDeleting
+              ? 'Deleting...'
+              : deleteConfirm
+                ? 'Click again to confirm deletion'
+                : 'Delete Account & Data'}
+          </button>
+          {deleteConfirm && (
+            <p className="text-sm text-red-600 text-center">
+              This will permanently delete your account and all check-ins. This cannot be undone.
+            </p>
+          )}
         </div>
       </div>
     </div>

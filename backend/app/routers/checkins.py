@@ -2,7 +2,11 @@
 
 from typing import List
 from datetime import datetime
+from io import StringIO
+import csv
+import json
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from ..db import get_db, CheckIn, POI, User
@@ -19,7 +23,10 @@ async def create_checkin(
 ):
     """Create a new check-in."""
     # Verify POI exists
-    poi = db.query(POI).filter(POI.id == checkin_data.poi_id, POI.is_active == True).first()
+    poi = db.query(POI).filter(
+        POI.osm_type == checkin_data.poi_osm_type,
+        POI.osm_id == checkin_data.poi_osm_id
+    ).first()
     if not poi:
         raise HTTPException(status_code=404, detail="Place not found")
 
@@ -31,7 +38,8 @@ async def create_checkin(
     # Create check-in
     checkin = CheckIn(
         user_id=current_user.id,
-        poi_id=checkin_data.poi_id,
+        poi_osm_type=checkin_data.poi_osm_type,
+        poi_osm_id=checkin_data.poi_osm_id,
         user_location=user_location,
         comment=checkin_data.comment
     )
@@ -55,15 +63,19 @@ async def get_user_checkins(
     offset = (page - 1) * per_page
 
     # Get check-ins with valid POIs only
-    checkins = db.query(CheckIn).join(POI, CheckIn.poi_id == POI.id).filter(
-        CheckIn.user_id == current_user.id,
-        POI.is_active == True
+    checkins = db.query(CheckIn).join(
+        POI,
+        (CheckIn.poi_osm_type == POI.osm_type) & (CheckIn.poi_osm_id == POI.osm_id)
+    ).filter(
+        CheckIn.user_id == current_user.id
     ).order_by(desc(CheckIn.created_at)).offset(offset).limit(per_page).all()
 
     # Get total count of valid check-ins
-    total = db.query(CheckIn).join(POI, CheckIn.poi_id == POI.id).filter(
-        CheckIn.user_id == current_user.id,
-        POI.is_active == True
+    total = db.query(CheckIn).join(
+        POI,
+        (CheckIn.poi_osm_type == POI.osm_type) & (CheckIn.poi_osm_id == POI.osm_id)
+    ).filter(
+        CheckIn.user_id == current_user.id
     ).count()
 
     # Convert to response format with POI details
@@ -124,19 +136,22 @@ async def get_checkin_stats(
     """Get user's check-in statistics."""
     total_checkins = db.query(CheckIn).filter(CheckIn.user_id == current_user.id).count()
 
-    unique_places = db.query(func.count(func.distinct(CheckIn.poi_id))).filter(
+    unique_places = db.query(func.count(func.distinct(func.concat(CheckIn.poi_osm_type, CheckIn.poi_osm_id)))).filter(
         CheckIn.user_id == current_user.id
     ).scalar()
 
-    # Get most visited category
-    category_stats = db.query(
-        POI.category,
+    # Get most visited class
+    class_stats = db.query(
+        POI.poi_class,
         func.count(CheckIn.id).label('count')
-    ).join(CheckIn, POI.id == CheckIn.poi_id).filter(
+    ).join(
+        CheckIn,
+        (POI.osm_type == CheckIn.poi_osm_type) & (POI.osm_id == CheckIn.poi_osm_id)
+    ).filter(
         CheckIn.user_id == current_user.id
-    ).group_by(POI.category).order_by(desc('count')).first()
+    ).group_by(POI.poi_class).order_by(desc('count')).first()
 
-    favorite_category = category_stats[0] if category_stats else None
+    favorite_class = class_stats[0] if class_stats else None
 
     # Get first check-in date
     first_checkin = db.query(CheckIn).filter(
@@ -149,45 +164,79 @@ async def get_checkin_stats(
         data={
             "total_checkins": total_checkins,
             "unique_places": unique_places,
-            "favorite_category": favorite_category,
+            "favorite_class": favorite_class,
             "member_since": first_checkin.created_at if first_checkin else None
+        }
+    )
+
+@router.get("/export/geojson")
+async def export_checkins_geojson(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Export all user checkins as GeoJSON."""
+    # Get all checkins with POI details
+    checkins = db.query(CheckIn, POI).join(
+        POI,
+        (CheckIn.poi_osm_type == POI.osm_type) & (CheckIn.poi_osm_id == POI.osm_id)
+    ).filter(
+        CheckIn.user_id == current_user.id
+    ).order_by(desc(CheckIn.created_at)).all()
+
+    # Build GeoJSON FeatureCollection
+    features = []
+    for checkin, poi in checkins:
+        osm_type_full = {"N": "node", "W": "way"}.get(checkin.poi_osm_type, checkin.poi_osm_type)
+
+        feature = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [poi.lon, poi.lat]
+            },
+            "properties": {
+                "datetime": checkin.created_at.isoformat(),
+                "osm_type": osm_type_full,
+                "osm_id": checkin.poi_osm_id,
+                "name": poi.name or '',
+                "class": poi.poi_class,
+                "comment": checkin.comment or ''
+            }
+        }
+        features.append(feature)
+
+    geojson = {
+        "type": "FeatureCollection",
+        "features": features
+    }
+
+    # Prepare response
+    geojson_str = json.dumps(geojson, indent=2)
+    return StreamingResponse(
+        iter([geojson_str]),
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f"attachment; filename=fourmore_checkins_{current_user.username}.geojson"
         }
     )
 
 def get_checkin_with_poi(db: Session, checkin: CheckIn) -> CheckInResponse:
     """Helper function to get checkin with POI details."""
-    poi = db.query(POI).filter(POI.id == checkin.poi_id).first()
+    poi = db.query(POI).filter(
+        POI.osm_type == checkin.poi_osm_type,
+        POI.osm_id == checkin.poi_osm_id
+    ).first()
 
     if not poi:
         raise HTTPException(status_code=404, detail="Associated place not found")
 
-    # Get POI coordinates
-    from sqlalchemy import text
-    coords = db.execute(text(f"SELECT ST_X(location), ST_Y(location) FROM pois WHERE id = {poi.id}")).first()
-
-    poi_response = POIResponse(
-        id=poi.id,
-        osm_id=poi.osm_id,
-        osm_type=poi.osm_type,
-        name=poi.name,
-        category=poi.category,
-        subcategory=poi.subcategory,
-        lat=coords[1],
-        lon=coords[0],
-        address=poi.address,
-        phone=poi.phone,
-        website=poi.website,
-        opening_hours=poi.opening_hours,
-        tags=eval(poi.tags) if poi.tags else {},
-        created_at=poi.created_at,
-        updated_at=poi.updated_at
-    )
-
+    # Create CheckInResponse with POI included
     return CheckInResponse(
         id=checkin.id,
-        poi_id=checkin.poi_id,
+        poi_osm_type=checkin.poi_osm_type,
+        poi_osm_id=checkin.poi_osm_id,
         user_id=checkin.user_id,
-        comment=checkin.comment,
         created_at=checkin.created_at,
-        poi=poi_response
+        comment=checkin.comment,
+        poi=POIResponse.model_validate(poi)
     )
