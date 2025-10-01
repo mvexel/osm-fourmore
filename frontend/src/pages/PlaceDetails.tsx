@@ -5,6 +5,7 @@ import { placesApi, checkinsApi, questsApi } from '../services/api'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { OSMContribution } from '../components/OSMContribution'
 import { QuestDialog } from '../components/QuestDialog'
+import { LocationMap } from '../components/LocationMap'
 import { getCategoryIcon, getCategoryLabel, ContactIcons, UIIcons } from '../utils/icons'
 
 export function PlaceDetails() {
@@ -200,8 +201,13 @@ export function PlaceDetails() {
               <p className="text-gray-700">{poi.opening_hours}</p>
             </div>
           )}
+        </div>
 
-          {/* View on Map */}
+        {/* Interactive Map */}
+        <LocationMap lat={poi.lat} lon={poi.lon} name={poi.name} showUserLocation={true} />
+
+        {/* View on Map Link */}
+        <div className="space-y-4">
           <div className="flex items-center space-x-3">
             <span className="text-gray-400">{ContactIcons.map({ size: 18 })}</span>
             <a
