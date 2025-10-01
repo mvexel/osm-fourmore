@@ -1,7 +1,7 @@
 import { Map, Marker } from '@vis.gl/react-maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useState, useEffect, useRef } from 'react'
-import type { MapRef } from '@vis.gl/react-maplibre'
+import type { MapRef, StyleSpecification } from '@vis.gl/react-maplibre'
 import { LngLatBounds } from 'maplibre-gl'
 import mapStyle from '../styles/osm-bright-osmusa.json'
 
@@ -70,7 +70,7 @@ export function LocationMap({
             zoom,
           }}
           style={{ width: '100%', height: '100%' }}
-          mapStyle={mapStyle}
+          mapStyle={mapStyle as StyleSpecification}
         >
           {showMarker && (
             <Marker
