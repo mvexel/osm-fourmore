@@ -3,7 +3,7 @@ SHELL := /bin/bash
 # Default environment file
 ENV_FILE := .env
 
-.PHONY: help dev backend frontend db-setup db-seed db-setup-dev db-seed-dev deploy stop clean setup-backend
+.PHONY: help dev backend frontend db-setup db-seed db-update db-setup-dev db-seed-dev db-update-dev deploy stop clean setup-backend
 
 help:
 	@echo "FourMore - Simplified Development & Deployment"
@@ -18,8 +18,10 @@ help:
 	@echo "🗄️  Database:"
 	@echo "  db-setup      - Start database in Docker"
 	@echo "  db-seed       - Load OSM data into database"
+	@echo "  db-update     - Update OSM data in Docker database"
 	@echo "  db-setup-dev  - Create User/CheckIn tables in local PostgreSQL"
 	@echo "  db-seed-dev   - Load OSM data + create POI table in local PostgreSQL"
+	@echo "  db-update-dev - Update OSM data in local PostgreSQL"
 	@echo ""
 	@echo "🐋 Production Deployment:"
 	@echo "  deploy        - Deploy full stack with Docker"
@@ -98,6 +100,29 @@ db-seed-dev:
 		-e OSM_DATA_FILE=/app/data/utah-latest.osm.pbf \
 		fourmore-data-pipeline
 	@echo "✅ OSM data loaded into local database!"
+
+db-update:
+	@echo "🔄 Updating OSM data..."
+	@echo "Starting database if needed..."
+	docker compose --profile database up -d postgres
+	@echo "Applying OSM updates with data pipeline..."
+	docker compose --env-file .env --env-file .env.local --profile database --profile data-pipeline run --rm --entrypoint ./update_osm2pgsql.sh data-pipeline
+
+db-update-dev:
+	@echo "🔄 Updating OSM data in local development database..."
+	@echo "Make sure your local PostgreSQL is running!"
+	docker build -t fourmore-data-pipeline -f data-pipeline/Dockerfile .
+	docker run --rm \
+		-v "$(PWD)/data:/app/data" \
+		-e DATABASE_NAME=fourmore \
+		-e DATABASE_HOST=host.docker.internal \
+		-e DATABASE_PORT=5432 \
+		-e DATABASE_USER=mvexel \
+		-e DATABASE_PASSWORD="" \
+		-e OSM_DATA_FILE=/app/data/utah-latest.osm.pbf \
+		--entrypoint ./update_osm2pgsql.sh \
+		fourmore-data-pipeline
+	@echo "✅ OSM data updated in local database!"
 
 # ============================================================================
 # Production Deployment
