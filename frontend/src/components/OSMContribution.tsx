@@ -6,7 +6,7 @@ import { UIIcons, ActionIcons } from '../utils/icons'
 interface OSMContributionProps {
   osmType: string
   osmId: number
-  tags?: Record<string, any>
+  tags?: Record<string, string | number | boolean>
   isExpanded?: boolean
   onToggleExpanded?: (expanded: boolean) => void
   className?: string

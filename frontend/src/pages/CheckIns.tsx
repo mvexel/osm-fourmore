@@ -196,7 +196,7 @@ export function CheckIns() {
                   {format(new Date(date), 'EEEE, MMMM d, yyyy')}
                 </h3>
                 <div className="space-y-3 relative z-20">
-                  {dayCheckins.map((checkin, index) => (
+                  {dayCheckins.map((checkin) => (
                     <div key={checkin.id}>
                       {/* Check-in card */}
                       <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -264,7 +264,7 @@ export function CheckIns() {
                               </div>
                             ) : checkin.comment ? (
                               <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-md group relative">
-                                <p className="text-sm text-gray-700 italic">"{checkin.comment}"</p>
+                                <p className="text-sm text-gray-700 italic">&ldquo;{checkin.comment}&rdquo;</p>
                                 <button
                                   onClick={() => handleEditNotes(checkin)}
                                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-amber-100 rounded"

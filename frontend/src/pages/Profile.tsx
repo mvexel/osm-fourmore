@@ -182,7 +182,7 @@ export function Profile() {
           <h3 className="text-lg font-medium text-gray-900 mb-4">About FourMore</h3>
           <div className="space-y-3 text-sm text-gray-600">
             <p>
-              FourMore lets you "check in" to places you visit, helping you keep track of where you have been. Your check-ins are private and only visible to you.
+              FourMore lets you &ldquo;check in&rdquo; to places you visit, helping you keep track of where you have been. Your check-ins are private and only visible to you.
             </p>
             <p>
               FourMore uses OpenStreetMap data to provide information about places. OpenStreetMap is like the Wikipedia for maps—Anyone can contribute information to it. When you check in to a place with FourMore, you can answer questions about it or add notes to help improve the map for everyone.

@@ -94,7 +94,7 @@ export function CheckinSuccess() {
           >
             ← Back
           </button>
-          <h1 className="text-xl font-semibold text-gray-900">You're here!</h1>
+          <h1 className="text-xl font-semibold text-gray-900">You&apos;re here!</h1>
           <div className="w-6"></div> {/* Spacer for center alignment */}
         </div>
       </div>

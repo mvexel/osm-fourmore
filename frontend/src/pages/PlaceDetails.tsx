@@ -16,7 +16,6 @@ export function PlaceDetails() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [checkinLoading, setCheckinLoading] = useState(false)
-  const [showCheckInForm, setShowCheckInForm] = useState(false)
   const [osmContributionExpanded, setOsmContributionExpanded] = useState(false)
   const [justCheckedIn, setJustCheckedIn] = useState(false)
   const [quests, setQuests] = useState<Quest[]>([])
@@ -70,7 +69,7 @@ export function PlaceDetails() {
     try {
       setCheckinLoading(true)
 
-      const newCheckin = await checkinsApi.create({
+      await checkinsApi.create({
         poi_osm_type: poi.osm_type,
         poi_osm_id: poi.osm_id,
         user_lat: latitude || undefined,
@@ -79,7 +78,6 @@ export function PlaceDetails() {
 
       // Stay on this page and show quests
       setJustCheckedIn(true)
-      setShowCheckInForm(false)
       await fetchApplicableQuests()
     } catch (err) {
       console.error('Check-in failed:', err)

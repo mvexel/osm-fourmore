@@ -2,17 +2,13 @@ import { useState, useEffect } from 'react'
 import { OSMTag } from './OSMTag'
 
 interface OSMTagsProps {
-    tags: Record<string, any>
+    tags: Record<string, string | number | boolean>
     onTagsChange?: (modifiedTags: Record<string, string>) => void
     className?: string
 }
 
 export function OSMTags({ tags, onTagsChange, className }: OSMTagsProps) {
     const [modifiedTags, setModifiedTags] = useState<Record<string, string>>({})
-
-    if (!tags || Object.keys(tags).length === 0) {
-        return null
-    }
 
     const handleValueChange = (key: string, newValue: string) => {
         const originalValue = String(tags[key])
@@ -42,6 +38,11 @@ export function OSMTags({ tags, onTagsChange, className }: OSMTagsProps) {
             onTagsChange(modifiedTags)
         }
     }, [modifiedTags, onTagsChange])
+
+    // Early return after all hooks
+    if (!tags || Object.keys(tags).length === 0) {
+        return null
+    }
 
     return (
         <div className={`p-3 bg-gray-50 rounded-lg ${className}`}>
