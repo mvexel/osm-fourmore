@@ -1,7 +1,7 @@
-import { Map, Marker } from '@vis.gl/react-maplibre'
+import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useState, useEffect, useRef } from 'react'
-import type { MapRef, StyleSpecification } from '@vis.gl/react-maplibre'
+import type { MapRef, StyleSpecification } from 'react-map-gl/maplibre'
 import { LngLatBounds } from 'maplibre-gl'
 import mapStyle from '../styles/osm-bright-osmusa.json'
 
@@ -71,6 +71,7 @@ export function LocationMap({
           }}
           style={{ width: '100%', height: '100%' }}
           mapStyle={mapStyle as StyleSpecification}
+          attributionControl={false}
         >
           {showMarker && (
             <Marker
@@ -113,6 +114,7 @@ export function LocationMap({
               </div>
             </Marker>
           )}
+          <AttributionControl compact={true} position="bottom-right" />
         </Map>
       </div>
       <div className="text-xs text-gray-500 mt-1">

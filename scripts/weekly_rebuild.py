@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Weekly data rebuild script for FourMore."""
+"""Weekly data rebuild script for FourMore.
+
+This is not tested or used yet - would be a cron job that runs osm2pgsql either with updates or a full import
+"""
 
 import os
 import sys

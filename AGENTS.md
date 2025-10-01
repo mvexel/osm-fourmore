@@ -8,7 +8,7 @@ Use `make backend-dev` to build and start the FastAPI stack (Postgres, Redis, AP
 Need your own Postgres? Point `DATABASE_URL`/`DATABASE_HOST` at it (e.g., `host.docker.internal`) and run `USE_SYSTEM_DB=true make backend-dev` to skip the containerized database.
 
 ## Coding Style & Naming Conventions
-Follow PEP 8 with four-space indents and type hints on public functions. Keep FastAPI routers focused, inject sessions with `Depends(get_db)`, avoid inline engines. Name TypeScript components in PascalCase (e.g., `CheckinTimeline.tsx`), hooks in camelCase, and colocate Tailwind styling in JSX. Re-export shared logic through index files to reduce deep relative imports.
+Follow PEP 8 with four-space indents and type hints on public functions. Keep FastAPI routers focused, inject sessions with `Depends(get_db)`, avoid inline engines. Name TypeScript components in PascalCase (e.g., `CheckinTimeline.tsx`), hooks in camelCase, and colocate Tailwind styling in JSX. Re-export shared logic through index files to reduce deep relative imports. Do not create new documentation files without explicitly being asked to do so. 
 
 ## Testing Guidelines
 Backend uses `pytest` and `pytest-asyncio`; place tests in `backend/tests/` named like `test_checkins.py`. Mark async tests with `@pytest.mark.asyncio` and execute the suite using `docker compose --env-file .env.development -f docker-compose.dev.yml run --rm backend pytest`. Co-locate frontend tests next to components as `<Component>.test.tsx` using React Testing Library; ensure critical flows stay covered before feature handoff.
@@ -17,4 +17,4 @@ Backend uses `pytest` and `pytest-asyncio`; place tests in `backend/tests/` name
 Author commits in present-tense imperatives (`add avatar`, `confirm guard`). For PRs, squash noisy commits, explain user impact, link issues, and include any manual steps such as `make db-init-dev` or `make db-seed-dev`. Attach UI screenshots or GIFs for visual changes and call out schema or data-pipeline updates reviewers must run.
 
 ## Security & Configuration Tips
-Never commit `.env` files or production secrets; share credentials through the team vault. Keep large geodata outside the repo and document download sources instead. Rotate JWT secrets for production deployments, and review changes to `docker-compose.prod.yml` with infrastructure owners prior to merging.
+Never commit `.env` files or production secrets. Keep large geodata outside the repo and document download sources instead. Rotate JWT secrets for production deployments.
