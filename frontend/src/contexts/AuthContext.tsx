@@ -44,11 +44,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('fourmore_user')
   }
 
+  const updateUser = (newUser: User) => {
+    setUser(newUser)
+    localStorage.setItem('fourmore_user', JSON.stringify(newUser))
+  }
+
   const contextValue: AuthContextType = {
     user,
     token,
     login,
     logout,
+    updateUser,
     isAuthenticated: Boolean(token && user),
   }
 

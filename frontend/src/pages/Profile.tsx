@@ -6,12 +6,13 @@ import { NavIcons, ActionIcons, getCategoryLabel } from '../utils/icons'
 import { CheckinStats } from '../types'
 
 export function Profile() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateUser } = useAuth()
   const [stats, setStats] = useState<CheckinStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false)
 
   const fetchStats = useCallback(async () => {
     try {
@@ -37,6 +38,23 @@ export function Profile() {
       alert('Failed to export checkins')
     } finally {
       setIsExporting(false)
+    }
+  }
+
+  const handleToggleExpertMode = async () => {
+    if (!user) return
+
+    try {
+      setIsUpdatingSettings(true)
+      const updatedUser = await usersApi.updateSettings({
+        expert: !user.settings?.expert,
+      })
+      updateUser(updatedUser)
+    } catch (err) {
+      console.error('Error updating settings:', err)
+      alert('Failed to update settings')
+    } finally {
+      setIsUpdatingSettings(false)
     }
   }
 
@@ -140,6 +158,34 @@ export function Profile() {
             </div>
           </div>
         ) : null}
+
+        {/* Settings */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Settings</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-gray-900">Expert Mode</div>
+                <div className="text-sm text-gray-600">
+                  Enable advanced OpenStreetMap editing features
+                </div>
+              </div>
+              <button
+                onClick={handleToggleExpertMode}
+                disabled={isUpdatingSettings}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${user.settings?.expert ? 'bg-primary-600' : 'bg-gray-200'
+                  }`}
+                role="switch"
+                aria-checked={user.settings?.expert || false}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.settings?.expert ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* OpenStreetMap Info */}
         <div className="bg-white border border-gray-200 rounded-lg p-6">

@@ -1,6 +1,17 @@
 """SQLAlchemy database models for FourMore backend."""
 
-from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Text, Boolean, Index, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    Integer,
+    BigInteger,
+    String,
+    DateTime,
+    Text,
+    Boolean,
+    Index,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -20,7 +31,9 @@ class POI(Base):
     osm_id = Column(BigInteger, primary_key=True, nullable=False)
 
     name = Column(Text)
-    poi_class = Column("class", Text, nullable=False, index=True)  # 'class' is reserved in Python
+    poi_class = Column(
+        "class", Text, nullable=False, index=True
+    )  # 'class' is reserved in Python
     tags = Column(JSONB)
     geom = Column(Geometry("POINT", srid=4326), nullable=False, index=True)
     version = Column(Integer, nullable=False)
@@ -45,26 +58,26 @@ class POI(Base):
             return None
 
         addr_parts = []
-        for key in ['addr:housenumber', 'addr:street', 'addr:city', 'addr:postcode']:
+        for key in ["addr:housenumber", "addr:street", "addr:city", "addr:postcode"]:
             if key in self.tags:
                 addr_parts.append(self.tags[key])
 
-        return ', '.join(addr_parts) if addr_parts else None
+        return ", ".join(addr_parts) if addr_parts else None
 
     @property
     def phone(self):
         """Extract phone from tags."""
-        return self.tags.get('phone') if self.tags else None
+        return self.tags.get("phone") if self.tags else None
 
     @property
     def website(self):
         """Extract website from tags."""
-        return self.tags.get('website') if self.tags else None
+        return self.tags.get("website") if self.tags else None
 
     @property
     def opening_hours(self):
         """Extract opening hours from tags."""
-        return self.tags.get('opening_hours') if self.tags else None
+        return self.tags.get("opening_hours") if self.tags else None
 
     def _to_point(self):
         """Convert the geometry to a shapely point, if possible."""
@@ -88,6 +101,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     avatar_url = Column(String)
     osm_access_token = Column(String)
+    settings = Column(JSONB, server_default=text("'{}'"))  # Flexible settings storage
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -138,5 +152,5 @@ class QuestResponse(Base):
 
     # Unique constraint prevents duplicate quest responses (also creates index)
     __table_args__ = (
-        UniqueConstraint('poi_osm_type', 'poi_osm_id', 'quest_id', name='uq_poi_quest'),
+        UniqueConstraint("poi_osm_type", "poi_osm_id", "quest_id", name="uq_poi_quest"),
     )

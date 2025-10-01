@@ -12,6 +12,8 @@ import {
   QuestApplicableResponse,
   QuestRespondRequest,
   QuestRespondResponse,
+  User,
+  UserSettings,
 } from '../types'
 
 type LoginUrlResponse = { auth_url: string }
@@ -173,8 +175,13 @@ export const questsApi = {
 }
 
 export const usersApi = {
+  async updateSettings(settings: Partial<UserSettings>): Promise<User> {
+    const response = await api.patch<User>('/me/settings', settings)
+    return unwrap(response)
+  },
+
   async deleteAccount(): Promise<ApiResponse> {
-    const response = await api.delete<ApiResponse>('/users/delete')
+    const response = await api.delete<ApiResponse>('/me')
     return unwrap(response)
   },
 }

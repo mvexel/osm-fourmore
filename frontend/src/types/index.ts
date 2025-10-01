@@ -21,6 +21,12 @@ export interface POI {
   is_checked_in?: boolean
 }
 
+export interface UserSettings {
+  expert?: boolean
+  theme?: string
+  notifications?: boolean
+}
+
 export interface User {
   id: number
   osm_user_id: string
@@ -28,6 +34,7 @@ export interface User {
   display_name?: string
   email?: string
   avatar_url?: string
+  settings?: UserSettings
   created_at: string
   is_active: boolean
 }
