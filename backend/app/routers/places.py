@@ -4,7 +4,7 @@ from typing import List
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import func, or_
 from ..db import get_db, POI, CheckIn
 from ..auth import get_current_user, User
 from ..models import NormalizeOsmType, POIResponse, POINearbyRequest, APIResponse
@@ -19,17 +19,16 @@ async def get_nearby_places(
 ):
     """Get POIs near a given location."""
     # Build the spatial query
-    # ST_DWithin uses meters when using geography type
     query = db.query(
         POI,
         func.ST_Distance(
-            func.ST_Transform(POI.geom, 3857),  # Transform to Web Mercator for accurate distance
-            func.ST_Transform(func.ST_GeomFromText(f'POINT({request.lon} {request.lat})', 4326), 3857)
+            func.ST_GeogFromWKB(POI.geom),
+            func.ST_GeographyFromText(f'POINT({request.lon} {request.lat})')
         ).label('distance')
     ).filter(
         func.ST_DWithin(
-            func.ST_Transform(POI.geom, 3857),
-            func.ST_Transform(func.ST_GeomFromText(f'POINT({request.lon} {request.lat})', 4326), 3857),
+            func.ST_GeogFromWKB(POI.geom),
+            func.ST_GeographyFromText(f'POINT({request.lon} {request.lat})'),
             request.radius
         )
     )
@@ -38,11 +37,18 @@ async def get_nearby_places(
     if request.poi_class:
         query = query.filter(POI.poi_class == request.poi_class)
 
+    # filter out highway=bus_stop for now
+    query = query.filter(
+        or_(
+            POI.tags.op('->>')('highway') != 'bus_stop',
+            POI.tags.op('->>')('highway').is_(None)
+        )
+    )
+    # log raw SQL for debugging
+    # print(str(query.statement.compile(compile_kwargs={"literal_binds": True})))
+
     # Order by distance, apply offset and limit results
-    query = query.order_by(func.ST_Distance(
-        func.ST_Transform(POI.geom, 3857),
-        func.ST_Transform(func.ST_GeomFromText(f'POINT({request.lon} {request.lat})', 4326), 3857)
-    )).offset(request.offset).limit(request.limit)
+    query = query.order_by('distance').offset(request.offset).limit(request.limit)
 
     results = query.all()
 
