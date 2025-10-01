@@ -1,0 +1,20 @@
+{
+    "question": "Can you purchase food here?",
+    "applies_to": {
+        "poi_classes": [
+            "cafe_bakery"
+        ],
+        "required_tags": {}
+    },
+    "condition": {
+        "tag_must_not_exist": "food"
+    },
+    "answers": {
+        "yes": {
+            "food": "yes"
+        },
+        "no": {
+            "food": "no"
+        }
+    }
+}
