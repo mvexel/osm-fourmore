@@ -28,12 +28,12 @@ export function Profile() {
     void fetchStats()
   }, [fetchStats])
 
-  const handleExportCsv = async () => {
+  const handleExportGeojson = async () => {
     try {
       setIsExporting(true)
-      await checkinsApi.exportCsv()
+      await checkinsApi.exportGeojson()
     } catch (err) {
-      console.error('Error exporting CSV:', err)
+      console.error('Error exporting GeoJSON:', err)
       alert('Failed to export checkins')
     } finally {
       setIsExporting(false)
@@ -198,11 +198,11 @@ export function Profile() {
         {/* Actions */}
         <div className="space-y-3">
           <button
-            onClick={handleExportCsv}
+            onClick={handleExportGeojson}
             disabled={isExporting}
             className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isExporting ? 'Exporting...' : 'Export Check-ins as CSV'}
+            {isExporting ? 'Exporting...' : 'Export Check-ins as GeoJSON'}
           </button>
 
           <button

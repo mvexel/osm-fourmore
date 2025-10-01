@@ -4,6 +4,7 @@ from typing import List
 from datetime import datetime
 from io import StringIO
 import csv
+import json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -168,12 +169,12 @@ async def get_checkin_stats(
         }
     )
 
-@router.get("/export/csv")
-async def export_checkins_csv(
+@router.get("/export/geojson")
+async def export_checkins_geojson(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Export all user checkins as CSV."""
+    """Export all user checkins as GeoJSON."""
     # Get all checkins with POI details
     checkins = db.query(CheckIn, POI).join(
         POI,
@@ -182,30 +183,40 @@ async def export_checkins_csv(
         CheckIn.user_id == current_user.id
     ).order_by(desc(CheckIn.created_at)).all()
 
-    # Create CSV in memory
-    output = StringIO()
-    writer = csv.writer(output)
-
-    # Write header
-    writer.writerow(['datetime', 'osm_type', 'osm_id', 'name'])
-
-    # Write data rows
+    # Build GeoJSON FeatureCollection
+    features = []
     for checkin, poi in checkins:
         osm_type_full = {"N": "node", "W": "way"}.get(checkin.poi_osm_type, checkin.poi_osm_type)
-        writer.writerow([
-            checkin.created_at.isoformat(),
-            osm_type_full,
-            checkin.poi_osm_id,
-            poi.name or ''
-        ])
+
+        feature = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [poi.lon, poi.lat]
+            },
+            "properties": {
+                "datetime": checkin.created_at.isoformat(),
+                "osm_type": osm_type_full,
+                "osm_id": checkin.poi_osm_id,
+                "name": poi.name or '',
+                "class": poi.poi_class,
+                "comment": checkin.comment or ''
+            }
+        }
+        features.append(feature)
+
+    geojson = {
+        "type": "FeatureCollection",
+        "features": features
+    }
 
     # Prepare response
-    output.seek(0)
+    geojson_str = json.dumps(geojson, indent=2)
     return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
+        iter([geojson_str]),
+        media_type="application/json",
         headers={
-            "Content-Disposition": f"attachment; filename=fourmore_checkins_{current_user.username}.csv"
+            "Content-Disposition": f"attachment; filename=fourmore_checkins_{current_user.username}.geojson"
         }
     )
 

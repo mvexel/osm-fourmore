@@ -127,15 +127,15 @@ export const checkinsApi = {
     }
   },
 
-  async exportCsv(): Promise<void> {
-    const response = await api.get('/checkins/export/csv', {
+  async exportGeojson(): Promise<void> {
+    const response = await api.get('/checkins/export/geojson', {
       responseType: 'blob',
     })
-    const blob = new Blob([response.data], { type: 'text/csv' })
+    const blob = new Blob([response.data], { type: 'application/json' })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `fourmore_checkins.csv`
+    link.download = `fourmore_checkins.geojson`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
