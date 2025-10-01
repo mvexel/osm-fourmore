@@ -1,6 +1,6 @@
 [Unit]
 Description=FourMore OSM Data Update Timer
-Documentation=https://github.com/yourusername/fourmore
+Documentation=https://github.com/mvexel/osm-fourmore/systemd
 Requires=fourmore-osm-update.service
 
 [Timer]
@@ -12,10 +12,6 @@ Persistent=true
 
 # Add randomization to avoid load spikes (0-30 minutes)
 RandomizedDelaySec=30min
-
-# Log when the timer activates
-OnUnitActiveSec=
-OnBootSec=
 
 [Install]
 WantedBy=timers.target

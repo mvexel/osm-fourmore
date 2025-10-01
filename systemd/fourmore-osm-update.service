@@ -1,20 +1,20 @@
 [Unit]
 Description=FourMore OSM Data Update
-Documentation=https://github.com/yourusername/fourmore
+Documentation=https://github.com/mvexel/osm-fourmore/systemd
 After=network-online.target docker.service
 Wants=network-online.target
 Requires=docker.service
 
 [Service]
 Type=oneshot
-User=YOUR_USERNAME
-Group=YOUR_GROUP
+User=fourmore
+Group=fourmore
 
 # Set the working directory to your FourMore project
-WorkingDirectory=/path/to/fourmore
+WorkingDirectory=/home/fourmore/osm-fourmore
 
 # Load environment variables if you have a .env.local file
-EnvironmentFile=-/path/to/fourmore/.env.local
+EnvironmentFile=-/home/fourmore/osm-fourmore/.env.local
 
 # Run the update via make
 ExecStart=/usr/bin/make db-update
