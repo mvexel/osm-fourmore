@@ -20,10 +20,25 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          ui: ['@tabler/icons-react']
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('@tabler/icons-react')) {
+              return 'icons'
+            }
+            if (id.includes('react-router-dom')) {
+              return 'router'
+            }
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react'
+            }
+            if (id.includes('maplibre-gl') || id.includes('react-map-gl') || id.includes('@vis.gl')) {
+              return 'maps'
+            }
+            if (id.includes('date-fns')) {
+              return 'date'
+            }
+            return 'vendor'
+          }
         }
       }
     }

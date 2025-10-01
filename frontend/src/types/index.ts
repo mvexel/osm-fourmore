@@ -1,4 +1,4 @@
-export type POITags = Record<string, unknown>
+export type POITags = Record<string, string | number | boolean>
 
 export interface POI {
   id?: number

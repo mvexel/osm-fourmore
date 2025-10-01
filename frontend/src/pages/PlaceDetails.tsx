@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { POI, Quest } from '../types'
 import { placesApi, checkinsApi, questsApi } from '../services/api'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { OSMContribution } from '../components/OSMContribution'
 import { QuestDialog } from '../components/QuestDialog'
-import { LocationMap } from '../components/LocationMap'
 import { getCategoryIcon, getCategoryLabel, ContactIcons, UIIcons } from '../utils/icons'
+
+const LocationMap = lazy(() => import('../components/LocationMap').then(m => ({ default: m.LocationMap })))
 
 export function PlaceDetails() {
   const { osmType, osmId } = useParams<{ osmType: string; osmId: string }>()
@@ -191,7 +192,9 @@ export function PlaceDetails() {
         </div>
 
         {/* Interactive Map */}
-        <LocationMap lat={poi.lat} lon={poi.lon} name={poi.name} showUserLocation={true} />
+        <Suspense fallback={<div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">Loading map...</div>}>
+          <LocationMap lat={poi.lat} lon={poi.lon} name={poi.name} showUserLocation={true} />
+        </Suspense>
 
         {/* View on Map Link */}
         <div className="space-y-4">
