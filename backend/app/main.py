@@ -62,7 +62,7 @@ app.add_middleware(
         "https://fourmore.osm.lol", # Production frontend
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
 
