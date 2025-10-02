@@ -92,12 +92,8 @@ db-seed-dev:
 	docker build -t fourmore-data-pipeline -f data-pipeline/Dockerfile .
 	docker run --rm \
 		-v "$(PWD)/data:/app/data" \
-		-e DATABASE_NAME=fourmore \
-		-e DATABASE_HOST=host.docker.internal \
-		-e DATABASE_PORT=5432 \
-		-e DATABASE_USER=mvexel \
-		-e DATABASE_PASSWORD="" \
-		-e OSM_DATA_FILE=/app/data/utah-latest.osm.pbf \
+		--env-file .env \
+		$(if $(wildcard .env.local),--env-file .env.local,) \
 		fourmore-data-pipeline
 	@echo "✅ OSM data loaded into local database!"
 
@@ -114,12 +110,8 @@ db-update-dev:
 	docker build -t fourmore-data-pipeline -f data-pipeline/Dockerfile .
 	docker run --rm \
 		-v "$(PWD)/data:/app/data" \
-		-e DATABASE_NAME=fourmore \
-		-e DATABASE_HOST=host.docker.internal \
-		-e DATABASE_PORT=5432 \
-		-e DATABASE_USER=mvexel \
-		-e DATABASE_PASSWORD="" \
-		-e OSM_DATA_FILE=/app/data/utah-latest.osm.pbf \
+		--env-file .env \
+		$(if $(wildcard .env.local),--env-file .env.local,) \
 		--entrypoint ./update_osm2pgsql.sh \
 		fourmore-data-pipeline
 	@echo "✅ OSM data updated in local database!"
