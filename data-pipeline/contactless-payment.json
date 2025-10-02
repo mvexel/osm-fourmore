@@ -1,0 +1,28 @@
+{
+    "question": "Can you pay with Apple Pay and Google Pay?",
+    "applies_to": {
+        "poi_classes": [
+            "restaurant",
+            "personal_services",
+            "cafe_bakery",
+            "grocery"
+        ],
+        "required_tags": {}
+    },
+    "condition": {
+        "tags_must_not_exist": [
+            "payment:apple_pay",
+            "payment:google_pay"
+        ]
+    },
+    "answers": {
+        "yes": {
+            "payment:apple_pay": "yes",
+            "payment:google_pay": "yes"
+        },
+        "no": {
+            "payment:apple_pay": "no",
+            "payment:google_pay": "no"
+        }
+    }
+}

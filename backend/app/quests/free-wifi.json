@@ -1,0 +1,22 @@
+{
+    "question": "Is free Wi-Fi available here?",
+    "applies_to": {
+        "poi_classes": [
+            "cafe_bakery",
+            "bar_pub"
+        ],
+        "required_tags": {}
+    },
+    "condition": {
+        "tags_must_not_exist": "internet_access"
+    },
+    "answers": {
+        "yes": {
+            "internet_access": "wlan",
+            "internet_access:fee": "no"
+        },
+        "no": {
+            "internet_access": "no"
+        }
+    }
+}

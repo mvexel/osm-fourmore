@@ -46,10 +46,12 @@ class QuestDefinition:
         if not self.condition:
             return True
 
-        # Handle tag_must_not_exist condition
-        if "tag_must_not_exist" in self.condition:
-            tag_key = self.condition["tag_must_not_exist"]
-            return tag_key not in tags
+        # Handle tags_must_not_exist condition (this is a list of tags)
+
+        if "tags_must_not_exist" in self.condition:
+            for tag_key in self.condition["tags_must_not_exist"]:
+                if tag_key in tags:
+                    return False
 
         # Add more condition types here as needed
         return True
@@ -109,7 +111,7 @@ def get_applicable_quests(
     poi_class: str,
     osm_tags: Dict[str, Any],
     db: Session,
-    max_quests: int = 3
+    max_quests: int = 3,
 ) -> List[QuestDefinition]:
     """
     Get up to max_quests applicable quests for a POI.
@@ -145,11 +147,15 @@ def get_applicable_quests(
             continue
 
         # Check if quest was already answered for this POI
-        existing_response = db.query(QuestResponse).filter(
-            QuestResponse.poi_osm_type == poi_osm_type,
-            QuestResponse.poi_osm_id == poi_osm_id,
-            QuestResponse.quest_id == quest.id
-        ).first()
+        existing_response = (
+            db.query(QuestResponse)
+            .filter(
+                QuestResponse.poi_osm_type == poi_osm_type,
+                QuestResponse.poi_osm_id == poi_osm_id,
+                QuestResponse.quest_id == quest.id,
+            )
+            .first()
+        )
 
         if existing_response:
             continue

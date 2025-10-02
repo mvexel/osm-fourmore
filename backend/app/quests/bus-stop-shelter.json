@@ -1,0 +1,22 @@
+{
+    "question": "Does this bus stop have a shelter?",
+    "applies_to": {
+        "poi_classes": [
+            "transport"
+        ],
+        "required_tags": {
+            "highway": "bus_stop"
+        }
+    },
+    "condition": {
+        "tags_must_not_exist": "shelter"
+    },
+    "answers": {
+        "yes": {
+            "shelter": "yes"
+        },
+        "no": {
+            "shelter": "no"
+        }
+    }
+}

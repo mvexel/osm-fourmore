@@ -8,7 +8,7 @@
         "required_tags": {}
     },
     "condition": {
-        "tag_must_not_exist": "payment:credit_cards"
+        "tags_must_not_exist": "payment:credit_cards"
     },
     "answers": {
         "yes": {

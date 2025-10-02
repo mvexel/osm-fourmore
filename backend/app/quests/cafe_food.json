@@ -7,7 +7,7 @@
         "required_tags": {}
     },
     "condition": {
-        "tag_must_not_exist": "food"
+        "tags_must_not_exist": "food"
     },
     "answers": {
         "yes": {

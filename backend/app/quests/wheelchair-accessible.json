@@ -1,0 +1,22 @@
+{
+    "question": "Is this place wheelchair accessible?",
+    "applies_to": {
+        "poi_classes": [
+            "retail",
+            "grocery",
+            "personal_services"
+        ],
+        "required_tags": {}
+    },
+    "condition": {
+        "tags_must_not_exist": "wheelchair"
+    },
+    "answers": {
+        "yes": {
+            "wheelchair": "yes"
+        },
+        "no": {
+            "wheelchair": "no"
+        }
+    }
+}

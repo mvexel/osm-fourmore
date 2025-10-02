@@ -1,0 +1,21 @@
+{
+    "question": "Can you order food to take away?",
+    "applies_to": {
+        "poi_classes": [
+            "restaurant",
+            "fast_food"
+        ],
+        "required_tags": {}
+    },
+    "condition": {
+        "tags_must_not_exist": "takeaway"
+    },
+    "answers": {
+        "yes": {
+            "takeaway": "yes"
+        },
+        "no": {
+            "takeaway": "no"
+        }
+    }
+}

@@ -9,7 +9,7 @@
     }
   },
   "condition": {
-    "tag_must_not_exist": "bench"
+    "tags_must_not_exist": "bench"
   },
   "answers": {
     "yes": {
