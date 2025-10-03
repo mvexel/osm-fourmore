@@ -22,7 +22,7 @@ import {
   IconPalette,
   IconParking,
   IconPaw,
-  IconQuestionMark,
+  IconMapPinQuestion,
   IconSchool,
   IconScissors,
   IconShoppingBag,
@@ -66,7 +66,7 @@ export const CATEGORY_META = {
   landmark: { label: 'Landmarks', Icon: IconBuildingMonument },
   animal_services: { label: 'Animal Services', Icon: IconPaw },
   industrial: { label: 'Industrial & Utility', Icon: IconBuildingFactory },
-  misc: { label: 'Other', Icon: IconQuestionMark },
+  misc: { label: 'Other', Icon: IconMapPinQuestion },
 } as const
 
 export const LEGACY_AMENITY_TO_CATEGORY: Record<string, CategoryKey> = {
