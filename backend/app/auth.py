@@ -1,6 +1,5 @@
 """OSM OAuth2 authentication for FastAPI."""
 
-import os
 import httpx
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
@@ -9,14 +8,15 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from .db import get_db, User
+from . import config
 
-# OAuth and JWT configuration
-OSM_CLIENT_ID = os.getenv("OSM_CLIENT_ID")
-OSM_CLIENT_SECRET = os.getenv("OSM_CLIENT_SECRET")
-OSM_REDIRECT_URI = os.getenv("OSM_REDIRECT_URI", "http://127.0.0.1:3000/auth/callback")
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+# OAuth and JWT configuration from centralized config
+OSM_CLIENT_ID = config.OSM_CLIENT_ID
+OSM_CLIENT_SECRET = config.OSM_CLIENT_SECRET
+OSM_REDIRECT_URI = config.OSM_REDIRECT_URI
+JWT_SECRET_KEY = config.JWT_SECRET_KEY
+JWT_ALGORITHM = config.JWT_ALGORITHM
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES = config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
 
 # OSM OAuth URLs
 OSM_BASE_URL = "https://www.openstreetmap.org"
@@ -26,6 +26,7 @@ OSM_USER_URL = f"{OSM_BASE_URL}/api/0.6/user/details.json"
 
 security = HTTPBearer()
 
+
 class OSMAuth:
     """Handle OSM OAuth2 authentication."""
 
@@ -33,7 +34,7 @@ class OSMAuth:
     def get_authorization_url() -> str:
         """Generate OSM OAuth authorization URL."""
         from urllib.parse import urlencode
-        
+
         params = {
             "client_id": OSM_CLIENT_ID,
             "redirect_uri": OSM_REDIRECT_URI,
@@ -48,32 +49,33 @@ class OSMAuth:
     async def exchange_code_for_token(code: str) -> Dict[str, Any]:
         """Exchange authorization code for access token."""
         import logging
+
         logger = logging.getLogger(__name__)
-        
+
         data = {
             "client_id": OSM_CLIENT_ID,
             "client_secret": OSM_CLIENT_SECRET,
             "code": code,
             "grant_type": "authorization_code",
-            "redirect_uri": OSM_REDIRECT_URI
+            "redirect_uri": OSM_REDIRECT_URI,
         }
 
-        logger.info(f"Exchanging code for token with OSM: {OSM_TOKEN_URL}")
-        logger.info(f"Using client_id: {OSM_CLIENT_ID}")
-        logger.info(f"Using redirect_uri: {OSM_REDIRECT_URI}")
-        logger.info(f"Code (first 10 chars): {code[:10]}...")
-        logger.info(f"Request data: {data}")
+        logger.debug(f"Exchanging code for token with OSM: {OSM_TOKEN_URL}")
+        logger.debug(f"Using client_id: {OSM_CLIENT_ID}")
+        logger.debug(f"Using redirect_uri: {OSM_REDIRECT_URI}")
+        logger.debug(f"Code (first 10 chars): {code[:10]}...")
+        logger.debug(f"Request data: {data}")
 
         async with httpx.AsyncClient() as client:
             response = await client.post(OSM_TOKEN_URL, data=data)
 
-        logger.info(f"OSM token exchange response status: {response.status_code}")
+        logger.debug(f"OSM token exchange response status: {response.status_code}")
         if response.status_code != 200:
             logger.error(f"OSM token exchange failed. Response: {response.text}")
             logger.error(f"Response headers: {dict(response.headers)}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to exchange code for token: {response.text}"
+                detail=f"Failed to exchange code for token: {response.text}",
             )
 
         return response.json()
@@ -89,10 +91,11 @@ class OSMAuth:
         if response.status_code != 200:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Failed to get user information"
+                detail="Failed to get user information",
             )
 
         return response.json()
+
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create JWT access token."""
@@ -106,6 +109,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return encoded_jwt
 
+
 def verify_token(token: str) -> Optional[dict]:
     """Verify JWT token and return payload."""
     try:
@@ -114,9 +118,10 @@ def verify_token(token: str) -> Optional[dict]:
     except JWTError:
         return None
 
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> User:
     """Get current authenticated user."""
     credentials_exception = HTTPException(
@@ -141,7 +146,10 @@ async def get_current_user(
 
     return user
 
-def create_or_update_user(db: Session, osm_user_data: dict, osm_access_token: str = None) -> User:
+
+def create_or_update_user(
+    db: Session, osm_user_data: dict, osm_access_token: str = None
+) -> User:
     """Create or update user from OSM data."""
     user_element = osm_user_data["user"]
     osm_user_id = str(user_element["id"])
@@ -168,7 +176,7 @@ def create_or_update_user(db: Session, osm_user_data: dict, osm_access_token: st
             display_name=user_element.get("display_name"),
             avatar_url=avatar_url,
             email=None,  # OSM doesn't provide email in basic scope
-            osm_access_token=osm_access_token
+            osm_access_token=osm_access_token,
         )
         db.add(user)
 

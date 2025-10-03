@@ -2,22 +2,22 @@
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
-from dotenv import load_dotenv
+import sys
 
-# Load environment variables
-load_dotenv()
+# Import centralized configuration (loads .env files)
+from . import config
 
 # Configure logging
-import sys
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=getattr(logging, config.LOG_LEVEL, logging.INFO),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     stream=sys.stdout,
-    force=True  # Force reconfiguration
+    force=True,
 )
 
 # Also set uvicorn loggers to show our app logs
@@ -29,9 +29,14 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
+logger.debug("Starting FourMore FastAPI application")
+logger.info("Starting FourMore FastAPI application INFO")
+logger.warning("Starting FourMore FastAPI application WARNING")
+
 # Import routers
 from .routers import auth, places, checkins, osm_edits, categories, quests, users
 from .database import create_tables
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,26 +45,27 @@ async def lifespan(app: FastAPI):
     logger.info("Creating database tables...")
     create_tables()
     logger.info("Database tables created successfully")
-    
+
     yield
-    
+
     # Shutdown (if needed)
     logger.info("Application shutting down...")
+
 
 app = FastAPI(
     title="FourMore API",
     description="Social check-in app using OpenStreetMap data",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000", # Local development
-        "http://127.0.0.1:3000", # Local development (127.0.0.1)
-        "https://fourmore.osm.lol", # Production frontend
+        "http://localhost:3000",  # Local development
+        "http://127.0.0.1:3000",  # Local development (127.0.0.1)
+        "https://fourmore.osm.lol",  # Production frontend
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
@@ -75,14 +81,14 @@ app.include_router(categories.router)
 app.include_router(quests.router)
 app.include_router(users.router)
 
+logger.debug(f"Routers included successfully: {app.routes}")
+
+
 @app.get("/")
 async def root():
     """Health check endpoint."""
-    return {
-        "message": "FourMore API is running",
-        "version": "1.0.0",
-        "docs": "/docs"
-    }
+    return {"message": "FourMore API is running", "version": "1.0.0", "docs": "/docs"}
+
 
 @app.get("/health")
 async def health_check():
@@ -91,6 +97,7 @@ async def health_check():
     try:
         from .db import engine
         from sqlalchemy import text
+
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         db_status = "healthy"
@@ -100,8 +107,9 @@ async def health_check():
     return {
         "status": "healthy" if db_status == "healthy" else "degraded",
         "database": db_status,
-        "version": "1.0.0"
+        "version": "1.0.0",
     }
+
 
 # Global exception handler
 @app.exception_handler(Exception)
@@ -111,10 +119,12 @@ async def global_exception_handler(request, exc):
         status_code=500,
         content={
             "detail": "Internal server error",
-            "message": str(exc) if os.getenv("DEBUG") else "An unexpected error occurred"
-        }
+            "message": (str(exc) if config.DEBUG else "An unexpected error occurred"),
+        },
     )
+
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

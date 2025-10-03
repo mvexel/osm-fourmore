@@ -16,6 +16,10 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install gunicorn
 
+# Copy environment files (if they exist)
+# .env provides defaults, .env.local (if present) overrides them
+COPY .env* ./
+
 # Copy application code
 COPY backend/app/ ./app/
 
