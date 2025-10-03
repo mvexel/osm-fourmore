@@ -1,20 +1,24 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-FourMore splits code per domain. The FastAPI backend lives in `backend/app` with routers under `routers/`, models in `models.py`, database helpers in `database.py`, and tests in `backend/tests`. React client code resides in `frontend/src` with pages, components, hooks, and services, while shared Python utilities sit in `fourmore_shared`, shared TypeScript helpers in `shared/src`, and data pipelines in `data-pipeline/src`. Store raw `.osm.pbf` snapshots under `data/`.
+FourMore keeps domains separated: the FastAPI backend lives in `backend/app` (routers in `app/routers/`, schemas in `app/schemas.py`, persistence helpers in `app/database.py`, migrations under `backend/migrations`), the React client sits in `frontend/src` with `pages/`, `components/`, `hooks/`, and `services/`, shared Python utilities live in `fourmore_shared/`, shared TypeScript helpers in `shared/src/`, and data pipelines in `data-pipeline/src`. Store `.osm.pbf` snapshots in `data/`.
 
 ## Build, Test, and Development Commands
-Use `make backend-dev` to build and start the FastAPI stack (Postgres, Redis, API) and `make frontend-dev` to run the React dev server directly on your host (install deps with `npm install` in `frontend/` first, then visit `http://127.0.0.1:3000`). Place real secrets in `.env.development.local` (gitignored) so the Makefile picks them up automatically. Production-ready builds run via `make backend-prod` and `make frontend-prod`. Initialize and seed the database with `make db-init-dev` and `make db-seed-dev` (swap `-dev` for `-prod` when needed). Frontend linting still runs with `npm run lint` in `frontend/`.
-Need your own Postgres? Point `DATABASE_URL`/`DATABASE_HOST` at it (e.g., `host.docker.internal`) and run `USE_SYSTEM_DB=true make backend-dev` to skip the containerized database.
+- `make setup-backend`: install backend dependencies in a uv environment.
+- `make dev`: start FastAPI (`:8000`) and Vite (`:3000`) together; requires local Postgres and Redis.
+- `make backend` / `make frontend`: run either service alone while debugging.
+- `uv run pytest` (inside `backend/`): execute backend tests.
+- `npm run lint` / `npm run build` (inside `frontend/`): run ESLint + TypeScript checks and build the bundle.
+- `make db-setup-dev` → `make db-seed-dev`: prepare local Postgres tables and load OSM data.
 
 ## Coding Style & Naming Conventions
-Follow PEP 8 with four-space indents and type hints on public functions. Keep FastAPI routers focused, inject sessions with `Depends(get_db)`, avoid inline engines. Name TypeScript components in PascalCase (e.g., `CheckinTimeline.tsx`), hooks in camelCase, and colocate Tailwind styling in JSX. Re-export shared logic through index files to reduce deep relative imports. Do not create new documentation files without explicitly being asked to do so. 
+Python uses `black` (88 chars) and `isort` (`black` profile); run `uv run black . && uv run isort .` before committing. Use snake_case for modules and functions, PascalCase for SQLAlchemy and Pydantic models. TypeScript relies on ESLint: components and hooks are PascalCase (hooks prefixed with `use`), props and local state stay camelCase. Tailwind utilities stay inline with shared patterns promoted into `frontend/src/styles`. Keep secrets in `.env.local` (gitignored).
 
 ## Testing Guidelines
-Backend uses `pytest` and `pytest-asyncio`; place tests in `backend/tests/` named like `test_checkins.py`. Mark async tests with `@pytest.mark.asyncio` and execute the suite using `docker compose --env-file .env.development -f docker-compose.dev.yml run --rm backend pytest`. Co-locate frontend tests next to components as `<Component>.test.tsx` using React Testing Library; ensure critical flows stay covered before feature handoff.
+Pytest is configured via `backend/pyproject.toml` with `test_*.py` files and `Test*` classes. Keep fixtures lightweight and use `pytest-asyncio` for coroutine endpoints. Frontend coverage is minimal; add Vitest + Testing Library specs under `frontend/src/__tests__/` when modifying UI or formatting logic.
 
 ## Commit & Pull Request Guidelines
-Author commits in present-tense imperatives (`add avatar`, `confirm guard`). For PRs, squash noisy commits, explain user impact, link issues, and include any manual steps such as `make db-init-dev` or `make db-seed-dev`. Attach UI screenshots or GIFs for visual changes and call out schema or data-pipeline updates reviewers must run.
+Recent history favors short, imperative commits (`map pin icon`, `privacy first analytics`). Keep scope tight and run formatters before committing. Pull requests should note the change summary, linked issue or TODO, verification steps (`uv run pytest`, `npm run lint`), and screenshots or curl samples for user-facing updates. Flag migrations or data loads so reviewers can reproduce locally.
 
-## Security & Configuration Tips
-Never commit `.env` files or production secrets. Keep large geodata outside the repo and document download sources instead. Rotate JWT secrets for production deployments.
+## Environment & Operations Tips
+Copy `.env` to `.env.local` for local secrets; `docker-compose.yml` reads both. Use `make db-setup` / `make db-seed` for Docker workflows and `make db-update` to refresh OSM extracts. Keep raw extracts confined to `data/` and track operational notes in `docs/`.

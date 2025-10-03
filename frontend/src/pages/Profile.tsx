@@ -167,7 +167,7 @@ export function Profile() {
               <div>
                 <div className="font-medium text-gray-900">Expert Mode</div>
                 <div className="text-sm text-gray-600">
-                  Enable advanced OpenStreetMap editing features
+                  Enable advanced OpenStreetMap features
                 </div>
               </div>
               <button

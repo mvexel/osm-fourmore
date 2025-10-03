@@ -4,6 +4,7 @@ import { format, formatDistanceToNow } from 'date-fns'
 import { CheckIn, CheckinStats } from '../types'
 import { checkinsApi } from '../services/api'
 import { getCategoryIcon, getCategoryLabel, ContactIcons, UIIcons, NavIcons } from '../utils/icons'
+import { DoubleConfirmButton } from '../components/DoubleConfirmButton'
 
 export function CheckIns() {
   const [checkins, setCheckins] = useState<CheckIn[]>([])
@@ -94,6 +95,26 @@ export function CheckIns() {
     setEditingNotes(null)
     setEditNotes('')
   }
+
+  const handleDeleteCheckin = useCallback(async (checkinId: number) => {
+    try {
+      await checkinsApi.delete(checkinId)
+
+      setCheckins((prev) => prev.filter((checkin) => checkin.id !== checkinId))
+      setEditingNotes((current) => {
+        if (current === checkinId) {
+          setEditNotes('')
+          return null
+        }
+        return current
+      })
+
+      await fetchStats()
+    } catch (err) {
+      console.error('Error deleting check-in:', err)
+      alert('Failed to delete check-in. Please try again.')
+    }
+  }, [fetchStats])
 
   const statsContent = useMemo(() => {
     if (!stats) {
@@ -288,15 +309,44 @@ export function CheckIns() {
                               <span className="text-gray-400">
                                 {formatDistanceToNow(new Date(checkin.created_at), { addSuffix: true })}
                               </span>
-                              <a
-                                href={`https://www.openstreetmap.org/${checkin.poi.osm_type}/${checkin.poi.osm_id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary-600 hover:underline inline-flex items-center gap-1"
-                              >
-                                <span className="text-gray-400">{ContactIcons.map({ size: 12 })}</span>
-                                View on Map
-                              </a>
+                              <div className="flex items-center gap-2">
+                                <DoubleConfirmButton
+                                  onConfirm={() => handleDeleteCheckin(checkin.id)}
+                                  confirmText="Tap again to delete"
+                                  executingText="Deleting..."
+                                  className="px-3 py-1 text-xs font-medium bg-red-50 text-red-600 rounded-md"
+                                  warningClassName="px-3 py-1 text-xs font-medium bg-red-600 text-white rounded-md"
+                                  buttonProps={{
+                                    type: 'button',
+                                    'aria-label': 'Delete check-in',
+                                  }}
+                                >
+                                  Delete
+                                </DoubleConfirmButton>
+                                <DoubleConfirmButton
+                                  onConfirm={() => {
+                                    window.open(
+                                      `https://www.openstreetmap.org/${checkin.poi.osm_type}/${checkin.poi.osm_id}`,
+                                      '_blank',
+                                      'noopener,noreferrer'
+                                    )
+                                    return Promise.resolve()
+                                  }}
+                                  confirmText="Tap again to open"
+                                  executingText="Opening..."
+                                  className="px-3 py-1 text-xs font-medium bg-primary-50 text-primary-600 rounded-md inline-flex items-center gap-1"
+                                  warningClassName="px-3 py-1 text-xs font-medium bg-primary-600 text-white rounded-md inline-flex items-center gap-1"
+                                  buttonProps={{
+                                    type: 'button',
+                                    'aria-label': 'View location on OpenStreetMap',
+                                  }}
+                                >
+                                  <span className="flex items-center gap-1">
+                                    <span className="text-gray-500">{ContactIcons.map({ size: 12 })}</span>
+                                    View Map
+                                  </span>
+                                </DoubleConfirmButton>
+                              </div>
                             </div>
                           </div>
                         </div>
