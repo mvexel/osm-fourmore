@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { checkinsApi, usersApi } from '../services/api'
 import { NavIcons, ActionIcons, getCategoryLabel } from '../utils/icons'
 import { CheckinStats } from '../types'
+import { ToggleSwitch } from '../components/ToggleSwitch'
 
 export function Profile() {
   const { user, logout, updateUser } = useAuth()
@@ -43,13 +44,13 @@ export function Profile() {
     }
   }
 
-  const handleToggleExpertMode = async () => {
+  const handleToggleExpertMode = async (nextValue: boolean) => {
     if (!user) return
 
     try {
       setUpdatingSetting('expert')
       const updatedUser = await usersApi.updateSettings({
-        expert: !expertModeEnabled,
+        expert: nextValue,
       })
       updateUser(updatedUser)
     } catch (err) {
@@ -60,13 +61,13 @@ export function Profile() {
     }
   }
 
-  const handleToggleQuestParticipation = async () => {
+  const handleToggleQuestParticipation = async (nextValue: boolean) => {
     if (!user) return
 
     try {
       setUpdatingSetting('quests')
       const updatedUser = await usersApi.updateSettings({
-        participate_in_quests: !participatesInQuests,
+        participate_in_quests: nextValue,
       })
       updateUser(updatedUser)
     } catch (err) {
@@ -184,50 +185,39 @@ export function Profile() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
+                <div className="font-medium text-gray-900">Participate in Quests</div>
+                <div className="text-sm text-gray-600">
+                  Allow FourMore to suggest quests after you check in
+                </div>
+              </div>
+              <ToggleSwitch
+                checked={participatesInQuests}
+                onChange={handleToggleQuestParticipation}
+                disabled={updatingSetting === 'quests'}
+                ariaLabel={participatesInQuests ? 'Disable quests' : 'Enable quests'}
+                className="shrink-0"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
                 <div className="font-medium text-gray-900">Expert Mode</div>
                 <div className="text-sm text-gray-600">
                   Enable advanced OpenStreetMap features
                 </div>
                 <div className="text-xs text-gray-500 mt-1">Coming soon</div>
               </div>
-              <button
-                onClick={handleToggleExpertMode}
-                disabled
-                aria-disabled="true"
-                title="Expert mode is coming soon"
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-not-allowed opacity-60 ${expertModeEnabled ? 'bg-primary-600' : 'bg-gray-200'
-                  }`}
-                role="switch"
-                aria-checked={expertModeEnabled}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${expertModeEnabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
+              <div title="Expert mode is coming soon">
+                <ToggleSwitch
+                  checked={expertModeEnabled}
+                  onChange={handleToggleExpertMode}
+                  disabled
+                  ariaLabel="Expert mode is coming soon"
+                  className="shrink-0"
                 />
-              </button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900">Participate in Quests</div>
-                <div className="text-sm text-gray-600">
-                  Allow FourMore to suggest quests after you check in
-                </div>
               </div>
-              <button
-                onClick={handleToggleQuestParticipation}
-                disabled={updatingSetting === 'quests'}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${participatesInQuests ? 'bg-primary-600' : 'bg-gray-200'
-                  }`}
-                role="switch"
-                aria-checked={participatesInQuests}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${participatesInQuests ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                />
-              </button>
             </div>
           </div>
+
         </div>
 
         {/* OpenStreetMap Info */}

@@ -8,7 +8,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const location = useLocation()
 
   const isActive = (path: string) => location.pathname === path
@@ -53,8 +53,8 @@ export function Layout({ children }: LayoutProps) {
             <Link
               to="/nearby"
               className={`flex flex-col items-center py-2 px-4 text-xs ${isActive('/nearby')
-                  ? 'text-primary-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'text-primary-600'
+                : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               <div className="mb-1">{NavIcons.nearby({ size: 24 })}</div>
@@ -64,8 +64,8 @@ export function Layout({ children }: LayoutProps) {
             <Link
               to="/checkins"
               className={`flex flex-col items-center py-2 px-4 text-xs ${isActive('/checkins')
-                  ? 'text-primary-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'text-primary-600'
+                : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               <div className="mb-1">{NavIcons.history({ size: 24 })}</div>
@@ -75,8 +75,8 @@ export function Layout({ children }: LayoutProps) {
             <Link
               to="/profile"
               className={`flex flex-col items-center py-2 px-4 text-xs ${isActive('/profile')
-                  ? 'text-primary-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'text-primary-600'
+                : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               <div className="mb-1">{NavIcons.profile({ size: 24 })}</div>
