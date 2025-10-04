@@ -36,6 +36,16 @@ async def get_applicable_quests_for_poi(
     Fetches fresh OSM data to check tag conditions.
     """
 
+    user_settings = getattr(current_user, "settings", {}) or {}
+    participate_in_quests = user_settings.get("participate_in_quests", True)
+
+    if not participate_in_quests:
+        logger.info(
+            "User %s opted out of quests; returning empty quest list",
+            current_user.id,
+        )
+        return QuestApplicableListResponse(quests=[], total=0)
+
     # Get POI from database (for poi_class)
     poi = db.query(POI).filter(POI.osm_type == osm_type, POI.osm_id == osm_id).first()
 

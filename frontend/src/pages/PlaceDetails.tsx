@@ -6,12 +6,14 @@ import { useGeolocation } from '../hooks/useGeolocation'
 import { OSMContribution } from '../components/OSMContribution'
 import { QuestDialog } from '../components/QuestDialog'
 import { getCategoryIcon, getCategoryLabel, ContactIcons, UIIcons } from '../utils/icons'
+import { useAuth } from '../hooks/useAuth'
 
 const LocationMap = lazy(() => import('../components/LocationMap').then(m => ({ default: m.LocationMap })))
 
 export function PlaceDetails() {
   const { osmType, osmId } = useParams<{ osmType: string; osmId: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { latitude, longitude } = useGeolocation()
   const [poi, setPoi] = useState<POI | null>(null)
   const [loading, setLoading] = useState(true)
@@ -22,6 +24,7 @@ export function PlaceDetails() {
   const [quests, setQuests] = useState<Quest[]>([])
   const [showQuestDialog, setShowQuestDialog] = useState(false)
   const [loadingQuests, setLoadingQuests] = useState(false)
+  const participatesInQuests = user?.settings?.participate_in_quests ?? true
 
   const fetchPlaceDetails = useCallback(async (type: string, id: number) => {
     try {
@@ -44,8 +47,23 @@ export function PlaceDetails() {
     }
   }, [fetchPlaceDetails, osmType, osmId])
 
+  useEffect(() => {
+    if (!participatesInQuests) {
+      setShowQuestDialog(false)
+      setQuests([])
+      setLoadingQuests(false)
+    }
+  }, [participatesInQuests])
+
   const fetchApplicableQuests = async () => {
     if (!poi) return
+
+    if (!participatesInQuests) {
+      setLoadingQuests(false)
+      setShowQuestDialog(false)
+      setQuests([])
+      return
+    }
 
     try {
       setLoadingQuests(true)
@@ -79,7 +97,13 @@ export function PlaceDetails() {
 
       // Stay on this page and show quests
       setJustCheckedIn(true)
-      await fetchApplicableQuests()
+      if (participatesInQuests) {
+        await fetchApplicableQuests()
+      } else {
+        setShowQuestDialog(false)
+        setQuests([])
+        setLoadingQuests(false)
+      }
     } catch (err) {
       console.error('Check-in failed:', err)
       alert('Check-in failed. Please try again.')

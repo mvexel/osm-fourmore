@@ -46,6 +46,12 @@ async def update_user_settings(
         current_settings["notifications"] = settings_update.notifications
         updated = True
 
+    if settings_update.participate_in_quests is not None:
+        current_settings["participate_in_quests"] = (
+            settings_update.participate_in_quests
+        )
+        updated = True
+
     if settings_update.display_name is not None:
         setattr(current_user, "display_name", settings_update.display_name)
         updated = True

@@ -12,7 +12,9 @@ export function Profile() {
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false)
+  const [updatingSetting, setUpdatingSetting] = useState<null | 'expert' | 'quests'>(null)
+  const expertModeEnabled = Boolean(user?.settings?.expert)
+  const participatesInQuests = user?.settings?.participate_in_quests ?? true
 
   const fetchStats = useCallback(async () => {
     try {
@@ -45,16 +47,33 @@ export function Profile() {
     if (!user) return
 
     try {
-      setIsUpdatingSettings(true)
+      setUpdatingSetting('expert')
       const updatedUser = await usersApi.updateSettings({
-        expert: !user.settings?.expert,
+        expert: !expertModeEnabled,
       })
       updateUser(updatedUser)
     } catch (err) {
       console.error('Error updating settings:', err)
       alert('Failed to update settings')
     } finally {
-      setIsUpdatingSettings(false)
+      setUpdatingSetting(null)
+    }
+  }
+
+  const handleToggleQuestParticipation = async () => {
+    if (!user) return
+
+    try {
+      setUpdatingSetting('quests')
+      const updatedUser = await usersApi.updateSettings({
+        participate_in_quests: !participatesInQuests,
+      })
+      updateUser(updatedUser)
+    } catch (err) {
+      console.error('Error updating quest preference:', err)
+      alert('Failed to update settings')
+    } finally {
+      setUpdatingSetting(null)
     }
   }
 
@@ -169,17 +188,41 @@ export function Profile() {
                 <div className="text-sm text-gray-600">
                   Enable advanced OpenStreetMap features
                 </div>
+                <div className="text-xs text-gray-500 mt-1">Coming soon</div>
               </div>
               <button
                 onClick={handleToggleExpertMode}
-                disabled={isUpdatingSettings}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${user.settings?.expert ? 'bg-primary-600' : 'bg-gray-200'
+                disabled
+                aria-disabled="true"
+                title="Expert mode is coming soon"
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-not-allowed opacity-60 ${expertModeEnabled ? 'bg-primary-600' : 'bg-gray-200'
                   }`}
                 role="switch"
-                aria-checked={user.settings?.expert || false}
+                aria-checked={expertModeEnabled}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.settings?.expert ? 'translate-x-6' : 'translate-x-1'
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${expertModeEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                />
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-gray-900">Participate in Quests</div>
+                <div className="text-sm text-gray-600">
+                  Allow FourMore to suggest quests after you check in
+                </div>
+              </div>
+              <button
+                onClick={handleToggleQuestParticipation}
+                disabled={updatingSetting === 'quests'}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${participatesInQuests ? 'bg-primary-600' : 'bg-gray-200'
+                  }`}
+                role="switch"
+                aria-checked={participatesInQuests}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${participatesInQuests ? 'translate-x-6' : 'translate-x-1'
                     }`}
                 />
               </button>

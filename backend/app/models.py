@@ -85,6 +85,7 @@ class UserSettings(BaseModel):
     expert: bool = False
     theme: str = "light"
     notifications: bool = True
+    participate_in_quests: bool = True
     # Add more settings as needed
 
 
@@ -114,6 +115,9 @@ class UserSettingsUpdate(BaseModel):
     )
     display_name: Optional[str] = Field(
         None, max_length=100, description="User's display name"
+    )
+    participate_in_quests: Optional[bool] = Field(
+        None, description="Enable/disable quest participation"
     )
     # Add other user-modifiable settings here as needed
 

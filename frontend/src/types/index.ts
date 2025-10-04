@@ -25,6 +25,7 @@ export interface UserSettings {
   expert?: boolean
   theme?: string
   notifications?: boolean
+  participate_in_quests?: boolean
 }
 
 export interface User {
