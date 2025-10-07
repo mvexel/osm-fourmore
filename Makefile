@@ -6,9 +6,6 @@ ENV_FILE := .env
 .PHONY: help dev backend frontend db-setup db-seed db-update db-setup-dev db-seed-dev db-update-dev deploy stop clean setup-backend
 
 help:
-	@echo "FourMore - Simplified Development & Deployment"
-	@echo "=============================================="
-	@echo ""
 	@echo "🚀 Development (local, no Docker):"
 	@echo "  setup-backend - Setup backend virtual environment (uv)"
 	@echo "  dev           - Start frontend and backend locally"
@@ -31,10 +28,6 @@ help:
 	@echo "🧹 Utilities:"
 	@echo "  stop          - Stop all Docker services"
 	@echo "  clean         - Remove all Docker containers and volumes"
-	@echo ""
-	@echo "💡 Tips:"
-	@echo "    • Create .env.local for your secrets (gitignored)"
-	@echo "    • Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
 
 # ============================================================================
 # Local Development (no Docker)
