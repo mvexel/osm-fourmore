@@ -23,14 +23,20 @@ export function Nearby() {
 
   const radius = 1000 // TODO - this should be a constant.
 
-  const fetchNearbyPlaces = useCallback(async (reset = false, pageOverride?: number) => {
+  const fetchNearbyPlaces = useCallback(async (reset = false, pageOverride?: number, options?: { silent?: boolean }) => {
     if (!latitude || !longitude) return
 
+    const { silent = false } = options ?? {}
+    const showSpinner = reset && !silent
+
     try {
-      if (reset) {
-        setLoading(true)
+      // this feels a bit clunky
+      if (reset) { // Initial load or refresh
+        if (showSpinner) {  // Only show spinner if not silent
+          setLoading(true)
+        }
         setError(null)
-      } else {
+      } else { // Loading more
         setIsLoadingMore(true)
       }
 
@@ -68,8 +74,8 @@ export function Nearby() {
       setError('Failed to load nearby places')
       console.error('Error fetching nearby places:', err)
     } finally {
-      setLoading(false)
-      setIsLoadingMore(false)
+      if (showSpinner) setLoading(false)
+      if (!reset) setIsLoadingMore(false)
     }
   }, [latitude, longitude, radius, selectedClass])
 
@@ -107,7 +113,7 @@ export function Nearby() {
       void fetchCurrentCheckin()
       // Also refresh the nearby list to update is_checked_in flags
       if (latitude && longitude) {
-        void fetchNearbyPlaces(true)
+        void fetchNearbyPlaces(true, undefined, { silent: true })
       }
     }
     window.addEventListener('focus', handleFocus)
