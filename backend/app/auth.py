@@ -17,6 +17,8 @@ OSM_REDIRECT_URI = config.OSM_REDIRECT_URI
 JWT_SECRET_KEY = config.JWT_SECRET_KEY
 JWT_ALGORITHM = config.JWT_ALGORITHM
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+OSM_ALLOWED_USERNAMES = config.OSM_ALLOWED_USERNAMES
+OSM_ALLOWED_USER_IDS = config.OSM_ALLOWED_USER_IDS
 
 # OSM OAuth URLs
 OSM_BASE_URL = "https://www.openstreetmap.org"
@@ -95,6 +97,24 @@ class OSMAuth:
             )
 
         return response.json()
+
+
+def user_is_whitelisted(osm_user_data: dict) -> bool:
+    """Return True when the OSM user is allowed to sign in."""
+    if not OSM_ALLOWED_USERNAMES and not OSM_ALLOWED_USER_IDS:
+        return True
+
+    user_element = osm_user_data.get("user", {})
+    osm_user_id = str(user_element.get("id", "")).strip()
+    username = (user_element.get("display_name") or "").strip()
+
+    if osm_user_id and osm_user_id in OSM_ALLOWED_USER_IDS:
+        return True
+
+    if username and username.lower() in OSM_ALLOWED_USERNAMES:
+        return True
+
+    return False
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):

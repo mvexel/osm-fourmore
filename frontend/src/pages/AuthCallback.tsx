@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { isAxiosError } from 'axios'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { authApi } from '../services/api'
 import { UIIcons } from '../utils/icons'
+import { WAITLIST_STORAGE_KEY } from '../constants/auth'
 
 export function AuthCallback() {
   const [searchParams] = useSearchParams()
@@ -39,8 +41,32 @@ export function AuthCallback() {
         login(authData.access_token, authData.user)
         navigate('/nearby')
       } catch (err) {
-        console.error('Auth callback error:', err)
         lastCodeRef.current = null
+        if (isAxiosError(err) && err.response?.status === 403) {
+          const detail = err.response.data?.detail
+          const message =
+            typeof detail === 'object' && detail !== null
+              ? (detail as { message?: string }).message
+              : undefined
+          const email =
+            typeof detail === 'object' && detail !== null
+              ? (detail as { email?: string }).email
+              : undefined
+
+          sessionStorage.setItem(
+            WAITLIST_STORAGE_KEY,
+            JSON.stringify({
+              message:
+                message ??
+                'We are inviting people in waves while we scale up. Drop us an email and we will add you to the list.',
+              email: email ?? 'mvexel@gmail.com',
+            })
+          )
+          navigate('/login', { replace: true })
+          return
+        }
+
+        console.error('Auth callback error:', err)
         setError('Failed to complete authentication')
         setTimeout(() => navigate('/login'), 3000)
       }

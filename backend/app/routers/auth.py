@@ -1,16 +1,14 @@
 """Authentication endpoints."""
 
 from datetime import timedelta
-from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
 from ..db import get_db
 from ..auth import (
     OSMAuth,
     create_access_token,
     create_or_update_user,
+    user_is_whitelisted,
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
 )
 from ..models import AuthCallback, Token, APIResponse, UserResponse
@@ -52,6 +50,25 @@ async def auth_callback(code: str, db: Session = Depends(get_db)):
             f"User data retrieved: {osm_user_data.get('user', {}).get('display_name', 'unknown')}"
         )
 
+        if not user_is_whitelisted(osm_user_data):
+            user_info = osm_user_data.get("user", {})
+            logger.warning(
+                "OSM user %s (ID %s) attempted login but is not whitelisted",
+                user_info.get("display_name"),
+                user_info.get("id"),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "waitlist_required",
+                    "email": "mvexel@gmail.com",
+                    "message": (
+                        "Thanks for your interest! We're inviting people in waves. "
+                        "Email mvexel@gmail.com and we'll add you to the waitlist."
+                    ),
+                },
+            )
+
         # Create or update user in our database (store OSM token for API writes)
         user = create_or_update_user(db, osm_user_data, access_token)
 
@@ -69,6 +86,8 @@ async def auth_callback(code: str, db: Session = Depends(get_db)):
             user=UserResponse.model_validate(user),
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Auth callback failed: {str(e)}", exc_info=True)
         raise HTTPException(

@@ -48,6 +48,7 @@ cp .env .env.local
 Edit `.env.local` to configure:
 - Database connection string
 - OSM OAuth credentials (register at [OpenStreetMap](https://www.openstreetmap.org/oauth2/applications))
+- Optional: `OSM_ALLOWED_USERNAMES` / `OSM_ALLOWED_USER_IDS` (comma-separated lists) to control who can sign in
 - JWT secret key
 - Redis connection
 
