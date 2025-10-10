@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Quest } from '../types'
 import { questsApi } from '../services/api'
 import { UIIcons } from '../utils/icons'
+import { Modal } from './Modal'
 
 interface QuestDialogProps {
   osmType: string
@@ -58,7 +59,7 @@ export function QuestDialog({ osmType, osmId, quests, onClose, onComplete }: Que
 
   if (completed) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <Modal>
         <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
@@ -72,12 +73,12 @@ export function QuestDialog({ osmType, osmId, quests, onClose, onComplete }: Que
             </p>
           </div>
         </div>
-      </div>
+      </Modal>
     )
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <Modal>
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
@@ -149,6 +150,6 @@ export function QuestDialog({ osmType, osmId, quests, onClose, onComplete }: Que
           </p>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }

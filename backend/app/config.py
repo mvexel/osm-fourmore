@@ -60,6 +60,14 @@ def get_env(key: str, default: str | None = None, required: bool = False) -> str
     return value
 
 
+def get_env_list(key: str, default: str = "") -> list[str]:
+    """Return a cleaned list from a comma-separated environment variable."""
+    raw_value = get_env(key, default)
+    if not raw_value:
+        return []
+    return [item.strip() for item in raw_value.split(",") if item.strip()]
+
+
 # =============================================================================
 # Application Configuration
 # All defaults are defined here. Override by setting env vars in .env.local
@@ -97,3 +105,5 @@ OSM_REDIRECT_URI = get_env(
     "OSM_REDIRECT_URI",
     "http://127.0.0.1:3000/auth/callback",
 )
+OSM_ALLOWED_USERNAMES = {name.lower() for name in get_env_list("OSM_ALLOWED_USERNAMES")}
+OSM_ALLOWED_USER_IDS = set(get_env_list("OSM_ALLOWED_USER_IDS"))

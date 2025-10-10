@@ -1,10 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { authApi } from '../services/api'
 import { IconBook, IconCheck, IconMapPin2, IconMoodSmile, } from '@tabler/icons-react'
+import { WaitlistModal } from '../components/WaitlistModal'
+import { WAITLIST_STORAGE_KEY } from '../constants/auth'
 
 export function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [waitlistInfo, setWaitlistInfo] = useState<{ message: string; email: string } | null>(null)
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem(WAITLIST_STORAGE_KEY)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as { message?: string; email?: string }
+        setWaitlistInfo({
+          message:
+            parsed?.message ??
+            'We are inviting people in waves while we scale up. Drop us an email and we will add you to the list.',
+          email: parsed?.email ?? 'mvexel@gmail.com',
+        })
+      } catch {
+        setWaitlistInfo({
+          message:
+            'We are inviting people in waves while we scale up. Drop us an email and we will add you to the list.',
+          email: 'mvexel@gmail.com',
+        })
+      }
+      sessionStorage.removeItem(WAITLIST_STORAGE_KEY)
+    }
+  }, [])
 
   const handleLogin = async () => {
     try {
@@ -89,6 +114,14 @@ export function Login() {
           </p>
         </div>
       </div>
+
+      {waitlistInfo && (
+        <WaitlistModal
+          message={waitlistInfo.message}
+          email={waitlistInfo.email}
+          onClose={() => setWaitlistInfo(null)}
+        />
+      )}
     </div>
   )
 }
