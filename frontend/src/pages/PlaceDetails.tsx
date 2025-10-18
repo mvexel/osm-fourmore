@@ -211,7 +211,7 @@ export function PlaceDetails() {
           {poi.opening_hours && (
             <div className="flex items-start space-x-3">
               <span className="text-gray-400 mt-1">{ContactIcons.hours({ size: 18 })}</span>
-              <p className="text-gray-700">{formatOpeningHours(poi.opening_hours)}</p>
+              <div className="text-gray-700 whitespace-pre-line">{formatOpeningHours(poi.opening_hours, true)}</div>
             </div>
           )}
         </div>

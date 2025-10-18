@@ -3,9 +3,10 @@ import opening_hours from 'opening_hours';
 /**
  * Formats an OSM opening_hours string into a more human-readable format
  * @param openingHoursString - The raw opening_hours string from OSM
+ * @param detailed - If true, returns a detailed day-by-day breakdown
  * @returns A formatted, human-readable string, or the original if parsing fails
  */
-export function formatOpeningHours(openingHoursString: string | undefined | null): string {
+export function formatOpeningHours(openingHoursString: string | undefined | null, detailed = false): string {
   if (!openingHoursString) {
     return '';
   }
@@ -13,6 +14,60 @@ export function formatOpeningHours(openingHoursString: string | undefined | null
   try {
     // Try to parse and prettify the opening hours
     const oh = new opening_hours(openingHoursString);
+    
+    if (detailed) {
+      // Get a week of intervals starting from today
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+      
+      const intervals = oh.getOpenIntervals(startOfWeek, endOfWeek);
+      
+      // Group intervals by day
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const daySchedules: string[] = [];
+      
+      for (let i = 0; i < 7; i++) {
+        const dayStart = new Date(startOfWeek);
+        dayStart.setDate(startOfWeek.getDate() + i);
+        
+        const dayEnd = new Date(dayStart);
+        dayEnd.setDate(dayStart.getDate() + 1);
+        
+        const dayIntervals = intervals.filter(([from, to]) => {
+          return (from >= dayStart && from < dayEnd) || (to > dayStart && to <= dayEnd) || (from < dayStart && to > dayEnd);
+        });
+        
+        if (dayIntervals.length === 0) {
+          daySchedules.push(`${dayNames[i]}: Closed`);
+        } else {
+          const times = dayIntervals
+            .map(([from, to]) => {
+              const fromTime = from.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit', 
+                hour12: true 
+              });
+              const toTime = to.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit', 
+                hour12: true 
+              });
+              return `${fromTime}-${toTime}`;
+            })
+            .join(', ');
+          daySchedules.push(`${dayNames[i]}: ${times}`);
+        }
+      }
+      
+      return daySchedules.join('\n');
+    }
+    
+    // For non-detailed view, use prettifyValue for consistent formatting
     const prettified = oh.prettifyValue({
       rule_sep_string: '; ',
       print_semicolon: false
