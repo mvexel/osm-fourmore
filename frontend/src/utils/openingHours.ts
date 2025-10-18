@@ -1,12 +1,70 @@
 import opening_hours from 'opening_hours';
 
 /**
+ * Generates a day-by-day schedule from opening hours
+ */
+function getDayByDaySchedule(
+  oh: opening_hours,
+  startOfWeek: Date,
+  endOfWeek: Date
+): string[] {
+  const intervals = oh.getOpenIntervals(startOfWeek, endOfWeek);
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const daySchedules: string[] = [];
+  const locale = navigator.language || 'en-US';
+
+  for (let i = 0; i < 7; i++) {
+    const dayStart = new Date(startOfWeek);
+    dayStart.setDate(startOfWeek.getDate() + i);
+
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayStart.getDate() + 1);
+
+    const dayIntervals = intervals.filter(([from, to]) => {
+      // Check if interval overlaps with this day
+      // Changed to use < instead of <= to avoid double-counting midnight boundaries
+      return (
+        (from >= dayStart && from < dayEnd) ||
+        (to > dayStart && to < dayEnd) ||
+        (from < dayStart && to >= dayEnd)
+      );
+    });
+
+    if (dayIntervals.length === 0) {
+      daySchedules.push(`${dayNames[i]}: Closed`);
+    } else {
+      const times = dayIntervals
+        .map(([from, to]) => {
+          const fromTime = from.toLocaleTimeString(locale, {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          });
+          const toTime = to.toLocaleTimeString(locale, {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          });
+          return `${fromTime}-${toTime}`;
+        })
+        .join(', ');
+      daySchedules.push(`${dayNames[i]}: ${times}`);
+    }
+  }
+
+  return daySchedules;
+}
+
+/**
  * Formats an OSM opening_hours string into a more human-readable format
  * @param openingHoursString - The raw opening_hours string from OSM
  * @param detailed - If true, returns a detailed day-by-day breakdown
  * @returns A formatted, human-readable string, or the original if parsing fails
  */
-export function formatOpeningHours(openingHoursString: string | undefined | null, detailed = false): string {
+export function formatOpeningHours(
+  openingHoursString: string | undefined | null,
+  detailed = false
+): string {
   if (!openingHoursString) {
     return '';
   }
@@ -14,65 +72,27 @@ export function formatOpeningHours(openingHoursString: string | undefined | null
   try {
     // Try to parse and prettify the opening hours
     const oh = new opening_hours(openingHoursString);
-    
+
     if (detailed) {
       // Get a week of intervals starting from today
       const now = new Date();
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
       startOfWeek.setHours(0, 0, 0, 0);
-      
+
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 7);
-      
-      const intervals = oh.getOpenIntervals(startOfWeek, endOfWeek);
-      
-      // Group intervals by day
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const daySchedules: string[] = [];
-      
-      for (let i = 0; i < 7; i++) {
-        const dayStart = new Date(startOfWeek);
-        dayStart.setDate(startOfWeek.getDate() + i);
-        
-        const dayEnd = new Date(dayStart);
-        dayEnd.setDate(dayStart.getDate() + 1);
-        
-        const dayIntervals = intervals.filter(([from, to]) => {
-          return (from >= dayStart && from < dayEnd) || (to > dayStart && to <= dayEnd) || (from < dayStart && to > dayEnd);
-        });
-        
-        if (dayIntervals.length === 0) {
-          daySchedules.push(`${dayNames[i]}: Closed`);
-        } else {
-          const times = dayIntervals
-            .map(([from, to]) => {
-              const fromTime = from.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit', 
-                hour12: true 
-              });
-              const toTime = to.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit', 
-                hour12: true 
-              });
-              return `${fromTime}-${toTime}`;
-            })
-            .join(', ');
-          daySchedules.push(`${dayNames[i]}: ${times}`);
-        }
-      }
-      
+
+      const daySchedules = getDayByDaySchedule(oh, startOfWeek, endOfWeek);
       return daySchedules.join('\n');
     }
-    
+
     // For non-detailed view, use prettifyValue for consistent formatting
     const prettified = oh.prettifyValue({
       rule_sep_string: '; ',
-      print_semicolon: false
+      print_semicolon: false,
     });
-    
+
     return prettified || openingHoursString;
   } catch (error) {
     // If parsing fails, return the original string
@@ -86,54 +106,26 @@ export function formatOpeningHours(openingHoursString: string | undefined | null
  * @param openingHoursString - The raw opening_hours string from OSM
  * @returns Array of day-by-day opening hours or null if parsing fails
  */
-export function getWeeklySchedule(openingHoursString: string | undefined | null): string[] | null {
+export function getWeeklySchedule(
+  openingHoursString: string | undefined | null
+): string[] | null {
   if (!openingHoursString) {
     return null;
   }
 
   try {
     const oh = new opening_hours(openingHoursString);
-    
+
     // Get intervals for the current week
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
     startOfWeek.setHours(0, 0, 0, 0);
-    
+
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
-    
-    const intervals = oh.getOpenIntervals(startOfWeek, endOfWeek);
-    
-    // Group intervals by day
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const schedule: string[] = [];
-    
-    for (let i = 0; i < 7; i++) {
-      const dayStart = new Date(startOfWeek);
-      dayStart.setDate(startOfWeek.getDate() + i);
-      dayStart.setHours(0, 0, 0, 0);
-      
-      const dayEnd = new Date(dayStart);
-      dayEnd.setDate(dayStart.getDate() + 1);
-      
-      const dayIntervals = intervals.filter(([from, to]) => {
-        return (from >= dayStart && from < dayEnd) || (to > dayStart && to <= dayEnd);
-      });
-      
-      if (dayIntervals.length === 0) {
-        schedule.push(`${days[i]}: Closed`);
-      } else {
-        const times = dayIntervals.map(([from, to]) => {
-          const fromTime = from.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-          const toTime = to.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-          return `${fromTime} - ${toTime}`;
-        }).join(', ');
-        schedule.push(`${days[i]}: ${times}`);
-      }
-    }
-    
-    return schedule;
+
+    return getDayByDaySchedule(oh, startOfWeek, endOfWeek);
   } catch (error) {
     console.warn('Failed to get weekly schedule:', openingHoursString, error);
     return null;
