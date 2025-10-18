@@ -7,6 +7,7 @@ import { OSMContribution } from '../components/OSMContribution'
 import { QuestDialog } from '../components/QuestDialog'
 import { getCategoryIcon, getCategoryLabel, ContactIcons, UIIcons } from '../utils/icons'
 import { useAuth } from '../hooks/useAuth'
+import { formatOpeningHours } from '../utils/openingHours'
 
 const LocationMap = lazy(() => import('../components/LocationMap').then(m => ({ default: m.LocationMap })))
 
@@ -210,7 +211,7 @@ export function PlaceDetails() {
           {poi.opening_hours && (
             <div className="flex items-start space-x-3">
               <span className="text-gray-400 mt-1">{ContactIcons.hours({ size: 18 })}</span>
-              <p className="text-gray-700">{poi.opening_hours}</p>
+              <p className="text-gray-700">{formatOpeningHours(poi.opening_hours)}</p>
             </div>
           )}
         </div>

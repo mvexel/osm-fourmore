@@ -1,5 +1,6 @@
 import { POI } from '../types'
 import { getCategoryIcon, getCategoryLabel, ContactIcons } from '../utils/icons'
+import { formatOpeningHours } from '../utils/openingHours'
 
 interface BusinessDetailsCardProps {
   poi: POI
@@ -64,7 +65,7 @@ export function BusinessDetailsCard({ poi }: BusinessDetailsCardProps) {
         {poi.opening_hours && (
           <div className="flex items-start space-x-3">
             <div className="text-gray-400 mt-0.5">{ContactIcons.hours({ size: 16 })}</div>
-            <p className="text-gray-700">{poi.opening_hours}</p>
+            <p className="text-gray-700">{formatOpeningHours(poi.opening_hours)}</p>
           </div>
         )}
       </div>
