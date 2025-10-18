@@ -22,11 +22,11 @@ function getDayByDaySchedule(
 
     const dayIntervals = intervals.filter(([from, to]) => {
       // Check if interval overlaps with this day
-      // Changed to use < instead of <= to avoid double-counting midnight boundaries
+      // Use < instead of <= to avoid double-counting midnight boundaries
       return (
         (from >= dayStart && from < dayEnd) ||
         (to > dayStart && to < dayEnd) ||
-        (from < dayStart && to >= dayEnd)
+        (from < dayStart && to > dayEnd)
       );
     });
 
