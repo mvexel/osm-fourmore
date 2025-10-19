@@ -14,7 +14,6 @@ import { useGeolocation } from '../hooks/useGeolocation'
 import type { POI, SearchRequest } from '../types'
 import { CATEGORY_META, type CategoryKey } from '../generated/category_metadata'
 import { POICard } from '../components/POICard'
-import { BusinessDetailsCard } from '../components/BusinessDetailsCard'
 import { useNavigate } from 'react-router-dom'
 
 const DEFAULT_CENTER = { lat: 40.7128, lon: -74.006 } // New York City fallback
@@ -23,7 +22,6 @@ const RADIUS_INCREMENT = 500
 const MIN_RESULTS_THRESHOLD = 10
 const MAP_MOVE_THRESHOLD = 0.002 // ~200m at mid-latitudes
 const MIN_QUERY_LENGTH = 2
-const BOTTOM_SAFE_OFFSET_PX = 0
 const POPULAR_CATEGORY_KEYS: CategoryKey[] = [
   'restaurant',
   'cafe_bakery',
@@ -74,7 +72,6 @@ export function Home() {
   const [placeSuggestions, setPlaceSuggestions] = useState<POI[]>([])
   const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false)
   const [suggestionError, setSuggestionError] = useState<string | null>(null)
-  const [isLoadingResults, setIsLoadingResults] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [modalError, setModalError] = useState<string | null>(null)
   const [hasCenteredOnLocation, setHasCenteredOnLocation] = useState(false)
@@ -236,7 +233,6 @@ export function Home() {
 
       closeTypeahead()
       setSearchDisplay(label)
-      setIsLoadingResults(true)
       setSearchError(null)
       setSelectedPoiId(null)
 
@@ -265,8 +261,6 @@ export function Home() {
       } catch (error) {
         console.error('Failed to load category results', error)
         setSearchError('Something went wrong while loading results.')
-      } finally {
-        setIsLoadingResults(false)
       }
     },
     [latitude, longitude, closeTypeahead]
@@ -451,7 +445,7 @@ export function Home() {
         poi.lon <= mapBounds.east
       )
     }).length
-  }, [pois, mapBoundsRef.current])
+  }, [pois])
 
   // Show expand/search here button when:
   // 1. We have a category search active
@@ -508,7 +502,7 @@ export function Home() {
               <>
                 <IconMapSearch size={32} className="text-gray-400" />
                 <p className="text-sm text-gray-600 px-6 text-center">
-                  We'll show the map once we know where you are. You can still search by name while we wait.
+                  We&apos;ll show the map once we know where you are. You can still search by name while we wait.
                 </p>
               </>
             )}

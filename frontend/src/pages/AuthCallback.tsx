@@ -43,7 +43,8 @@ export function AuthCallback() {
       } catch (err) {
         lastCodeRef.current = null
         if (isAxiosError(err) && err.response?.status === 403) {
-          const detailPayload: unknown = err.response?.data?.detail?.payload
+          const responseData = err.response?.data as { detail?: { payload?: unknown } } | undefined
+          const detailPayload: unknown = responseData?.detail?.payload
           let message: string | undefined
           let email: string | undefined
 
