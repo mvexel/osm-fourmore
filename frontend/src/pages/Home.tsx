@@ -15,10 +15,11 @@ import type { POI, SearchRequest } from '../types'
 import { CATEGORY_META, type CategoryKey } from '../generated/category_metadata'
 import { POICard } from '../components/POICard'
 import { useNavigate } from 'react-router-dom'
+import { calculateBboxFromZoom } from '../utils/mapUtils'
 
 const DEFAULT_CENTER = { lat: 40.7128, lon: -74.006 } // New York City fallback
-const DEFAULT_RADIUS = 500
-const RADIUS_INCREMENT = 500
+const INITIAL_ZOOM = 17 // Street-level detail
+const MIN_ZOOM = 12 // City-level fallback
 const MIN_RESULTS_THRESHOLD = 10
 const MAP_MOVE_THRESHOLD = 0.002 // ~200m at mid-latitudes
 const MIN_QUERY_LENGTH = 2
@@ -66,6 +67,7 @@ export function Home() {
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER)
   const [pois, setPois] = useState<POI[]>([])
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null)
+  const [expandedPoiId, setExpandedPoiId] = useState<string | null>(null)
   const [isTypeaheadOpen, setIsTypeaheadOpen] = useState(false)
   const [searchDisplay, setSearchDisplay] = useState('Search nearby')
   const [searchQuery, setSearchQuery] = useState('')
@@ -76,8 +78,8 @@ export function Home() {
   const [modalError, setModalError] = useState<string | null>(null)
   const [hasCenteredOnLocation, setHasCenteredOnLocation] = useState(false)
 
-  // Search expansion state
-  const [currentRadius, setCurrentRadius] = useState(DEFAULT_RADIUS)
+  // Search state
+  const [currentZoom, setCurrentZoom] = useState(INITIAL_ZOOM)
   const [lastSearchCategory, setLastSearchCategory] = useState<CategoryKey | null>(null)
   const [lastSearchCenter, setLastSearchCenter] = useState<{ lat: number; lon: number } | null>(null)
   const [isExpandingSearch, setIsExpandingSearch] = useState(false)
@@ -149,7 +151,7 @@ export function Home() {
           limit: 5,
           lat: latitude ?? undefined,
           lon: longitude ?? undefined,
-          radius: DEFAULT_RADIUS,
+          radius: 5000, // Use a reasonable default for text search
         }
         const results = await placesApi.search(request)
         if (!cancelled) {
@@ -224,6 +226,44 @@ export function Home() {
     [closeTypeahead]
   )
 
+  // Progressive bbox search: start at high zoom, expand until we find results
+  const searchCategoryProgressive = useCallback(
+    async (
+      className: CategoryKey,
+      centerLat: number,
+      centerLon: number,
+      startZoom: number = INITIAL_ZOOM
+    ): Promise<{ results: POI[]; finalZoom: number }> => {
+      let currentSearchZoom = startZoom
+
+      while (currentSearchZoom >= MIN_ZOOM) {
+        const bbox = calculateBboxFromZoom(centerLat, centerLon, currentSearchZoom)
+
+        try {
+          const results = await placesApi.getBbox({
+            ...bbox,
+            class: className,
+            limit: 100,
+          })
+
+          if (results.length > 0) {
+            return { results, finalZoom: currentSearchZoom }
+          }
+        } catch (error) {
+          console.error(`Bbox search failed at zoom ${currentSearchZoom}`, error)
+          throw error
+        }
+
+        // No results at this zoom, try one level out
+        currentSearchZoom -= 1
+      }
+
+      // Reached minimum zoom with no results
+      return { results: [], finalZoom: MIN_ZOOM }
+    },
+    []
+  )
+
   const selectCategorySuggestion = useCallback(
     async (className: CategoryKey, label: string) => {
       if (latitude === null || longitude === null) {
@@ -235,25 +275,21 @@ export function Home() {
       setSearchDisplay(label)
       setSearchError(null)
       setSelectedPoiId(null)
+      setIsExpandingSearch(true)
 
-      // Reset search expansion state
-      setCurrentRadius(DEFAULT_RADIUS)
+      // Reset search state
       setLastSearchCategory(className)
       setLastSearchCenter({ lat: latitude, lon: longitude })
       setHasMapMoved(false)
 
       try {
-        const results = await placesApi.getNearby({
-          lat: latitude,
-          lon: longitude,
-          radius: DEFAULT_RADIUS,
-          class: className,
-          limit: 20,
-          offset: 0,
-        })
+        const { results, finalZoom } = await searchCategoryProgressive(className, latitude, longitude)
+
         setPois(results)
+        setCurrentZoom(finalZoom)
+
         if (results.length > 0) {
-          setMapCenter({ lat: results[0].lat, lon: results[0].lon })
+          setMapCenter({ lat: latitude, lon: longitude })
           setSearchError(null)
         } else {
           setSearchError(`No ${label.toLowerCase()} found nearby.`)
@@ -261,13 +297,15 @@ export function Home() {
       } catch (error) {
         console.error('Failed to load category results', error)
         setSearchError('Something went wrong while loading results.')
+      } finally {
+        setIsExpandingSearch(false)
       }
     },
-    [latitude, longitude, closeTypeahead]
+    [latitude, longitude, closeTypeahead, searchCategoryProgressive]
   )
 
   const handleSearchAction = useCallback(async () => {
-    if (!lastSearchCategory) return
+    if (!lastSearchCategory || !lastSearchCenter) return
 
     setIsExpandingSearch(true)
     setSearchError(null)
@@ -290,27 +328,29 @@ export function Home() {
         setPois(results)
         setLastSearchCenter(mapCenter)
         setHasMapMoved(false)
-        // Reset radius since we're now using bbox
-        setCurrentRadius(DEFAULT_RADIUS)
 
         if (results.length === 0) {
           setSearchError('No results found in this area.')
         }
-      } else if (lastSearchCenter) {
-        // "Expand Search" - increase radius at last search center
-        const newRadius = currentRadius + RADIUS_INCREMENT
-        setCurrentRadius(newRadius)
+      } else {
+        // "Expand Search" - zoom out one level and search
+        const newZoom = Math.max(currentZoom - 1, MIN_ZOOM)
 
-        const results = await placesApi.getNearby({
-          lat: lastSearchCenter.lat,
-          lon: lastSearchCenter.lon,
-          radius: newRadius,
+        if (newZoom === currentZoom) {
+          // Already at minimum zoom
+          setSearchError('Already showing maximum search area.')
+          return
+        }
+
+        const bbox = calculateBboxFromZoom(lastSearchCenter.lat, lastSearchCenter.lon, newZoom)
+        const results = await placesApi.getBbox({
+          ...bbox,
           class: lastSearchCategory,
-          limit: 20,
-          offset: 0,
+          limit: 100,
         })
 
         setPois(results)
+        setCurrentZoom(newZoom)
 
         if (results.length === 0) {
           setSearchError('No additional results found.')
@@ -322,7 +362,7 @@ export function Home() {
     } finally {
       setIsExpandingSearch(false)
     }
-  }, [lastSearchCategory, lastSearchCenter, hasMapMoved, mapCenter, currentRadius])
+  }, [lastSearchCategory, lastSearchCenter, hasMapMoved, mapCenter, currentZoom])
 
   const handleMapMove = useCallback((newCenter: { lat: number; lon: number }) => {
     if (!lastSearchCenter) return
@@ -368,9 +408,15 @@ export function Home() {
   }, [])
 
   const handleCardClick = useCallback((poi: POI) => {
-    setSelectedPoiId(`${poi.osm_type}-${poi.osm_id}`)
+    const poiKey = `${poi.osm_type}-${poi.osm_id}`
+    setSelectedPoiId(poiKey)
+    setExpandedPoiId(poiKey === expandedPoiId ? null : poiKey)
     setMapCenter({ lat: poi.lat, lon: poi.lon })
-  }, [])
+  }, [expandedPoiId])
+
+  const handleCheckIn = useCallback((poi: POI) => {
+    navigate(`/places/${poi.osm_type}/${poi.osm_id}`)
+  }, [navigate])
 
   const renderSuggestion = (suggestion: Suggestion, index: number) => {
     if (suggestion.kind === 'category') {
@@ -472,7 +518,6 @@ export function Home() {
             pois={pois}
             selectedPoiId={selectedPoiId || undefined}
             userLocation={userLocation}
-            searchRadius={lastSearchCategory ? currentRadius : undefined}
             skipFitBounds={skipNextFitBounds}
             onMarkerClick={handleMarkerClick}
             onMapMove={handleMapMove}
@@ -574,6 +619,7 @@ export function Home() {
             {pois.map((poi) => {
               const poiKey = `${poi.osm_type}-${poi.osm_id}`
               const isActiveCard = selectedPoiId === poiKey
+              const isExpandedCard = expandedPoiId === poiKey
 
               return (
                 <div
@@ -584,21 +630,11 @@ export function Home() {
                   <POICard
                     poi={poi}
                     onClick={() => handleCardClick(poi)}
+                    onCheckIn={() => handleCheckIn(poi)}
                     highlight={highlightTerm}
                     isActive={isActiveCard}
-                    isExpanded={false}
-                  >
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        navigate(`/places/${poi.osm_type}/${poi.osm_id}`)
-                      }}
-                      className="mt-3 w-full px-4 py-2.5 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm font-medium"
-                    >
-                      View Details
-                    </button>
-                  </POICard>
+                    isExpanded={isExpandedCard}
+                  />
                 </div>
               )
             })}
@@ -676,6 +712,7 @@ export function Home() {
           </div>
         </div>
       )}
+
     </div>
   )
 }

@@ -241,6 +241,7 @@ export function Nearby() {
                   key={`${poi.osm_type}-${poi.osm_id}`}
                   poi={poi}
                   onClick={() => handlePOIClick(poi)}
+                  onCheckIn={() => handlePOIClick(poi)}
                 />
               ))}
             </div>

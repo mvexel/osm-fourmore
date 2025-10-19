@@ -19,6 +19,7 @@ export function Layout({ children }: LayoutProps) {
             <Link to="/" className="text-xl font-bold text-primary-600 hover:text-primary-700 transition-colors">
               FourMore
             </Link>
+            <div id="header-center" className="flex-1 flex justify-center mx-4"></div>
             {user && <UserDropdown />}
           </div>
         </div>
