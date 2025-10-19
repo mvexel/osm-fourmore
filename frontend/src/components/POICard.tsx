@@ -5,7 +5,7 @@ import { getCategoryIcon, getCategoryLabel, ContactIcons } from '../utils/icons'
 interface POICardProps {
   poi: POI
   onClick: () => void
-  onCheckIn: () => void
+  onDetailsClick: () => void
   highlight?: string
   isActive?: boolean
   isExpanded?: boolean
@@ -34,7 +34,7 @@ const highlightText = (text: string, highlight?: string) => {
   })
 }
 
-export function POICard({ poi, onClick, onCheckIn, highlight, isActive = false, isExpanded = false }: POICardProps) {
+export function POICard({ poi, onClick, onDetailsClick, highlight, isActive = false, isExpanded = false }: POICardProps) {
   const formatDistance = (distanceInMeters: number) => {
     if (distanceInMeters < 1000) {
       return `${Math.round(distanceInMeters)}m`
@@ -42,16 +42,16 @@ export function POICard({ poi, onClick, onCheckIn, highlight, isActive = false, 
     return `${(distanceInMeters / 1000).toFixed(1)}km`
   }
 
-  const handleCheckInClick = (e: React.MouseEvent) => {
+  const handleDetailsClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    onCheckIn()
+    onDetailsClick()
   }
 
   return (
     <div
       className={`bg-white rounded-lg p-3 shadow-sm cursor-pointer transition-colors border ${isActive
-          ? 'border-primary-500 ring-1 ring-primary-200'
-          : 'border-gray-200 hover:bg-gray-50'
+        ? 'border-primary-500 ring-1 ring-primary-200'
+        : 'border-gray-200 hover:bg-gray-50'
         }`}
       onClick={onClick}
     >
@@ -125,10 +125,10 @@ export function POICard({ poi, onClick, onCheckIn, highlight, isActive = false, 
           )}
 
           <button
-            onClick={handleCheckInClick}
+            onClick={handleDetailsClick}
             className="w-full mt-2 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm"
           >
-            Check In
+            Details
           </button>
         </div>
       )}

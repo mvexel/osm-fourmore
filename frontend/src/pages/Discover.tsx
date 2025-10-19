@@ -48,9 +48,10 @@ export function Discover() {
     <>
       {headerCenter && createPortal(toggle, headerCenter)}
       <div className="flex flex-col relative" style={{ height: 'calc(100vh - 56px)' }}>
-        {/* Content */}
+        {/* Content - Conditionally render to properly unmount maps */}
         <div className="flex-1 relative overflow-hidden">
-          {viewMode === 'map' ? <Home /> : <Nearby />}
+          {viewMode === 'map' && <Home />}
+          {viewMode === 'list' && <Nearby />}
         </div>
       </div>
     </>
