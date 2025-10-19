@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { POI } from '../types'
 import { getCategoryIcon, getCategoryLabel } from '../utils/icons'
 
@@ -7,6 +7,8 @@ interface POICardProps {
   onClick: () => void
   highlight?: string
   isActive?: boolean
+  isExpanded?: boolean
+  children?: ReactNode
 }
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -32,7 +34,7 @@ const highlightText = (text: string, highlight?: string) => {
   })
 }
 
-export function POICard({ poi, onClick, highlight, isActive = false }: POICardProps) {
+export function POICard({ poi, onClick, highlight, isActive = false, isExpanded = false, children }: POICardProps) {
   const formatDistance = (distanceInMeters: number) => {
     if (distanceInMeters < 1000) {
       return `${Math.round(distanceInMeters)}m`
@@ -42,11 +44,10 @@ export function POICard({ poi, onClick, highlight, isActive = false }: POICardPr
 
   return (
     <div
-      className={`bg-white rounded-lg p-3 shadow-sm cursor-pointer transition-colors border ${
-        isActive
+      className={`bg-white rounded-lg p-3 shadow-sm cursor-pointer transition-colors border ${isActive
           ? 'border-primary-500 ring-1 ring-primary-200'
           : 'border-gray-200 hover:bg-gray-50'
-      }`}
+        }`}
       onClick={onClick}
     >
       <div className="flex items-center space-x-2">
@@ -65,6 +66,11 @@ export function POICard({ poi, onClick, highlight, isActive = false }: POICardPr
           </p>
         </div>
       </div>
+      {isExpanded && children && (
+        <div className="mt-3 border-t border-gray-100 pt-3">
+          {children}
+        </div>
+      )}
     </div>
   )
 }

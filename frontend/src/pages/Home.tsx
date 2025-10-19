@@ -73,12 +73,17 @@ export function Home() {
   const [isLoadingResults, setIsLoadingResults] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [modalError, setModalError] = useState<string | null>(null)
-  const [sheetBounds, setSheetBounds] = useState({ min: 150, max: 480 })
-  const [sheetHeight, setSheetHeight] = useState(150)
+  const [sheetBounds, setSheetBounds] = useState({ min: 80, max: 480 })
+  const [sheetHeight, setSheetHeight] = useState(80)
   const [hasCenteredOnLocation, setHasCenteredOnLocation] = useState(false)
 
+  // Keep a slightly taller collapsed height so results are visible when the drawer previews.
+  const resultsPreviewHeight = useMemo(
+    () => Math.min(sheetBounds.min + 140, sheetBounds.max),
+    [sheetBounds.min, sheetBounds.max]
+  )
+
   const inputRef = useRef<HTMLInputElement>(null)
-  const lastCenteredId = useRef<string | null>(null)
 
   const clampSheetHeight = useCallback(
     (value: number) => Math.min(Math.max(value, sheetBounds.min), sheetBounds.max),
@@ -88,7 +93,7 @@ export function Home() {
   useEffect(() => {
     const updateBounds = () => {
       if (typeof window === 'undefined') return
-      const min = 150
+      const min = 80
       const max = Math.min(Math.max(window.innerHeight * 0.6, min + 160), window.innerHeight - 140)
       setSheetBounds((prev) => {
         if (prev.min === min && prev.max === max) {
@@ -196,43 +201,21 @@ export function Home() {
   useEffect(() => {
     if (pois.length === 0) {
       setSelectedPoiId(null)
-      lastCenteredId.current = null
       return
     }
 
-    const first = pois[0]
-    const firstId = `${first.osm_type}-${first.osm_id}`
     setSelectedPoiId((prev) => {
-      if (!prev || !pois.some((poi) => `${poi.osm_type}-${poi.osm_id}` === prev)) {
-        return firstId
+      if (!prev) {
+        return prev
       }
-      return prev
+      return pois.some((poi) => `${poi.osm_type}-${poi.osm_id}` === prev) ? prev : null
     })
 
     if (!isTypeaheadOpen) {
-      setSheetHeight(pois.length > 1 ? sheetBounds.min : sheetBounds.max)
+      const defaultHeight = pois.length > 1 ? resultsPreviewHeight : sheetBounds.max
+      setSheetHeight(defaultHeight)
     }
-  }, [pois, sheetBounds.min, sheetBounds.max, isTypeaheadOpen])
-
-  const activePoi = useMemo(() => {
-    if (pois.length === 0) {
-      return null
-    }
-    const selected = selectedPoiId
-      ? pois.find((poi) => `${poi.osm_type}-${poi.osm_id}` === selectedPoiId)
-      : null
-    return selected ?? pois[0]
-  }, [pois, selectedPoiId])
-
-  useEffect(() => {
-    if (activePoi) {
-      const activeId = `${activePoi.osm_type}-${activePoi.osm_id}`
-      if (lastCenteredId.current !== activeId) {
-        setMapCenter({ lat: activePoi.lat, lon: activePoi.lon })
-        lastCenteredId.current = activeId
-      }
-    }
-  }, [activePoi])
+  }, [pois, sheetBounds.max, isTypeaheadOpen, resultsPreviewHeight])
 
   const openTypeahead = useCallback(() => {
     setIsTypeaheadOpen(true)
@@ -292,7 +275,7 @@ export function Home() {
         if (results.length > 0) {
           setMapCenter({ lat: results[0].lat, lon: results[0].lon })
           setSearchError(null)
-          setSheetHeight(sheetBounds.min)
+          setSheetHeight(resultsPreviewHeight)
         } else {
           setSearchError(`No ${label.toLowerCase()} found nearby.`)
         }
@@ -303,7 +286,7 @@ export function Home() {
         setIsLoadingResults(false)
       }
     },
-    [latitude, longitude, closeTypeahead, sheetBounds.min]
+    [latitude, longitude, closeTypeahead, resultsPreviewHeight]
   )
 
   const handleMarkerClick = useCallback((poi: POI) => {
@@ -406,14 +389,6 @@ export function Home() {
   const userLocation = isLocationReady ? { lat: latitude, lon: longitude } : null
   const shouldRenderMap = isLocationReady || pois.length > 0
   const isExpanded = sheetHeight > sheetBounds.min + 40
-  const showDetails = sheetHeight > sheetBounds.min + 80 && Boolean(activePoi)
-  const remainingPois = useMemo(() => {
-    if (!activePoi) {
-      return []
-    }
-    const activeId = `${activePoi.osm_type}-${activePoi.osm_id}`
-    return pois.filter((poi) => `${poi.osm_type}-${poi.osm_id}` !== activeId)
-  }, [pois, activePoi])
   const highlightTerm = trimmedQuery.length >= MIN_QUERY_LENGTH ? trimmedQuery : undefined
 
   return (
@@ -428,6 +403,7 @@ export function Home() {
           selectedPoiId={selectedPoiId || undefined}
           userLocation={userLocation}
           onMarkerClick={handleMarkerClick}
+          bottomInset={sheetHeight}
         />
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-600 space-y-3">
@@ -481,11 +457,11 @@ export function Home() {
 
       {/* Results drawer */}
       <div
-        className="pointer-events-none absolute left-0 right-0 px-4"
-        style={{ bottom: `${BOTTOM_SAFE_OFFSET_PX}px` }}
+        className="pointer-events-none absolute left-0 right-0 z-10"
+        style={{ bottom: 0 }}
       >
         <div
-          className="pointer-events-auto bg-white/95 backdrop-blur rounded-t-3xl shadow-2xl border border-gray-200 border-b-0 overflow-hidden flex flex-col transition-[height] duration-200"
+          className="pointer-events-auto bg-white/95 backdrop-blur rounded-t-3xl border-t border-gray-200 flex flex-col transition-[height] duration-200"
           style={{ height: `${sheetHeight}px` }}
         >
           <div className="pt-3 pb-2">
@@ -496,66 +472,68 @@ export function Home() {
             />
           </div>
 
-          <div className="px-4 pb-2 space-y-2">
-            <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              <span>Results</span>
-              <div className="flex items-center space-x-2">
-                {pois.length > 0 && <span>{pois.length}</span>}
-                {isLoadingResults && <IconLoader2 size={16} className="animate-spin text-primary-600" />}
+          <div className="px-4 pb-2 space-y-2 overflow-hidden" style={{ maxHeight: `${sheetHeight - 30}px` }}>
+            {pois.length === 0 ? (
+              <div className="flex items-center justify-center py-2">
+                <p className="text-xs text-gray-400">
+                  {isLoadingResults ? 'Searching...' : 'Search to see nearby places'}
+                </p>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <span>Results</span>
+                  <div className="flex items-center space-x-2">
+                    <span>{pois.length}</span>
+                  </div>
+                </div>
 
-            {searchError && <p className="text-sm text-gray-600">{searchError}</p>}
-            {!searchError && !isLoadingResults && pois.length === 0 && (
-              <p className="text-sm text-gray-500">
-                Search to see nearby places. We’ll drop pins on the map and list the closest matches here.
-              </p>
-            )}
+                {searchError && <p className="text-sm text-gray-600">{searchError}</p>}
 
-            {pois.length > 1 && !isExpanded && !searchError && (
-              <p className="text-xs text-gray-400">
-                Swipe up for more options.
-              </p>
-            )}
-
-            {activePoi && (
-              <POICard
-                poi={activePoi}
-                onClick={() => handleCardClick(activePoi)}
-                highlight={highlightTerm}
-                isActive
-              />
+                {pois.length > 1 && !isExpanded && !searchError && (
+                  <p className="text-xs text-gray-400">
+                    Swipe up for more options.
+                  </p>
+                )}
+              </>
             )}
           </div>
 
           <div
-            className={`px-4 pb-4 overflow-y-auto flex-1 transition-all duration-200 ${
-              isExpanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none h-0'
-            }`}
+            className={`px-4 overflow-y-auto flex-1 transition-all duration-200 ${isExpanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none h-0'
+              }`}
           >
-            {showDetails && activePoi && (
-              <div className="mb-4 space-y-3">
-                <BusinessDetailsCard poi={activePoi} />
-                <button
-                  type="button"
-                  onClick={() => navigate(`/places/${activePoi.osm_type}/${activePoi.osm_id}`)}
-                  className="w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  Open full details
-                </button>
-              </div>
-            )}
-
-            {remainingPois.map((poi) => (
-              <div key={`${poi.osm_type}-${poi.osm_id}`} className="mb-2 last:mb-0">
-                <POICard
-                  poi={poi}
-                  onClick={() => handleCardClick(poi)}
-                  highlight={highlightTerm}
-                  isActive={selectedPoiId === `${poi.osm_type}-${poi.osm_id}`}
-                />
-              </div>
-            ))}
+            {pois.map((poi) => {
+              const poiKey = `${poi.osm_type}-${poi.osm_id}`
+              const isActiveCard = selectedPoiId === poiKey
+              const showExpandedDetails = isExpanded && isActiveCard
+              const hasInlineDetails = Boolean(
+                poi.address || poi.phone || poi.website || poi.opening_hours
+              )
+              return (
+                <div key={poiKey} className="mb-2 last:mb-0">
+                  <POICard
+                    poi={poi}
+                    onClick={() => handleCardClick(poi)}
+                    highlight={highlightTerm}
+                    isActive={isActiveCard}
+                    isExpanded={showExpandedDetails}
+                  >
+                    {hasInlineDetails && <BusinessDetailsCard poi={poi} variant="embedded" />}
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        navigate(`/places/${poi.osm_type}/${poi.osm_id}`)
+                      }}
+                      className={`${hasInlineDetails ? 'mt-3 ' : ''}w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                    >
+                      Open full details
+                    </button>
+                  </POICard>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
