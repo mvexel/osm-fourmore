@@ -4,6 +4,7 @@ import {
   CheckIn,
   AuthToken,
   NearbyRequest,
+  POIBboxRequest,
   SearchRequest,
   CheckInCreate,
   ApiResponse,
@@ -85,6 +86,11 @@ export const authApi = {
 export const placesApi = {
   async getNearby(request: NearbyRequest): Promise<NearbyResponse> {
     const response = await api.post<NearbyResponse>('/places/nearby', request)
+    return unwrap(response)
+  },
+
+  async getBbox(request: POIBboxRequest): Promise<NearbyResponse> {
+    const response = await api.post<NearbyResponse>('/places/bbox', request)
     return unwrap(response)
   },
 

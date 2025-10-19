@@ -14,6 +14,7 @@ from ..models import (
     POIResponse,
     POINearbyRequest,
     POISearchRequest,
+    POIBboxRequest,
     APIResponse,
 )
 
@@ -159,6 +160,168 @@ async def get_nearby_places(
     app_elapsed = max(total_elapsed - db_elapsed, 0.0)
     if response is not None:
         # Server-Timing: db;dur=..., app;dur=...
+        response.headers["Server-Timing"] = (
+            f"db;dur={db_elapsed*1000:.1f}, app;dur={app_elapsed*1000:.1f}"
+        )
+
+    return pois
+
+
+@router.post("/bbox", response_model=List[POIResponse])
+async def get_places_in_bbox(
+    request: POIBboxRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    response: Response = None,
+):
+    """Get POIs within a bounding box."""
+
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    app_t0 = time.perf_counter()
+    db_t0 = time.perf_counter()
+
+    # Validate that the bounding box makes sense
+    if request.north <= request.south:
+        raise HTTPException(
+            status_code=400,
+            detail="North latitude must be greater than south latitude"
+        )
+
+    # Handle dateline crossing
+    crosses_dateline = request.east < request.west
+
+    # Create the bounding box polygon
+    # PostGIS expects: POLYGON((lon lat, lon lat, ...))
+    # Order: bottom-left, bottom-right, top-right, top-left, bottom-left (closed)
+    if crosses_dateline:
+        # For dateline crossing, we need to use two separate bboxes or a different approach
+        # For now, we'll use ST_MakeEnvelope which doesn't handle dateline crossing well
+        # A production solution might split this into two queries
+        bbox_wkt = f"POLYGON(({request.west} {request.south}, 180 {request.south}, 180 {request.north}, {request.west} {request.north}, {request.west} {request.south}))"
+        bbox_wkt_2 = f"POLYGON((-180 {request.south}, {request.east} {request.south}, {request.east} {request.north}, -180 {request.north}, -180 {request.south}))"
+    else:
+        bbox_wkt = f"POLYGON(({request.west} {request.south}, {request.east} {request.south}, {request.east} {request.north}, {request.west} {request.north}, {request.west} {request.south}))"
+
+    # Base query with filters
+    candidates = db.query(
+        POI.osm_type,
+        POI.osm_id,
+        POI.name,
+        POI.poi_class,
+        POI.tags,
+        POI.geom,
+        POI.version,
+        POI.timestamp,
+    )
+
+    # Filter out highway=bus_stop for consistency with nearby endpoint
+    candidates = candidates.filter(
+        or_(
+            POI.tags.op("->>")("highway") != "bus_stop",
+            POI.tags.op("->>")("highway").is_(None),
+        )
+    )
+
+    # Apply class filter if provided
+    if request.poi_class:
+        candidates = candidates.filter(POI.poi_class == request.poi_class)
+
+    # Apply bounding box filter
+    if crosses_dateline:
+        # Handle dateline crossing with OR condition
+        bbox_geom = func.ST_GeomFromText(bbox_wkt, 4326)
+        bbox_geom_2 = func.ST_GeomFromText(bbox_wkt_2, 4326)
+        candidates = candidates.filter(
+            or_(
+                func.ST_Within(POI.geom, bbox_geom),
+                func.ST_Within(POI.geom, bbox_geom_2)
+            )
+        )
+    else:
+        bbox_geom = func.ST_GeomFromText(bbox_wkt, 4326)
+        candidates = candidates.filter(func.ST_Within(POI.geom, bbox_geom))
+
+    # Calculate center point for distance ordering
+    center_lat = (request.north + request.south) / 2
+    center_lon = (request.east + request.west) / 2
+
+    # Use KNN ordering from center point
+    knn_order = POI.geom.op("<->")(
+        func.ST_SetSRID(func.ST_MakePoint(center_lon, center_lat), 4326)
+    )
+
+    candidates = candidates.order_by(knn_order)
+    c = candidates.subquery("c")
+
+    # Calculate distance from center for each result
+    distance_expr = func.ST_Distance(
+        func.ST_GeogFromWKB(c.c.geom),
+        func.ST_GeographyFromText(f"POINT({center_lon} {center_lat})"),
+    ).label("distance")
+
+    final_query = (
+        db.query(
+            c.c.osm_type,
+            c.c.osm_id,
+            c.c.name,
+            c.c.poi_class,
+            c.c.tags,
+            func.ST_AsEWKB(c.c.geom).label("geom"),
+            func.ST_Y(func.ST_AsText(c.c.geom)).label("lat"),
+            func.ST_X(func.ST_AsText(c.c.geom)).label("lon"),
+            c.c.version,
+            c.c.timestamp,
+            distance_expr,
+        )
+        .order_by(literal_column("distance"))
+        .offset(request.offset)
+        .limit(request.limit)
+    )
+
+    results = final_query.all()
+    db_elapsed = time.perf_counter() - db_t0
+
+    # Get user's most recent check-in (current location)
+    most_recent_checkin = (
+        db.query(CheckIn.poi_osm_type, CheckIn.poi_osm_id)
+        .filter(CheckIn.user_id == current_user.id)
+        .order_by(CheckIn.created_at.desc())
+        .first()
+    )
+
+    # Get the current checked-in POI (if any)
+    current_checkin_poi = None
+    if most_recent_checkin:
+        current_checkin_poi = (
+            most_recent_checkin.poi_osm_type,
+            most_recent_checkin.poi_osm_id,
+        )
+
+    # Convert to response format
+    pois = []
+    for row in results:
+        poi_data = POIResponse(
+            osm_id=row.osm_id,
+            osm_type=row.osm_type,
+            name=row.name,
+            **{"class": row.poi_class},
+            lat=float(row.lat),
+            lon=float(row.lon),
+            tags=row.tags or {},
+            version=row.version,
+            timestamp=row.timestamp,
+        )
+        poi_data.distance = round(float(row.distance), 1)
+        poi_data.is_checked_in = current_checkin_poi == (row.osm_type, row.osm_id)
+        pois.append(poi_data)
+
+    # Add Server-Timing header
+    total_elapsed = time.perf_counter() - app_t0
+    app_elapsed = max(total_elapsed - db_elapsed, 0.0)
+    if response is not None:
         response.headers["Server-Timing"] = (
             f"db;dur={db_elapsed*1000:.1f}, app;dur={app_elapsed*1000:.1f}"
         )

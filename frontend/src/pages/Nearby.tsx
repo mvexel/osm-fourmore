@@ -21,7 +21,7 @@ export function Nearby() {
   const [lastScrollTime, setLastScrollTime] = useState(0)
   const [currentCheckin, setCurrentCheckin] = useState<CheckIn | null>(null)
 
-  const radius = 1000 // TODO - this should be a constant.
+  const radius = 500
 
   const fetchNearbyPlaces = useCallback(async (reset = false, pageOverride?: number) => {
     if (!latitude || !longitude) return
@@ -181,11 +181,7 @@ export function Nearby() {
   }
 
   return (
-    <div className="pb-20" onScroll={handleScroll} style={{ height: '100vh', overflowY: 'auto' }}>
-      {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 space-y-4 z-10">
-        <h1 className="text-xl font-semibold text-gray-900">Nearby Places</h1>
-      </div>
+    <div onScroll={handleScroll} style={{ height: '100%', overflowY: 'auto' }}>
 
       {/* Current Check-in Status */}
       {currentCheckin && (

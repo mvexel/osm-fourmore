@@ -162,7 +162,7 @@ export function CheckIns() {
   }, [checkins])
 
   return (
-    <div className="pb-20">
+    <div>
       {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
         <h1 className="text-xl font-semibold text-gray-900">Your Check-ins</h1>
