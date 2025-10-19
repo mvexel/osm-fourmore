@@ -93,3 +93,6 @@ coverage.xml
 
 # Docker
 .dockerignore
+
+# my notes
+docs/

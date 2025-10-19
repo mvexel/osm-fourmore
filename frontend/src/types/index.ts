@@ -65,6 +65,15 @@ export interface NearbyRequest {
   offset?: number
 }
 
+export interface SearchRequest {
+  query: string
+  lat?: number
+  lon?: number
+  radius?: number
+  limit?: number
+  offset?: number
+}
+
 export interface CheckInCreate {
   poi_osm_type: string
   poi_osm_id: number

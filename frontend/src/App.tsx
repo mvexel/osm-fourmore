@@ -10,6 +10,7 @@ import { PlaceDetails } from './pages/PlaceDetails'
 import { CheckIns } from './pages/CheckIns'
 import { CheckinSuccess } from './pages/CheckinSuccess'
 import { Profile } from './pages/Profile'
+import { Home } from './pages/Home'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -24,14 +25,20 @@ function AppRoutes() {
       {/* Public routes */}
       <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/nearby" replace /> : <Login />}
+        element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
       />
       <Route path="/auth/callback" element={<AuthCallback />} />
 
       {/* Protected routes */}
       <Route
         path="/"
-        element={isAuthenticated ? <Navigate to="/nearby" replace /> : <Navigate to="/login" replace />}
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Home />
+            </Layout>
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/nearby"
