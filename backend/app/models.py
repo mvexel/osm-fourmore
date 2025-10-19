@@ -80,6 +80,32 @@ class POINearbyRequest(BaseModel):
     offset: int = Field(0, ge=0, description="Number of results to skip for pagination")
 
 
+class POISearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=200, description="Search query")
+    lat: Optional[float] = Field(
+        None, ge=-90, le=90, description="Latitude to bias search results"
+    )
+    lon: Optional[float] = Field(
+        None, ge=-180, le=180, description="Longitude to bias search results"
+    )
+    radius: float = Field(
+        1000,
+        ge=1,
+        le=20000,
+        description="Search radius in meters when coordinates are provided",
+    )
+    limit: int = Field(20, ge=1, le=50, description="Maximum number of results")
+    offset: int = Field(0, ge=0, description="Number of results to skip for pagination")
+
+    @field_validator("query")
+    @classmethod
+    def strip_query(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("query cannot be empty")
+        return cleaned
+
+
 # User Models
 class UserSettings(BaseModel):
     expert: bool = False

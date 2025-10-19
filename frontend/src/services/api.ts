@@ -4,6 +4,7 @@ import {
   CheckIn,
   AuthToken,
   NearbyRequest,
+  SearchRequest,
   CheckInCreate,
   ApiResponse,
   ClassesListEntry,
@@ -84,6 +85,11 @@ export const authApi = {
 export const placesApi = {
   async getNearby(request: NearbyRequest): Promise<NearbyResponse> {
     const response = await api.post<NearbyResponse>('/places/nearby', request)
+    return unwrap(response)
+  },
+
+  async search(request: SearchRequest): Promise<NearbyResponse> {
+    const response = await api.post<NearbyResponse>('/places/search', request)
     return unwrap(response)
   },
 
