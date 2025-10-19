@@ -16,7 +16,7 @@ import { CATEGORY_META, type CategoryKey } from '../generated/category_metadata'
 import { POICard } from '../components/POICard'
 import { useNavigate } from 'react-router-dom'
 import { calculateBboxFromZoom } from '../utils/mapUtils'
-import { useHomeStore } from '../stores/homeStore'
+import { useHomeStore, DEFAULT_SEARCH_DISPLAY } from '../stores/homeStore'
 
 const INITIAL_ZOOM = 17 // Street-level detail
 const MIN_ZOOM = 12 // City-level fallback
@@ -87,6 +87,9 @@ export function Home() {
   const setLastSearchCategory = useHomeStore((state) => state.setLastSearchCategory)
   const lastSearchCenter = useHomeStore((state) => state.lastSearchCenter)
   const setLastSearchCenter = useHomeStore((state) => state.setLastSearchCenter)
+  const includeUserLocationInViewport = useHomeStore((state) => state.includeUserLocationInViewport)
+  const setIncludeUserLocationInViewport = useHomeStore((state) => state.setIncludeUserLocationInViewport)
+  const clearResults = useHomeStore((state) => state.clearResults)
 
   // Local/transient state (can be reset on navigation)
   const [isTypeaheadOpen, setIsTypeaheadOpen] = useState(false)
@@ -99,8 +102,6 @@ export function Home() {
   const [isExpandingSearch, setIsExpandingSearch] = useState(false)
   const [hasMapMoved, setHasMapMoved] = useState(false)
   const [skipNextFitBounds, setSkipNextFitBounds] = useState(false)
-  const [, forceUpdate] = useState({})
-
   const inputRef = useRef<HTMLInputElement>(null)
   const hasRestoredSnapshotRef = useRef(false)
 
@@ -233,7 +234,7 @@ export function Home() {
     setTimeout(() => {
       inputRef.current?.focus()
     }, 0)
-  }, [])
+  }, [setIsTypeaheadOpen, setSearchQuery, setPlaceSuggestions, setSuggestionError, setModalError])
 
   const closeTypeahead = useCallback(() => {
     setIsTypeaheadOpen(false)
@@ -241,10 +242,11 @@ export function Home() {
     setPlaceSuggestions([])
     setSuggestionError(null)
     setModalError(null)
-  }, [])
+  }, [setIsTypeaheadOpen, setSearchQuery, setPlaceSuggestions, setSuggestionError, setModalError])
 
   const selectPlaceSuggestion = useCallback(
     (poi: POI) => {
+      setIncludeUserLocationInViewport(false)
       setPois([poi])
       setSelectedPoiId(`${poi.osm_type}-${poi.osm_id}`)
       setMapCenter({ lat: poi.lat, lon: poi.lon })
@@ -257,7 +259,18 @@ export function Home() {
       setLastSearchCenter(null)
       setHasMapMoved(false)
     },
-    [closeTypeahead]
+    [
+      closeTypeahead,
+      setHasMapMoved,
+      setIncludeUserLocationInViewport,
+      setLastSearchCategory,
+      setLastSearchCenter,
+      setMapCenter,
+      setPois,
+      setSearchDisplay,
+      setSearchError,
+      setSelectedPoiId,
+    ]
   )
 
   // Progressive bbox search: start at high zoom, expand until we find results
@@ -315,6 +328,7 @@ export function Home() {
       setLastSearchCategory(className)
       setLastSearchCenter({ lat: latitude, lon: longitude })
       setHasMapMoved(false)
+      setIncludeUserLocationInViewport(true)
 
       try {
         const { results, finalZoom } = await searchCategoryProgressive(className, latitude, longitude)
@@ -335,7 +349,24 @@ export function Home() {
         setIsExpandingSearch(false)
       }
     },
-    [latitude, longitude, closeTypeahead, searchCategoryProgressive]
+    [
+      closeTypeahead,
+      latitude,
+      longitude,
+      searchCategoryProgressive,
+      setCurrentZoom,
+      setHasMapMoved,
+      setIncludeUserLocationInViewport,
+      setIsExpandingSearch,
+      setLastSearchCategory,
+      setLastSearchCenter,
+      setMapCenter,
+      setModalError,
+      setPois,
+      setSearchDisplay,
+      setSearchError,
+      setSelectedPoiId,
+    ]
   )
 
   const handleSearchAction = useCallback(async () => {
@@ -358,9 +389,16 @@ export function Home() {
           limit: 100,
         })
 
+        const centerFromBounds = {
+          lat: (bounds.north + bounds.south) / 2,
+          lon: (bounds.east + bounds.west) / 2,
+        }
+
         setSkipNextFitBounds(true) // Don't refit bounds when these results arrive
         setPois(results)
-        setLastSearchCenter(mapCenter)
+        setLastSearchCenter(centerFromBounds)
+        setMapCenter(centerFromBounds)
+        setIncludeUserLocationInViewport(false)
         setHasMapMoved(false)
 
         if (results.length === 0) {
@@ -396,9 +434,25 @@ export function Home() {
     } finally {
       setIsExpandingSearch(false)
     }
-  }, [lastSearchCategory, lastSearchCenter, hasMapMoved, mapCenter, currentZoom])
+  }, [
+    currentZoom,
+    hasMapMoved,
+    lastSearchCategory,
+    lastSearchCenter,
+    mapBounds,
+    setCurrentZoom,
+    setHasMapMoved,
+    setIncludeUserLocationInViewport,
+    setLastSearchCenter,
+    setMapCenter,
+    setPois,
+    setIsExpandingSearch,
+    setSearchError,
+    setSkipNextFitBounds,
+  ])
 
   const handleMapMove = useCallback((newCenter: { lat: number; lon: number }) => {
+    setMapCenter(newCenter)
     if (!lastSearchCenter) return
 
     const latDiff = Math.abs(newCenter.lat - lastSearchCenter.lat)
@@ -407,7 +461,7 @@ export function Home() {
     if (latDiff > MAP_MOVE_THRESHOLD || lonDiff > MAP_MOVE_THRESHOLD) {
       setHasMapMoved(true)
     }
-  }, [lastSearchCenter])
+  }, [lastSearchCenter, setMapCenter, setHasMapMoved])
 
   const handleMapBoundsChange = useCallback((bounds: { north: number; south: number; east: number; west: number }) => {
     const prev = mapBounds
@@ -426,7 +480,6 @@ export function Home() {
     }
 
     setMapBounds(bounds)
-    forceUpdate({}) // Force re-render to update visible POI count
   }, [mapBounds, setMapBounds])
 
   const handleMarkerClick = useCallback((poi: POI) => {
@@ -439,7 +492,7 @@ export function Home() {
       const cardElement = document.getElementById(`poi-card-${poiKey}`)
       cardElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }, 100)
-  }, [])
+  }, [setMapCenter, setSelectedPoiId])
 
   const handleCardClick = useCallback((poi: POI) => {
     const poiKey = `${poi.osm_type}-${poi.osm_id}`
@@ -452,12 +505,19 @@ export function Home() {
     setSelectedPoiId(poiKey)
     setExpandedPoiId(poiKey === expandedPoiId ? null : poiKey)
     setMapCenter({ lat: poi.lat, lon: poi.lon })
-  }, [expandedPoiId, snapshotMapState])
+  }, [expandedPoiId, setExpandedPoiId, setMapCenter, setSelectedPoiId, snapshotMapState])
 
   const handleCheckIn = useCallback((poi: POI) => {
     // Navigate to place details (snapshot already taken when card was expanded)
     navigate(`/places/${poi.osm_type}/${poi.osm_id}`)
   }, [navigate])
+
+  const handleClearResults = useCallback(() => {
+    clearResults()
+    setHasMapMoved(false)
+    setSkipNextFitBounds(false)
+    setSearchError(null)
+  }, [clearResults, setHasMapMoved, setSkipNextFitBounds, setSearchError])
 
   const renderSuggestion = (suggestion: Suggestion, index: number) => {
     if (suggestion.kind === 'category') {
@@ -544,6 +604,8 @@ export function Home() {
     !isTypeaheadOpen
 
   const hasResults = pois.length > 0
+  const shouldShowClearButton = hasResults && !isTypeaheadOpen
+  const displayedSearchLabel = searchDisplay || DEFAULT_SEARCH_DISPLAY
 
   return (
     <div className="flex flex-col w-full h-full">
@@ -559,6 +621,7 @@ export function Home() {
             selectedPoiId={selectedPoiId || undefined}
             userLocation={userLocation}
             skipFitBounds={skipNextFitBounds}
+            includeUserLocationInFitBounds={includeUserLocationInViewport}
             onMarkerClick={handleMarkerClick}
             onMapMove={handleMapMove}
             onMapBoundsChange={handleMapBoundsChange}
@@ -603,8 +666,20 @@ export function Home() {
               className="flex-1 flex items-center space-x-2 bg-white border border-gray-200 rounded-full px-4 py-3 shadow-lg hover:shadow-xl transition"
             >
               <IconSearch size={18} className="text-gray-500" />
-              <span className="text-sm font-medium text-gray-700 truncate">{searchDisplay}</span>
+              <span className="text-sm font-medium text-gray-700 truncate">{displayedSearchLabel}</span>
             </button>
+
+            {shouldShowClearButton && (
+              <button
+                type="button"
+                onClick={handleClearResults}
+                className="p-3 bg-white border border-gray-200 rounded-full shadow-lg hover:shadow-xl transition flex-shrink-0"
+                aria-label="Clear results"
+                title="Clear results"
+              >
+                <IconX size={18} className="text-gray-600" />
+              </button>
+            )}
 
             {shouldShowSearchButton && (
               <button
