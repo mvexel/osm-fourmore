@@ -18,6 +18,7 @@ interface SearchMapProps {
   userLocation?: { lat: number; lon: number } | null
   searchRadius?: number // in meters
   skipFitBounds?: boolean
+  includeUserLocationInFitBounds?: boolean
   onMarkerClick?: (poi: POI) => void
   onMapMove?: (center: { lat: number; lon: number }) => void
   onMapBoundsChange?: (bounds: { north: number; south: number; east: number; west: number }) => void
@@ -37,6 +38,7 @@ export function SearchMap({
   userLocation,
   searchRadius,
   skipFitBounds,
+  includeUserLocationInFitBounds = true,
   onMarkerClick,
   onMapMove,
   onMapBoundsChange,
@@ -143,13 +145,13 @@ export function SearchMap({
         bounds.extend([poi.lon, poi.lat])
       })
 
-      if (hasUserLocation && userLocation) {
+      if (includeUserLocationInFitBounds && hasUserLocation && userLocation) {
         bounds.extend([userLocation.lon, userLocation.lat])
       }
     }
 
     map.fitBounds(bounds as LngLatBoundsLike, {
-      padding: 80,
+      padding: { top: 120, bottom: 80, left: 80, right: 80 },
       maxZoom: 16,
       duration: 700,
     })
@@ -168,6 +170,7 @@ export function SearchMap({
     skipFitBounds,
     onFitBoundsComplete,
     searchRadius,
+    includeUserLocationInFitBounds,
   ])
 
   // Cleanup timeout on unmount

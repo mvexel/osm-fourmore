@@ -7,6 +7,7 @@ interface HomeState {
     mapCenter: { lat: number; lon: number }
     currentZoom: number
     mapBounds: { north: number; south: number; east: number; west: number } | null
+    includeUserLocationInViewport: boolean
 
     // Snapshot of map state before navigating to details (for restoration)
     preNavigationMapCenter: { lat: number; lon: number } | null
@@ -27,6 +28,7 @@ interface HomeState {
     setMapCenter: (center: { lat: number; lon: number }) => void
     setCurrentZoom: (zoom: number) => void
     setMapBounds: (bounds: { north: number; south: number; east: number; west: number } | null) => void
+    setIncludeUserLocationInViewport: (include: boolean) => void
     snapshotMapState: () => void  // Save current map state before navigation
     restoreMapSnapshot: () => boolean  // Restore map state from snapshot, returns true if restored
     setPois: (pois: POI[]) => void
@@ -39,22 +41,25 @@ interface HomeState {
 
     // Reset (useful for logout or clearing)
     reset: () => void
+    clearResults: () => void
 }
 
 const DEFAULT_CENTER = { lat: 40.7128, lon: -74.006 } // New York City fallback
+export const DEFAULT_SEARCH_DISPLAY = 'Search nearby'
 const INITIAL_ZOOM = 17
 
 const initialState = {
     mapCenter: DEFAULT_CENTER,
     currentZoom: INITIAL_ZOOM,
     mapBounds: null,
+    includeUserLocationInViewport: true,
     preNavigationMapCenter: null,
     preNavigationMapBounds: null,
     pois: [],
     selectedPoiId: null,
     expandedPoiId: null,
     searchQuery: '',
-    searchDisplay: 'Search nearby',
+    searchDisplay: DEFAULT_SEARCH_DISPLAY,
     lastSearchCategory: null,
     lastSearchCenter: null,
 }
@@ -65,6 +70,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
     setMapCenter: (center) => set({ mapCenter: center }),
     setCurrentZoom: (zoom) => set({ currentZoom: zoom }),
     setMapBounds: (bounds) => set({ mapBounds: bounds }),
+    setIncludeUserLocationInViewport: (include) => set({ includeUserLocationInViewport: include }),
 
     // Snapshot current map state before navigating to details
     snapshotMapState: () => {
@@ -99,4 +105,16 @@ export const useHomeStore = create<HomeState>((set, get) => ({
     setLastSearchCenter: (center) => set({ lastSearchCenter: center }),
 
     reset: () => set(initialState),
+    clearResults: () =>
+        set({
+            pois: [],
+            selectedPoiId: null,
+            expandedPoiId: null,
+            searchDisplay: DEFAULT_SEARCH_DISPLAY,
+            searchQuery: '',
+            lastSearchCategory: null,
+            lastSearchCenter: null,
+            mapBounds: null,
+            includeUserLocationInViewport: true,
+        }),
 }))
