@@ -16,8 +16,8 @@ import { CATEGORY_META, type CategoryKey } from '../generated/category_metadata'
 import { POICard } from '../components/POICard'
 import { useNavigate } from 'react-router-dom'
 import { calculateBboxFromZoom } from '../utils/mapUtils'
+import { useHomeStore } from '../stores/homeStore'
 
-const DEFAULT_CENTER = { lat: 40.7128, lon: -74.006 } // New York City fallback
 const INITIAL_ZOOM = 17 // Street-level detail
 const MIN_ZOOM = 12 // City-level fallback
 const MIN_RESULTS_THRESHOLD = 10
@@ -64,39 +64,72 @@ export function Home() {
   const navigate = useNavigate()
   const { latitude, longitude, error: locationError, loading: locationLoading, retry } = useGeolocation()
 
-  const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER)
-  const [pois, setPois] = useState<POI[]>([])
-  const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null)
-  const [expandedPoiId, setExpandedPoiId] = useState<string | null>(null)
+  // Persistent state from Zustand (survives navigation)
+  const mapCenter = useHomeStore((state) => state.mapCenter)
+  const setMapCenter = useHomeStore((state) => state.setMapCenter)
+  const mapBounds = useHomeStore((state) => state.mapBounds)
+  const setMapBounds = useHomeStore((state) => state.setMapBounds)
+  const snapshotMapState = useHomeStore((state) => state.snapshotMapState)
+  const restoreMapSnapshot = useHomeStore((state) => state.restoreMapSnapshot)
+  const pois = useHomeStore((state) => state.pois)
+  const setPois = useHomeStore((state) => state.setPois)
+  const selectedPoiId = useHomeStore((state) => state.selectedPoiId)
+  const setSelectedPoiId = useHomeStore((state) => state.setSelectedPoiId)
+  const expandedPoiId = useHomeStore((state) => state.expandedPoiId)
+  const setExpandedPoiId = useHomeStore((state) => state.setExpandedPoiId)
+  const searchDisplay = useHomeStore((state) => state.searchDisplay)
+  const setSearchDisplay = useHomeStore((state) => state.setSearchDisplay)
+  const searchQuery = useHomeStore((state) => state.searchQuery)
+  const setSearchQuery = useHomeStore((state) => state.setSearchQuery)
+  const currentZoom = useHomeStore((state) => state.currentZoom)
+  const setCurrentZoom = useHomeStore((state) => state.setCurrentZoom)
+  const lastSearchCategory = useHomeStore((state) => state.lastSearchCategory)
+  const setLastSearchCategory = useHomeStore((state) => state.setLastSearchCategory)
+  const lastSearchCenter = useHomeStore((state) => state.lastSearchCenter)
+  const setLastSearchCenter = useHomeStore((state) => state.setLastSearchCenter)
+
+  // Local/transient state (can be reset on navigation)
   const [isTypeaheadOpen, setIsTypeaheadOpen] = useState(false)
-  const [searchDisplay, setSearchDisplay] = useState('Search nearby')
-  const [searchQuery, setSearchQuery] = useState('')
   const [placeSuggestions, setPlaceSuggestions] = useState<POI[]>([])
   const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false)
   const [suggestionError, setSuggestionError] = useState<string | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [modalError, setModalError] = useState<string | null>(null)
   const [hasCenteredOnLocation, setHasCenteredOnLocation] = useState(false)
-
-  // Search state
-  const [currentZoom, setCurrentZoom] = useState(INITIAL_ZOOM)
-  const [lastSearchCategory, setLastSearchCategory] = useState<CategoryKey | null>(null)
-  const [lastSearchCenter, setLastSearchCenter] = useState<{ lat: number; lon: number } | null>(null)
   const [isExpandingSearch, setIsExpandingSearch] = useState(false)
   const [hasMapMoved, setHasMapMoved] = useState(false)
   const [skipNextFitBounds, setSkipNextFitBounds] = useState(false)
-  const mapBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null)
   const [, forceUpdate] = useState({})
 
   const inputRef = useRef<HTMLInputElement>(null)
+  const hasRestoredSnapshotRef = useRef(false)
+
+  // Restore map snapshot on mount (if returning from place details)
+  useEffect(() => {
+    const restored = restoreMapSnapshot()
+    if (restored) {
+      hasRestoredSnapshotRef.current = true
+      setHasCenteredOnLocation(true) // Mark as centered to prevent location override
+    }
+  }, [restoreMapSnapshot]) // Only run once on mount
 
   useEffect(() => {
-    if (latitude !== null && longitude !== null) {
+    // Only center on user location if:
+    // 1. We haven't centered yet
+    // 2. We didn't restore from snapshot
+    // 3. We don't have saved POIs
+    if (
+      latitude !== null &&
+      longitude !== null &&
+      !hasCenteredOnLocation &&
+      !hasRestoredSnapshotRef.current &&
+      pois.length === 0
+    ) {
       const centered = { lat: latitude, lon: longitude }
       setMapCenter(centered)
       setHasCenteredOnLocation(true)
     }
-  }, [latitude, longitude])
+  }, [latitude, longitude, hasCenteredOnLocation, pois.length, setMapCenter])
 
   const categoryList = useMemo(
     () =>
@@ -182,13 +215,14 @@ export function Home() {
       return
     }
 
-    setSelectedPoiId((prev) => {
-      if (!prev) {
-        return prev
+    // Check if current selection is still in the POI list
+    if (selectedPoiId) {
+      const stillExists = pois.some((poi) => `${poi.osm_type}-${poi.osm_id}` === selectedPoiId)
+      if (!stillExists) {
+        setSelectedPoiId(null)
       }
-      return pois.some((poi) => `${poi.osm_type}-${poi.osm_id}` === prev) ? prev : null
-    })
-  }, [pois])
+    }
+  }, [pois, selectedPoiId, setSelectedPoiId])
 
   const openTypeahead = useCallback(() => {
     setIsTypeaheadOpen(true)
@@ -311,9 +345,9 @@ export function Home() {
     setSearchError(null)
 
     try {
-      if (hasMapMoved && mapBoundsRef.current) {
+      if (hasMapMoved && mapBounds) {
         // "Search Here" - search within current map bounds
-        const bounds = mapBoundsRef.current
+        const bounds = mapBounds
 
         const results = await placesApi.getBbox({
           north: bounds.north,
@@ -376,7 +410,7 @@ export function Home() {
   }, [lastSearchCenter])
 
   const handleMapBoundsChange = useCallback((bounds: { north: number; south: number; east: number; west: number }) => {
-    const prev = mapBoundsRef.current
+    const prev = mapBounds
 
     // Only update if bounds actually changed significantly
     if (prev) {
@@ -391,9 +425,9 @@ export function Home() {
       }
     }
 
-    mapBoundsRef.current = bounds
+    setMapBounds(bounds)
     forceUpdate({}) // Force re-render to update visible POI count
-  }, [])
+  }, [mapBounds, setMapBounds])
 
   const handleMarkerClick = useCallback((poi: POI) => {
     const poiKey = `${poi.osm_type}-${poi.osm_id}`
@@ -409,12 +443,19 @@ export function Home() {
 
   const handleCardClick = useCallback((poi: POI) => {
     const poiKey = `${poi.osm_type}-${poi.osm_id}`
+
+    // If this POI is not currently expanded, snapshot the map state before zooming in
+    if (poiKey !== expandedPoiId) {
+      snapshotMapState()
+    }
+
     setSelectedPoiId(poiKey)
     setExpandedPoiId(poiKey === expandedPoiId ? null : poiKey)
     setMapCenter({ lat: poi.lat, lon: poi.lon })
-  }, [expandedPoiId])
+  }, [expandedPoiId, snapshotMapState])
 
   const handleCheckIn = useCallback((poi: POI) => {
+    // Navigate to place details (snapshot already taken when card was expanded)
     navigate(`/places/${poi.osm_type}/${poi.osm_id}`)
   }, [navigate])
 
@@ -480,7 +521,6 @@ export function Home() {
 
   // Calculate visible POIs within current map bounds
   const visiblePoisCount = useMemo(() => {
-    const mapBounds = mapBoundsRef.current
     if (!mapBounds || pois.length === 0) return pois.length
 
     return pois.filter(poi => {
@@ -491,7 +531,7 @@ export function Home() {
         poi.lon <= mapBounds.east
       )
     }).length
-  }, [pois])
+  }, [pois, mapBounds])
 
   // Show expand/search here button when:
   // 1. We have a category search active
@@ -554,47 +594,47 @@ export function Home() {
           </div>
         )}
 
-      {/* Search bar overlay */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 w-full px-4 max-w-xl">
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            onClick={openTypeahead}
-            className="flex-1 flex items-center space-x-2 bg-white border border-gray-200 rounded-full px-4 py-3 shadow-lg hover:shadow-xl transition"
-          >
-            <IconSearch size={18} className="text-gray-500" />
-            <span className="text-sm font-medium text-gray-700 truncate">{searchDisplay}</span>
-          </button>
-
-          {shouldShowSearchButton && (
+        {/* Search bar overlay */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-full px-4 max-w-xl">
+          <div className="flex items-center space-x-2">
             <button
               type="button"
-              onClick={handleSearchAction}
-              disabled={isExpandingSearch}
-              className="p-3 bg-white border border-gray-200 rounded-full shadow-lg hover:shadow-xl transition disabled:opacity-50 flex-shrink-0"
-              aria-label={hasMapMoved ? 'Search this area' : 'Expand search area'}
-              title={hasMapMoved ? 'Search Here' : 'Expand Search'}
+              onClick={openTypeahead}
+              className="flex-1 flex items-center space-x-2 bg-white border border-gray-200 rounded-full px-4 py-3 shadow-lg hover:shadow-xl transition"
             >
-              {isExpandingSearch ? (
-                <IconLoader2 size={18} className="animate-spin text-gray-600" />
-              ) : hasMapMoved ? (
-                <IconMapSearch size={18} className="text-primary-600" />
-              ) : (
-                <IconRadar size={18} className="text-gray-600" />
-              )}
+              <IconSearch size={18} className="text-gray-500" />
+              <span className="text-sm font-medium text-gray-700 truncate">{searchDisplay}</span>
             </button>
+
+            {shouldShowSearchButton && (
+              <button
+                type="button"
+                onClick={handleSearchAction}
+                disabled={isExpandingSearch}
+                className="p-3 bg-white border border-gray-200 rounded-full shadow-lg hover:shadow-xl transition disabled:opacity-50 flex-shrink-0"
+                aria-label={hasMapMoved ? 'Search this area' : 'Expand search area'}
+                title={hasMapMoved ? 'Search Here' : 'Expand Search'}
+              >
+                {isExpandingSearch ? (
+                  <IconLoader2 size={18} className="animate-spin text-gray-600" />
+                ) : hasMapMoved ? (
+                  <IconMapSearch size={18} className="text-primary-600" />
+                ) : (
+                  <IconRadar size={18} className="text-gray-600" />
+                )}
+              </button>
+            )}
+          </div>
+
+          {locationError && (
+            <p className="mt-2 text-xs text-red-600 bg-white/90 rounded-md px-3 py-2 border border-red-200">
+              {locationError}{' '}
+              <button type="button" className="underline" onClick={retry}>
+                Try again
+              </button>
+            </p>
           )}
         </div>
-
-        {locationError && (
-          <p className="mt-2 text-xs text-red-600 bg-white/90 rounded-md px-3 py-2 border border-red-200">
-            {locationError}{' '}
-            <button type="button" className="underline" onClick={retry}>
-              Try again
-            </button>
-          </p>
-        )}
-      </div>
 
       </div>
 
@@ -630,7 +670,7 @@ export function Home() {
                   <POICard
                     poi={poi}
                     onClick={() => handleCardClick(poi)}
-                    onCheckIn={() => handleCheckIn(poi)}
+                    onDetailsClick={() => handleCheckIn(poi)}
                     highlight={highlightTerm}
                     isActive={isActiveCard}
                     isExpanded={isExpandedCard}
