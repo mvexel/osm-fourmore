@@ -1,6 +1,6 @@
 # FourMore Mobile Conversion Implementation Guide
 
-**Last updated**: 2025-10-03  
+**Last updated**: 2025-10-19  
 **Primary audience**: Solo developer (plus potential volunteer) delivering the native mobile app.  
 **Assumed target stack**: React Native 0.74 + Expo SDK 51, React 18, TypeScript 5.x, React Navigation 7, Expo Application Services (EAS) for builds and updates.
 
@@ -11,6 +11,18 @@
 - Backend already exposes REST endpoints with JWT auth and OAuth login flow (likely OSM). No mobile-specific endpoints required beyond deep-link URI registration and CORS tweaks.
 - Web and future mobile clients should share schema types, API contracts, and business logic to reduce drift.
 - Expo managed workflow is the default; eject only if a required native module cannot be satisfied via config plugins.
+
+---
+
+## Web Component Audit & Porting Plan
+- **Layout / navigation shell** (`Layout.tsx`): relies on React Router, DOM anchors, and Tailwind utility classes. Re-implement navigation using React Navigation stacks and tabs; replicate header/footer patterns with `SafeAreaView`, `BottomTabNavigator`, and NativeWind styles.
+- **Business and POI display** (`BusinessDetailsCard.tsx`, `POICard.tsx`): primarily presentational with icon helpers. Extract formatting logic (category labels, icon resolution) into `@fourmore/core`; recreate card primitives in mobile using `Pressable`, `View`, and text components with consistent spacing tokens.
+- **Quest flow components** (`QuestDialog.tsx`, `OSMContribution.tsx`, `OSMTags.tsx`): contain branching UX, confirmation modals, and rich text. Move quest state machines and validation into shared core; rebuild dialogs with React Native modal primitives (`Modal`, `BottomSheetModal` via `@gorhom/bottom-sheet`) while keeping copy and logic centralized.
+- **Maps and location** (`LocationMap.tsx`, `SearchMap.tsx`): depend on MapLibre GL JS and browser geolocation. Substitute with `react-native-maps` (initially) plus optional MapLibre Native later; wrap map-specific props behind a `MapAdapter` interface so web keeps MapLibre GL while mobile chooses an Expo-compatible provider.
+- **Utility components** (`Modal.tsx`, `DoubleConfirmButton.tsx`, `ToggleSwitch.tsx`, `CheckedInStatus.tsx`): evaluate individually; most can be rewritten atop React Native primitives. Ensure any DOM-only behavior (focus traps, portal usage) is redesigned using native equivalents (e.g., `react-native-modal`, `Pressable`, platform alert dialogs).
+- **Styling implications**: Tailwind classes power the current UI. Adopt NativeWind with a shared token file and align typography/color scales so both web and mobile stay visually consistent without porting raw class strings.
+
+> Outcome: every custom component gets classified as "logic reusable" vs. "UI rewrite". Most business logic migrates to `@fourmore/core`; UI shells are rewritten with mobile-friendly primitives, removing blockers created by bespoke web components.
 
 ---
 
@@ -205,23 +217,24 @@ root/
 | --- | --- | --- | --- |
 | 1 | Convert repo into pnpm workspace; introduce `packages/fourmore-core` scaffold | Workspace config committed | 0.5 day |
 | 2 | Migrate TypeScript types and API client into `fourmore-core`; update web imports | Shared package build passes; web app still works | 1.5 days |
-| 3 | Scaffold Expo app in `mobile/`; configure NativeWind, React Navigation, AsyncStorage adapters | Expo project builds on simulator | 1 day |
-| 4 | Implement shared auth storage adapter and bootstrap screen ensuring token rehydration | Stable auth context with loading gate | 1 day |
-| 5 | Wire OAuth flow using `expo-auth-session`; confirm redirect and token exchange | Login/logout loop verified on iOS + Android dev clients | 2 days |
-| 6 | Build base navigation (auth stack + tab navigator + detail modal) | Navigators functioning with placeholder screens | 1 day |
-| 7 | Implement Nearby list using React Query + FlashList + location permission handling | Nearby screen shows real data | 2 days |
-| 8 | Create map component (react-native-maps) with clustering toggle and location puck | Map renders markers, handles gestures smoothly | 2 days |
-| 9 | Implement Place Details with quests, call-to-actions, offline placeholder caching | Detail screen feature-complete | 3 days |
-| 10 | Build Check-in flow with offline queue and history list aggregated via React Query | Check-in operations reliable offline/online | 2.5 days |
-| 11 | Flesh out Profile & Settings, including account deletion and preference toggles | Profile parity with web | 1.5 days |
-| 12 | Add error handling, loading skeletons, toasts, and haptic feedback | Polished UX | 1 day |
-| 13 | Integrate Sentry + analytics (optional) and ensure logging sanitized | Monitoring enabled | 1 day |
-| 14 | Implement automated tests (unit + component) for critical flows | Test suite with ≥ 20 meaningful specs | 2 days |
-| 15 | Set up Maestro E2E scripts, integrate into CI | Automated regression baseline | 1.5 days |
-| 16 | Configure EAS build and submit to internal testing channels | TestFlight & Play testers onboarded | 1 day |
-| 17 | Conduct manual QA, fix priority bugs, accessibility pass | Release candidate build | 2 days |
-| 18 | Prepare store metadata/assets, complete compliance forms | Submission package ready | 1 day |
-| 19 | Submit to stores, monitor review feedback, plan OTA rollout procedure | Approved release | varies |
+| 3 | Define cross-platform UI primitives (Button, Card, Modal shell) and align NativeWind theme tokens with web design system | Shared component tokens published in core or mobile | 1 day |
+| 4 | Scaffold Expo app in `mobile/`; configure NativeWind, React Navigation, AsyncStorage adapters | Expo project builds on simulator | 1 day |
+| 5 | Implement shared auth storage adapter and bootstrap screen ensuring token rehydration | Stable auth context with loading gate | 1 day |
+| 6 | Wire OAuth flow using `expo-auth-session`; confirm redirect and token exchange | Login/logout loop verified on iOS + Android dev clients | 2 days |
+| 7 | Build base navigation (auth stack + tab navigator + detail modal) | Navigators functioning with placeholder screens | 1 day |
+| 8 | Implement Nearby list using React Query + FlashList + location permission handling | Nearby screen shows real data | 2 days |
+| 9 | Create map component (react-native-maps) with clustering toggle and location puck | Map renders markers, handles gestures smoothly | 2 days |
+| 10 | Implement Place Details with quests, call-to-actions, offline placeholder caching | Detail screen feature-complete | 3 days |
+| 11 | Build Check-in flow with offline queue and history list aggregated via React Query | Check-in operations reliable offline/online | 2.5 days |
+| 12 | Flesh out Profile & Settings, including account deletion and preference toggles | Profile parity with web | 1.5 days |
+| 13 | Add error handling, loading skeletons, toasts, and haptic feedback | Polished UX | 1 day |
+| 14 | Integrate Sentry + analytics (optional) and ensure logging sanitized | Monitoring enabled | 1 day |
+| 15 | Implement automated tests (unit + component) for critical flows | Test suite with ≥ 20 meaningful specs | 2 days |
+| 16 | Set up Maestro E2E scripts, integrate into CI | Automated regression baseline | 1.5 days |
+| 17 | Configure EAS build and submit to internal testing channels | TestFlight & Play testers onboarded | 1 day |
+| 18 | Conduct manual QA, fix priority bugs, accessibility pass | Release candidate build | 2 days |
+| 19 | Prepare store metadata/assets, complete compliance forms | Submission package ready | 1 day |
+| 20 | Submit to stores, monitor review feedback, plan OTA rollout procedure | Approved release | varies |
 
 > Adjust durations based on availability; solo developer may stretch steps 7–15 across multiple weeks. Volunteer can own discrete work chunks (maps, tests, documentation) once core scaffolding is ready.
 
