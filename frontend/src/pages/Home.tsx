@@ -6,6 +6,7 @@ import {
   IconChevronRight,
   IconCategory,
   IconMapSearch,
+  IconRadar,
 } from '@tabler/icons-react'
 import { SearchMap } from '../components/SearchMap'
 import { placesApi } from '../services/api'
@@ -17,9 +18,12 @@ import { BusinessDetailsCard } from '../components/BusinessDetailsCard'
 import { useNavigate } from 'react-router-dom'
 
 const DEFAULT_CENTER = { lat: 40.7128, lon: -74.006 } // New York City fallback
-const DEFAULT_RADIUS = 1000
+const DEFAULT_RADIUS = 500
+const RADIUS_INCREMENT = 500
+const MIN_RESULTS_THRESHOLD = 10
+const MAP_MOVE_THRESHOLD = 0.002 // ~200m at mid-latitudes
 const MIN_QUERY_LENGTH = 2
-const BOTTOM_SAFE_OFFSET_PX = 88
+const BOTTOM_SAFE_OFFSET_PX = 0
 const POPULAR_CATEGORY_KEYS: CategoryKey[] = [
   'restaurant',
   'cafe_bakery',
@@ -73,44 +77,19 @@ export function Home() {
   const [isLoadingResults, setIsLoadingResults] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [modalError, setModalError] = useState<string | null>(null)
-  const [sheetBounds, setSheetBounds] = useState({ min: 80, max: 480 })
-  const [sheetHeight, setSheetHeight] = useState(80)
   const [hasCenteredOnLocation, setHasCenteredOnLocation] = useState(false)
 
-  // Keep a slightly taller collapsed height so results are visible when the drawer previews.
-  const resultsPreviewHeight = useMemo(
-    () => Math.min(sheetBounds.min + 140, sheetBounds.max),
-    [sheetBounds.min, sheetBounds.max]
-  )
+  // Search expansion state
+  const [currentRadius, setCurrentRadius] = useState(DEFAULT_RADIUS)
+  const [lastSearchCategory, setLastSearchCategory] = useState<CategoryKey | null>(null)
+  const [lastSearchCenter, setLastSearchCenter] = useState<{ lat: number; lon: number } | null>(null)
+  const [isExpandingSearch, setIsExpandingSearch] = useState(false)
+  const [hasMapMoved, setHasMapMoved] = useState(false)
+  const [skipNextFitBounds, setSkipNextFitBounds] = useState(false)
+  const mapBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null)
+  const [, forceUpdate] = useState({})
 
   const inputRef = useRef<HTMLInputElement>(null)
-
-  const clampSheetHeight = useCallback(
-    (value: number) => Math.min(Math.max(value, sheetBounds.min), sheetBounds.max),
-    [sheetBounds]
-  )
-
-  useEffect(() => {
-    const updateBounds = () => {
-      if (typeof window === 'undefined') return
-      const min = 80
-      const max = Math.min(Math.max(window.innerHeight * 0.6, min + 160), window.innerHeight - 140)
-      setSheetBounds((prev) => {
-        if (prev.min === min && prev.max === max) {
-          return prev
-        }
-        return { min, max }
-      })
-    }
-
-    updateBounds()
-    window.addEventListener('resize', updateBounds)
-    return () => window.removeEventListener('resize', updateBounds)
-  }, [])
-
-  useEffect(() => {
-    setSheetHeight((height) => clampSheetHeight(height))
-  }, [clampSheetHeight])
 
   useEffect(() => {
     if (latitude !== null && longitude !== null) {
@@ -210,12 +189,7 @@ export function Home() {
       }
       return pois.some((poi) => `${poi.osm_type}-${poi.osm_id}` === prev) ? prev : null
     })
-
-    if (!isTypeaheadOpen) {
-      const defaultHeight = pois.length > 1 ? resultsPreviewHeight : sheetBounds.max
-      setSheetHeight(defaultHeight)
-    }
-  }, [pois, sheetBounds.max, isTypeaheadOpen, resultsPreviewHeight])
+  }, [pois])
 
   const openTypeahead = useCallback(() => {
     setIsTypeaheadOpen(true)
@@ -243,10 +217,14 @@ export function Home() {
       setMapCenter({ lat: poi.lat, lon: poi.lon })
       setSearchDisplay(poi.name || 'Unnamed location')
       setSearchError(null)
-      setSheetHeight(sheetBounds.max)
       closeTypeahead()
+
+      // Reset search expansion state (place search, not category)
+      setLastSearchCategory(null)
+      setLastSearchCenter(null)
+      setHasMapMoved(false)
     },
-    [closeTypeahead, sheetBounds.max]
+    [closeTypeahead]
   )
 
   const selectCategorySuggestion = useCallback(
@@ -262,6 +240,12 @@ export function Home() {
       setSearchError(null)
       setSelectedPoiId(null)
 
+      // Reset search expansion state
+      setCurrentRadius(DEFAULT_RADIUS)
+      setLastSearchCategory(className)
+      setLastSearchCenter({ lat: latitude, lon: longitude })
+      setHasMapMoved(false)
+
       try {
         const results = await placesApi.getNearby({
           lat: latitude,
@@ -275,7 +259,6 @@ export function Home() {
         if (results.length > 0) {
           setMapCenter({ lat: results[0].lat, lon: results[0].lon })
           setSearchError(null)
-          setSheetHeight(resultsPreviewHeight)
         } else {
           setSearchError(`No ${label.toLowerCase()} found nearby.`)
         }
@@ -286,49 +269,114 @@ export function Home() {
         setIsLoadingResults(false)
       }
     },
-    [latitude, longitude, closeTypeahead, resultsPreviewHeight]
+    [latitude, longitude, closeTypeahead]
   )
+
+  const handleSearchAction = useCallback(async () => {
+    if (!lastSearchCategory) return
+
+    setIsExpandingSearch(true)
+    setSearchError(null)
+
+    try {
+      if (hasMapMoved && mapBoundsRef.current) {
+        // "Search Here" - search within current map bounds
+        const bounds = mapBoundsRef.current
+
+        const results = await placesApi.getBbox({
+          north: bounds.north,
+          south: bounds.south,
+          east: bounds.east,
+          west: bounds.west,
+          class: lastSearchCategory,
+          limit: 100,
+        })
+
+        setSkipNextFitBounds(true) // Don't refit bounds when these results arrive
+        setPois(results)
+        setLastSearchCenter(mapCenter)
+        setHasMapMoved(false)
+        // Reset radius since we're now using bbox
+        setCurrentRadius(DEFAULT_RADIUS)
+
+        if (results.length === 0) {
+          setSearchError('No results found in this area.')
+        }
+      } else if (lastSearchCenter) {
+        // "Expand Search" - increase radius at last search center
+        const newRadius = currentRadius + RADIUS_INCREMENT
+        setCurrentRadius(newRadius)
+
+        const results = await placesApi.getNearby({
+          lat: lastSearchCenter.lat,
+          lon: lastSearchCenter.lon,
+          radius: newRadius,
+          class: lastSearchCategory,
+          limit: 20,
+          offset: 0,
+        })
+
+        setPois(results)
+
+        if (results.length === 0) {
+          setSearchError('No additional results found.')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to expand search', error)
+      setSearchError('Something went wrong while searching.')
+    } finally {
+      setIsExpandingSearch(false)
+    }
+  }, [lastSearchCategory, lastSearchCenter, hasMapMoved, mapCenter, currentRadius])
+
+  const handleMapMove = useCallback((newCenter: { lat: number; lon: number }) => {
+    if (!lastSearchCenter) return
+
+    const latDiff = Math.abs(newCenter.lat - lastSearchCenter.lat)
+    const lonDiff = Math.abs(newCenter.lon - lastSearchCenter.lon)
+
+    if (latDiff > MAP_MOVE_THRESHOLD || lonDiff > MAP_MOVE_THRESHOLD) {
+      setHasMapMoved(true)
+    }
+  }, [lastSearchCenter])
+
+  const handleMapBoundsChange = useCallback((bounds: { north: number; south: number; east: number; west: number }) => {
+    const prev = mapBoundsRef.current
+
+    // Only update if bounds actually changed significantly
+    if (prev) {
+      const threshold = 0.001 // Larger threshold to avoid excessive updates (~100m)
+      if (
+        Math.abs(prev.north - bounds.north) < threshold &&
+        Math.abs(prev.south - bounds.south) < threshold &&
+        Math.abs(prev.east - bounds.east) < threshold &&
+        Math.abs(prev.west - bounds.west) < threshold
+      ) {
+        return
+      }
+    }
+
+    mapBoundsRef.current = bounds
+    forceUpdate({}) // Force re-render to update visible POI count
+  }, [])
 
   const handleMarkerClick = useCallback((poi: POI) => {
+    const poiKey = `${poi.osm_type}-${poi.osm_id}`
+    setSelectedPoiId(poiKey)
+    setMapCenter({ lat: poi.lat, lon: poi.lon })
+
+    // Scroll to the corresponding card
+    setTimeout(() => {
+      const cardElement = document.getElementById(`poi-card-${poiKey}`)
+      cardElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 100)
+  }, [])
+
+  const handleCardClick = useCallback((poi: POI) => {
     setSelectedPoiId(`${poi.osm_type}-${poi.osm_id}`)
     setMapCenter({ lat: poi.lat, lon: poi.lon })
-    setSheetHeight(sheetBounds.max)
-  }, [sheetBounds.max])
-
-  const handleCardClick = useCallback(
-    (poi: POI) => {
-      setSelectedPoiId(`${poi.osm_type}-${poi.osm_id}`)
-      setMapCenter({ lat: poi.lat, lon: poi.lon })
-      setSheetHeight(sheetBounds.max)
-    },
-    [sheetBounds.max]
-  )
-
-  const handleSheetPointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      event.preventDefault()
-      const startY = event.clientY
-      const startHeight = sheetHeight
-
-      const onPointerMove = (moveEvent: PointerEvent) => {
-        const delta = startY - moveEvent.clientY
-        setSheetHeight(clampSheetHeight(startHeight + delta))
-      }
-
-      const onPointerUp = () => {
-        const midpoint = (sheetBounds.min + sheetBounds.max) / 2
-        setSheetHeight((current) =>
-          current > midpoint ? sheetBounds.max : sheetBounds.min
-        )
-        window.removeEventListener('pointermove', onPointerMove)
-        window.removeEventListener('pointerup', onPointerUp)
-      }
-
-      window.addEventListener('pointermove', onPointerMove)
-      window.addEventListener('pointerup', onPointerUp)
-    },
-    [sheetBounds, sheetHeight, clampSheetHeight]
-  )
+  }, [])
 
   const renderSuggestion = (suggestion: Suggestion, index: number) => {
     if (suggestion.kind === 'category') {
@@ -388,63 +436,117 @@ export function Home() {
   const isLocationReady = latitude !== null && longitude !== null && hasCenteredOnLocation
   const userLocation = isLocationReady ? { lat: latitude, lon: longitude } : null
   const shouldRenderMap = isLocationReady || pois.length > 0
-  const isExpanded = sheetHeight > sheetBounds.min + 40
   const highlightTerm = trimmedQuery.length >= MIN_QUERY_LENGTH ? trimmedQuery : undefined
 
+  // Calculate visible POIs within current map bounds
+  const visiblePoisCount = useMemo(() => {
+    const mapBounds = mapBoundsRef.current
+    if (!mapBounds || pois.length === 0) return pois.length
+
+    return pois.filter(poi => {
+      return (
+        poi.lat >= mapBounds.south &&
+        poi.lat <= mapBounds.north &&
+        poi.lon >= mapBounds.west &&
+        poi.lon <= mapBounds.east
+      )
+    }).length
+  }, [pois, mapBoundsRef.current])
+
+  // Show expand/search here button when:
+  // 1. We have a category search active
+  // 2. We have some results
+  // 3. Either: visible results are below threshold OR user has panned the map
+  const shouldShowSearchButton =
+    lastSearchCategory !== null &&
+    pois.length > 0 &&
+    (visiblePoisCount < MIN_RESULTS_THRESHOLD || hasMapMoved) &&
+    !isTypeaheadOpen
+
+  const hasResults = pois.length > 0
+
   return (
-    <div
-      className="relative w-full"
-      style={{ height: `calc(100vh - ${BOTTOM_SAFE_OFFSET_PX + 56}px)` }}
-    >
-      {shouldRenderMap ? (
-        <SearchMap
-          center={mapCenter}
-          pois={pois}
-          selectedPoiId={selectedPoiId || undefined}
-          userLocation={userLocation}
-          onMarkerClick={handleMarkerClick}
-          bottomInset={sheetHeight}
-        />
-      ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-600 space-y-3">
-          {locationLoading ? (
-            <>
-              <IconLoader2 size={28} className="animate-spin text-primary-600" />
-              <p className="text-sm font-medium">Locating you…</p>
-              <p className="text-xs text-gray-500">Allow location access to start your nearby search.</p>
-            </>
-          ) : locationError ? (
-            <>
-              <p className="text-sm font-semibold text-gray-700 text-center px-6">{locationError}</p>
-              <button
-                type="button"
-                onClick={retry}
-                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                Try again
-              </button>
-            </>
-          ) : (
-            <>
-              <IconMapSearch size={32} className="text-gray-400" />
-              <p className="text-sm text-gray-600 px-6 text-center">
-                We’ll show the map once we know where you are. You can still search by name while we wait.
-              </p>
-            </>
-          )}
-        </div>
-      )}
+    <div className="flex flex-col w-full h-full">
+      {/* Map Container - Dynamic height */}
+      <div
+        className="relative transition-all duration-300 ease-in-out"
+        style={{ height: hasResults ? '60%' : '100%' }}
+      >
+        {shouldRenderMap ? (
+          <SearchMap
+            center={mapCenter}
+            pois={pois}
+            selectedPoiId={selectedPoiId || undefined}
+            userLocation={userLocation}
+            searchRadius={lastSearchCategory ? currentRadius : undefined}
+            skipFitBounds={skipNextFitBounds}
+            onMarkerClick={handleMarkerClick}
+            onMapMove={handleMapMove}
+            onMapBoundsChange={handleMapBoundsChange}
+            onFitBoundsComplete={() => setSkipNextFitBounds(false)}
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-600 space-y-3">
+            {locationLoading ? (
+              <>
+                <IconLoader2 size={28} className="animate-spin text-primary-600" />
+                <p className="text-sm font-medium">Locating you…</p>
+                <p className="text-xs text-gray-500">Allow location access to start your nearby search.</p>
+              </>
+            ) : locationError ? (
+              <>
+                <p className="text-sm font-semibold text-gray-700 text-center px-6">{locationError}</p>
+                <button
+                  type="button"
+                  onClick={retry}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  Try again
+                </button>
+              </>
+            ) : (
+              <>
+                <IconMapSearch size={32} className="text-gray-400" />
+                <p className="text-sm text-gray-600 px-6 text-center">
+                  We'll show the map once we know where you are. You can still search by name while we wait.
+                </p>
+              </>
+            )}
+          </div>
+        )}
 
       {/* Search bar overlay */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 w-full px-4 max-w-xl">
-        <button
-          type="button"
-          onClick={openTypeahead}
-          className="w-full flex items-center space-x-2 bg-white border border-gray-200 rounded-full px-4 py-3 shadow-lg hover:shadow-xl transition"
-        >
-          <IconSearch size={18} className="text-gray-500" />
-          <span className="text-sm font-medium text-gray-700 truncate">{searchDisplay}</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={openTypeahead}
+            className="flex-1 flex items-center space-x-2 bg-white border border-gray-200 rounded-full px-4 py-3 shadow-lg hover:shadow-xl transition"
+          >
+            <IconSearch size={18} className="text-gray-500" />
+            <span className="text-sm font-medium text-gray-700 truncate">{searchDisplay}</span>
+          </button>
+
+          {shouldShowSearchButton && (
+            <button
+              type="button"
+              onClick={handleSearchAction}
+              disabled={isExpandingSearch}
+              className="p-3 bg-white border border-gray-200 rounded-full shadow-lg hover:shadow-xl transition disabled:opacity-50 flex-shrink-0"
+              aria-label={hasMapMoved ? 'Search this area' : 'Expand search area'}
+              title={hasMapMoved ? 'Search Here' : 'Expand Search'}
+            >
+              {isExpandingSearch ? (
+                <IconLoader2 size={18} className="animate-spin text-gray-600" />
+              ) : hasMapMoved ? (
+                <IconMapSearch size={18} className="text-primary-600" />
+              ) : (
+                <IconRadar size={18} className="text-gray-600" />
+              )}
+            </button>
+          )}
+        </div>
+
         {locationError && (
           <p className="mt-2 text-xs text-red-600 bg-white/90 rounded-md px-3 py-2 border border-red-200">
             {locationError}{' '}
@@ -455,80 +557,52 @@ export function Home() {
         )}
       </div>
 
-      {/* Results drawer */}
-      <div
-        className="pointer-events-none absolute left-0 right-0 z-10"
-        style={{ bottom: 0 }}
-      >
+      </div>
+
+      {/* Fixed Results List - Slides in when there are results */}
+      {hasResults && (
         <div
-          className="pointer-events-auto bg-white/95 backdrop-blur rounded-t-3xl border-t border-gray-200 flex flex-col transition-[height] duration-200"
-          style={{ height: `${sheetHeight}px` }}
+          className="flex flex-col border-t-2 border-gray-200 bg-white shadow-lg transition-all duration-300 ease-in-out animate-slide-up"
+          style={{ height: '40%' }}
         >
-          <div className="pt-3 pb-2">
-            <div
-              className="mx-auto w-12 h-1.5 bg-gray-300 rounded-full"
-              onPointerDown={handleSheetPointerDown}
-              style={{ touchAction: 'none', cursor: 'grab' }}
-            />
+          {/* Results Header */}
+          <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900">
+                {pois.length} {pois.length === 1 ? 'Result' : 'Results'}
+              </h3>
+              {searchError && <p className="text-xs text-red-600">{searchError}</p>}
+            </div>
           </div>
 
-          <div className="px-4 pb-2 space-y-2 overflow-hidden" style={{ maxHeight: `${sheetHeight - 30}px` }}>
-            {pois.length === 0 ? (
-              <div className="flex items-center justify-center py-2">
-                <p className="text-xs text-gray-400">
-                  {isLoadingResults ? 'Searching...' : 'Search to see nearby places'}
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  <span>Results</span>
-                  <div className="flex items-center space-x-2">
-                    <span>{pois.length}</span>
-                  </div>
-                </div>
-
-                {searchError && <p className="text-sm text-gray-600">{searchError}</p>}
-
-                {pois.length > 1 && !isExpanded && !searchError && (
-                  <p className="text-xs text-gray-400">
-                    Swipe up for more options.
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-
-          <div
-            className={`px-4 overflow-y-auto flex-1 transition-all duration-200 ${isExpanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none h-0'
-              }`}
-          >
+          {/* Scrollable Results */}
+          <div className="flex-1 overflow-y-auto px-4 py-2">
             {pois.map((poi) => {
               const poiKey = `${poi.osm_type}-${poi.osm_id}`
               const isActiveCard = selectedPoiId === poiKey
-              const showExpandedDetails = isExpanded && isActiveCard
-              const hasInlineDetails = Boolean(
-                poi.address || poi.phone || poi.website || poi.opening_hours
-              )
+
               return (
-                <div key={poiKey} className="mb-2 last:mb-0">
+                <div
+                  key={poiKey}
+                  className="mb-3 last:mb-0"
+                  id={`poi-card-${poiKey}`}
+                >
                   <POICard
                     poi={poi}
                     onClick={() => handleCardClick(poi)}
                     highlight={highlightTerm}
                     isActive={isActiveCard}
-                    isExpanded={showExpandedDetails}
+                    isExpanded={false}
                   >
-                    {hasInlineDetails && <BusinessDetailsCard poi={poi} variant="embedded" />}
                     <button
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation()
                         navigate(`/places/${poi.osm_type}/${poi.osm_id}`)
                       }}
-                      className={`${hasInlineDetails ? 'mt-3 ' : ''}w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                      className="mt-3 w-full px-4 py-2.5 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm font-medium"
                     >
-                      Open full details
+                      View Details
                     </button>
                   </POICard>
                 </div>
@@ -536,7 +610,7 @@ export function Home() {
             })}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Typeahead overlay */}
       {isTypeaheadOpen && (

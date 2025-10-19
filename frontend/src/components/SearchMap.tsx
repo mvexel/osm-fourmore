@@ -16,14 +16,18 @@ interface SearchMapProps {
   pois: POI[]
   selectedPoiId?: string
   userLocation?: { lat: number; lon: number } | null
+  searchRadius?: number // in meters
+  skipFitBounds?: boolean
   onMarkerClick?: (poi: POI) => void
-  bottomInset?: number
+  onMapMove?: (center: { lat: number; lon: number }) => void
+  onMapBoundsChange?: (bounds: { north: number; south: number; east: number; west: number }) => void
+  onFitBoundsComplete?: () => void
 }
 
 const DEFAULT_VIEW = {
   latitude: 40.7128,
   longitude: -74.006,
-  zoom: 12,
+  zoom: 17,
 }
 
 export function SearchMap({
@@ -31,11 +35,19 @@ export function SearchMap({
   pois,
   selectedPoiId,
   userLocation,
+  searchRadius,
+  skipFitBounds,
   onMarkerClick,
-  bottomInset = 0,
+  onMapMove,
+  onMapBoundsChange,
+  onFitBoundsComplete,
 }: SearchMapProps) {
   const mapRef = useRef<MapRef>(null)
   const [isMapReady, setIsMapReady] = useState(false)
+  const isProgrammaticMoveRef = useRef(false)
+  const programmaticMoveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const previousPoisRef = useRef<POI[]>([])
+  const previousSelectedPoiIdRef = useRef<string | undefined>(undefined)
 
   const viewState = useMemo(() => {
     if (center) {
@@ -54,15 +66,43 @@ export function SearchMap({
       return
     }
 
+    // Check if POIs or selectedPoiId actually changed
+    const poisChanged = JSON.stringify(previousPoisRef.current) !== JSON.stringify(pois)
+    const selectedPoiChanged = previousSelectedPoiIdRef.current !== selectedPoiId
+
+    if (!poisChanged && !selectedPoiChanged) {
+      return // Nothing changed, don't move the map
+    }
+
+    // Skip fitBounds if requested (e.g., bbox search should maintain viewport)
+    if (skipFitBounds && poisChanged && !selectedPoiChanged) {
+      previousPoisRef.current = pois
+      onFitBoundsComplete?.()
+      return
+    }
+
+    // Update refs
+    previousPoisRef.current = pois
+    previousSelectedPoiIdRef.current = selectedPoiId
+
+    // Clear any existing timeout
+    if (programmaticMoveTimeoutRef.current) {
+      clearTimeout(programmaticMoveTimeoutRef.current)
+    }
+
     if (selectedPoiId) {
+      // Mark as programmatic move before executing
+      isProgrammaticMoveRef.current = true
       const currentZoom = map.getZoom()
-      const verticalOffset = bottomInset > 0 ? -Math.max(bottomInset - 120, 0) / 2 : 0
       map.easeTo({
         center: [center.lon, center.lat],
         zoom: Math.max(currentZoom, 15),
         duration: 500,
-        offset: [0, verticalOffset],
       })
+      // Reset flag after animation completes (with buffer)
+      programmaticMoveTimeoutRef.current = setTimeout(() => {
+        isProgrammaticMoveRef.current = false
+      }, 600)
       return
     }
 
@@ -70,21 +110,42 @@ export function SearchMap({
     const hasUserLocation = Boolean(userLocation)
 
     if (!hasResults) {
+      // Mark as programmatic move before executing
+      isProgrammaticMoveRef.current = true
       map.easeTo({
         center: [viewState.longitude, viewState.latitude],
         zoom: viewState.zoom,
         duration: 500,
       })
+      // Reset flag after animation completes (with buffer)
+      programmaticMoveTimeoutRef.current = setTimeout(() => {
+        isProgrammaticMoveRef.current = false
+      }, 600)
       return
     }
 
-    const bounds = new LngLatBounds()
-    pois.forEach((poi) => {
-      bounds.extend([poi.lon, poi.lat])
-    })
+    // Mark as programmatic move before executing fitBounds
+    isProgrammaticMoveRef.current = true
 
-    if (hasUserLocation && userLocation) {
-      bounds.extend([userLocation.lon, userLocation.lat])
+    const bounds = new LngLatBounds()
+
+    if (searchRadius && userLocation) {
+      // Use search radius to create bounds for a circular area
+      // Approximate: 1 degree latitude ≈ 111km, longitude varies by latitude
+      const latOffset = (searchRadius / 1000) / 111 // convert meters to degrees
+      const lonOffset = (searchRadius / 1000) / (111 * Math.cos(userLocation.lat * Math.PI / 180))
+
+      bounds.extend([userLocation.lon - lonOffset, userLocation.lat - latOffset])
+      bounds.extend([userLocation.lon + lonOffset, userLocation.lat + latOffset])
+    } else {
+      // Fallback to fitting all POIs
+      pois.forEach((poi) => {
+        bounds.extend([poi.lon, poi.lat])
+      })
+
+      if (hasUserLocation && userLocation) {
+        bounds.extend([userLocation.lon, userLocation.lat])
+      }
     }
 
     map.fitBounds(bounds as LngLatBoundsLike, {
@@ -92,21 +153,58 @@ export function SearchMap({
       maxZoom: 16,
       duration: 700,
     })
+
+    // Reset flag after animation completes (with buffer)
+    programmaticMoveTimeoutRef.current = setTimeout(() => {
+      isProgrammaticMoveRef.current = false
+    }, 800)
   }, [
     pois,
     userLocation,
     isMapReady,
-    viewState.latitude,
-    viewState.longitude,
-    viewState.zoom,
     selectedPoiId,
-    center.lat,
-    center.lon,
-    bottomInset,
+    center,
+    viewState,
   ])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (programmaticMoveTimeoutRef.current) {
+        clearTimeout(programmaticMoveTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleMapLoad = () => {
     setIsMapReady(true)
+  }
+
+  const handleMoveEnd = () => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+
+    // Update bounds (for both user and programmatic moves)
+    if (onMapBoundsChange) {
+      const bounds = map.getBounds()
+      onMapBoundsChange({
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest(),
+      })
+    }
+
+    // Only trigger onMapMove for user-initiated moves, not programmatic ones
+    if (isProgrammaticMoveRef.current) {
+      // Don't reset the flag here - let the timeout handle it
+      return
+    }
+
+    if (onMapMove) {
+      const center = map.getCenter()
+      onMapMove({ lat: center.lat, lon: center.lng })
+    }
   }
 
   return (
@@ -121,6 +219,7 @@ export function SearchMap({
       mapStyle={mapStyle as StyleSpecification}
       attributionControl={false}
       onLoad={handleMapLoad}
+      onMoveEnd={handleMoveEnd}
     >
       {userLocation && (
         <Marker longitude={userLocation.lon} latitude={userLocation.lat} anchor="center">

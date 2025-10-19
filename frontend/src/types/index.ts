@@ -65,6 +65,16 @@ export interface NearbyRequest {
   offset?: number
 }
 
+export interface POIBboxRequest {
+  north: number
+  south: number
+  east: number
+  west: number
+  class?: string
+  limit?: number
+  offset?: number
+}
+
 export interface SearchRequest {
   query: string
   lat?: number

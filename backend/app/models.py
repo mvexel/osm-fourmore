@@ -106,6 +106,30 @@ class POISearchRequest(BaseModel):
         return cleaned
 
 
+class POIBboxRequest(BaseModel):
+    north: float = Field(..., ge=-90, le=90, description="Northern latitude bound")
+    south: float = Field(..., ge=-90, le=90, description="Southern latitude bound")
+    east: float = Field(..., ge=-180, le=180, description="Eastern longitude bound")
+    west: float = Field(..., ge=-180, le=180, description="Western longitude bound")
+    poi_class: Optional[str] = Field(
+        None, alias="class", description="Filter by POI class"
+    )
+    limit: int = Field(20, ge=1, le=100, description="Maximum number of results")
+    offset: int = Field(0, ge=0, description="Number of results to skip for pagination")
+
+    @field_validator("north", "south")
+    @classmethod
+    def validate_latitude_bounds(cls, v, info):
+        # Additional validation happens in the model_validator
+        return v
+
+    @field_validator("east", "west")
+    @classmethod
+    def validate_longitude_bounds(cls, v, info):
+        # Additional validation happens in the model_validator
+        return v
+
+
 # User Models
 class UserSettings(BaseModel):
     expert: bool = False

@@ -5,12 +5,11 @@ import { useAuth } from './hooks/useAuth'
 import { Layout } from './components/Layout'
 import { Login } from './pages/Login'
 import { AuthCallback } from './pages/AuthCallback'
-import { Nearby } from './pages/Nearby'
 import { PlaceDetails } from './pages/PlaceDetails'
 import { CheckIns } from './pages/CheckIns'
 import { CheckinSuccess } from './pages/CheckinSuccess'
 import { Profile } from './pages/Profile'
-import { Home } from './pages/Home'
+import { Discover } from './pages/Discover'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -35,17 +34,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <Home />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/nearby"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <Nearby />
+              <Discover />
             </Layout>
           </ProtectedRoute>
         }
