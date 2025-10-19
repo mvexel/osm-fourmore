@@ -43,15 +43,19 @@ export function AuthCallback() {
       } catch (err) {
         lastCodeRef.current = null
         if (isAxiosError(err) && err.response?.status === 403) {
-          const detail = err.response.data?.detail
-          const message =
-            typeof detail === 'object' && detail !== null
-              ? (detail as { message?: string }).message
-              : undefined
-          const email =
-            typeof detail === 'object' && detail !== null
-              ? (detail as { email?: string }).email
-              : undefined
+          const detailPayload: unknown = err.response?.data?.detail?.payload
+          let message: string | undefined
+          let email: string | undefined
+
+          if (typeof detailPayload === 'object' && detailPayload !== null) {
+            const detail = detailPayload as { message?: unknown; email?: unknown }
+            if (typeof detail.message === 'string') {
+              message = detail.message
+            }
+            if (typeof detail.email === 'string') {
+              email = detail.email
+            }
+          }
 
           sessionStorage.setItem(
             WAITLIST_STORAGE_KEY,

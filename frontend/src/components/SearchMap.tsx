@@ -3,8 +3,6 @@ import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre'
 import type {
   MapRef,
   LngLatBoundsLike,
-  MapLayerMouseEvent,
-  ViewState,
   StyleSpecification,
 } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -19,6 +17,7 @@ interface SearchMapProps {
   selectedPoiId?: string
   userLocation?: { lat: number; lon: number } | null
   onMarkerClick?: (poi: POI) => void
+  bottomInset?: number
 }
 
 const DEFAULT_VIEW = {
@@ -33,11 +32,12 @@ export function SearchMap({
   selectedPoiId,
   userLocation,
   onMarkerClick,
+  bottomInset = 0,
 }: SearchMapProps) {
   const mapRef = useRef<MapRef>(null)
   const [isMapReady, setIsMapReady] = useState(false)
 
-  const viewState = useMemo<ViewState>(() => {
+  const viewState = useMemo(() => {
     if (center) {
       return {
         latitude: center.lat,
@@ -51,6 +51,18 @@ export function SearchMap({
   useEffect(() => {
     const map = mapRef.current?.getMap()
     if (!map || !isMapReady) {
+      return
+    }
+
+    if (selectedPoiId) {
+      const currentZoom = map.getZoom()
+      const verticalOffset = bottomInset > 0 ? -Math.max(bottomInset - 120, 0) / 2 : 0
+      map.easeTo({
+        center: [center.lon, center.lat],
+        zoom: Math.max(currentZoom, 15),
+        duration: 500,
+        offset: [0, verticalOffset],
+      })
       return
     }
 
@@ -80,15 +92,21 @@ export function SearchMap({
       maxZoom: 16,
       duration: 700,
     })
-  }, [pois, userLocation, isMapReady, viewState.latitude, viewState.longitude, viewState.zoom])
+  }, [
+    pois,
+    userLocation,
+    isMapReady,
+    viewState.latitude,
+    viewState.longitude,
+    viewState.zoom,
+    selectedPoiId,
+    center.lat,
+    center.lon,
+    bottomInset,
+  ])
 
   const handleMapLoad = () => {
     setIsMapReady(true)
-  }
-
-  const handleMarkerClick = (event: MapLayerMouseEvent, poi: POI) => {
-    event.originalEvent.stopPropagation()
-    onMarkerClick?.(poi)
   }
 
   return (
@@ -123,7 +141,10 @@ export function SearchMap({
             longitude={poi.lon}
             latitude={poi.lat}
             anchor="bottom"
-            onClick={(event) => handleMarkerClick(event, poi)}
+            onClick={(event) => {
+              event.originalEvent.stopPropagation()
+              onMarkerClick?.(poi)
+            }}
           >
             <div
               className={`flex items-center justify-center w-9 h-9 rounded-full shadow-lg border ${isSelected ? 'bg-primary-600 border-white' : 'bg-white border-gray-200'
