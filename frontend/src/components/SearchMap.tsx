@@ -165,6 +165,9 @@ export function SearchMap({
     selectedPoiId,
     center,
     viewState,
+    skipFitBounds,
+    onFitBoundsComplete,
+    searchRadius,
   ])
 
   // Cleanup timeout on unmount
