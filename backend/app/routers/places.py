@@ -9,7 +9,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, literal_column
 from ..db import get_db, POI, CheckIn
 from ..auth import get_current_user, User
-from ..models import NormalizeOsmType, POIResponse, POINearbyRequest, APIResponse
+from ..models import (
+    NormalizeOsmType,
+    POIResponse,
+    POINearbyRequest,
+    POISearchRequest,
+    APIResponse,
+)
 
 # Prometheus metrics (optional import – if not available, code still runs)
 try:
@@ -138,8 +144,8 @@ async def get_nearby_places(
             osm_type=row.osm_type,
             name=row.name,
             **{"class": row.poi_class},
-            lat=float(row.lat) if row.lat is not None else None,
-            lon=float(row.lon) if row.lon is not None else None,
+            lat=float(row.lat),
+            lon=float(row.lon),
             tags=row.tags or {},
             version=row.version,
             timestamp=row.timestamp,
@@ -156,6 +162,143 @@ async def get_nearby_places(
         response.headers["Server-Timing"] = (
             f"db;dur={db_elapsed*1000:.1f}, app;dur={app_elapsed*1000:.1f}"
         )
+
+    return pois
+
+
+@router.post("/search", response_model=List[POIResponse])
+async def search_places(
+    request: POISearchRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    response: Response = None,
+):
+    """Search POIs by text, optionally biased by location."""
+    app_t0 = time.perf_counter()
+    db_t0 = time.perf_counter()
+
+    has_coords = request.lat is not None and request.lon is not None
+    lowered_query = f"%{request.query.lower()}%"
+
+    text_filter = or_(
+        func.lower(func.coalesce(POI.name, "")).like(lowered_query),
+        func.lower(func.coalesce(POI.tags.op("->>")("name"), "")).like(lowered_query),
+        func.lower(func.coalesce(POI.tags.op("->>")("name:en"), "")).like(
+            lowered_query
+        ),
+        func.lower(func.coalesce(POI.tags.op("->>")("brand"), "")).like(lowered_query),
+    )
+
+    # Base select columns
+    base_columns = [
+        POI.osm_type,
+        POI.osm_id,
+        POI.name,
+        POI.poi_class,
+        POI.tags,
+        POI.geom,
+        POI.version,
+        POI.timestamp,
+    ]
+
+    # Filter out transport noise consistent with nearby endpoint
+    base_query = db.query(*base_columns).filter(
+        or_(
+            POI.tags.op("->>")("highway") != "bus_stop",
+            POI.tags.op("->>")("highway").is_(None),
+        )
+    )
+    base_query = base_query.filter(text_filter)
+
+    if has_coords:
+        point = func.ST_SetSRID(func.ST_MakePoint(request.lon, request.lat), 4326)
+        knn_order = POI.geom.op("<->")(point)
+        candidate_cap = 500
+
+        candidates = base_query.order_by(knn_order).limit(candidate_cap)
+        c = candidates.subquery("c_search")
+
+        distance_expr = func.ST_Distance(
+            func.ST_GeogFromWKB(c.c.geom),
+            func.ST_GeographyFromText(f"POINT({request.lon} {request.lat})"),
+        ).label("distance")
+
+        final_query = (
+            db.query(
+                c.c.osm_type,
+                c.c.osm_id,
+                c.c.name,
+                c.c.poi_class,
+                c.c.tags,
+                func.ST_AsEWKB(c.c.geom).label("geom"),
+                func.ST_Y(func.ST_AsText(c.c.geom)).label("lat"),
+                func.ST_X(func.ST_AsText(c.c.geom)).label("lon"),
+                c.c.version,
+                c.c.timestamp,
+                distance_expr,
+            )
+            .filter(
+                func.ST_DWithin(
+                    func.ST_GeogFromWKB(c.c.geom),
+                    func.ST_GeographyFromText(f"POINT({request.lon} {request.lat})"),
+                    request.radius,
+                )
+            )
+            .order_by(literal_column("distance"))
+            .offset(request.offset)
+            .limit(request.limit)
+        )
+    else:
+        distance_expr = literal_column("NULL").label("distance")
+
+        final_query = (
+            base_query.with_entities(
+                POI.osm_type,
+                POI.osm_id,
+                POI.name,
+                POI.poi_class,
+                POI.tags,
+                func.ST_AsEWKB(POI.geom).label("geom"),
+                func.ST_Y(func.ST_AsText(POI.geom)).label("lat"),
+                func.ST_X(func.ST_AsText(POI.geom)).label("lon"),
+                POI.version,
+                POI.timestamp,
+                distance_expr,
+            )
+            .order_by(func.lower(func.coalesce(POI.name, "")), POI.osm_id)
+            .offset(request.offset)
+            .limit(request.limit)
+        )
+
+    results = final_query.all()
+    db_elapsed = time.perf_counter() - db_t0
+
+    total_elapsed = time.perf_counter() - app_t0
+    app_elapsed = max(total_elapsed - db_elapsed, 0.0)
+    if response is not None:
+        response.headers["Server-Timing"] = (
+            f"db;dur={db_elapsed*1000:.1f}, app;dur={app_elapsed*1000:.1f}"
+        )
+
+    pois: List[POIResponse] = []
+    for row in results:
+        poi_data = POIResponse(
+            osm_id=row.osm_id,
+            osm_type=row.osm_type,
+            name=row.name,
+            **{"class": row.poi_class},
+            lat=float(row.lat) if row.lat is not None else None,
+            lon=float(row.lon) if row.lon is not None else None,
+            tags=row.tags or {},
+            version=row.version,
+            timestamp=row.timestamp,
+        )
+        if row.distance is not None:
+            poi_data.distance = round(float(row.distance), 1)
+        else:
+            poi_data.distance = None
+        poi_data.is_checked_in = False
+        pois.append(poi_data)
 
     return pois
 
