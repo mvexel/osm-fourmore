@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre'
 import type {
   MapRef,
@@ -7,6 +7,7 @@ import type {
 } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { LngLatBounds } from 'maplibre-gl'
+import type { Map as MapInstance } from 'maplibre-gl'
 import type { POI } from '../types'
 import mapStyle from '../styles/osm-bright-osmusa.json'
 import { getCategoryIcon } from '../utils/icons'
@@ -49,9 +50,9 @@ export function SearchMap({
   const mapRef = useRef<MapRef>(null)
   const [isMapReady, setIsMapReady] = useState(false)
   const isProgrammaticMoveRef = useRef(false)
-  const programmaticMoveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const previousPoisRef = useRef<POI[]>([])
-  const previousSelectedPoiIdRef = useRef<string | undefined>(undefined)
+  const pendingCompletionRef = useRef<(() => void) | null>(null)
+  const lastBoundsSignatureRef = useRef<string>('')
+  const lastEmptyCenterRef = useRef<{ lat: number; lon: number; zoom?: number } | null>(null)
 
   const viewState = useMemo(() => {
     if (center) {
@@ -64,107 +65,126 @@ export function SearchMap({
     return DEFAULT_VIEW
   }, [center])
 
-  // Track previous center to detect actual center changes
-  const previousCenterRef = useRef<{ lat: number; lon: number } | null>(null)
+  const markProgrammaticMove = useCallback(
+    (
+      action: (mapInstance: MapInstance) => void,
+      options: { onComplete?: () => void } = {}
+    ) => {
+      const map = mapRef.current?.getMap()
+      if (!map) {
+        return
+      }
+
+      isProgrammaticMoveRef.current = true
+      pendingCompletionRef.current = options.onComplete ?? null
+
+      try {
+        action(map)
+      } catch (error) {
+        isProgrammaticMoveRef.current = false
+        pendingCompletionRef.current = null
+        throw error
+      }
+    },
+    []
+  )
 
   // Handle center changes when there are no POIs (e.g., recenter button)
   useEffect(() => {
-    const map = mapRef.current?.getMap()
-    if (!map || !isMapReady || pois.length > 0) {
+    if (!isMapReady) {
       return
     }
 
-    // Check if center actually changed (not just zoom)
-    const prev = previousCenterRef.current
-    if (prev && Math.abs(prev.lat - center.lat) < 0.00001 && Math.abs(prev.lon - center.lon) < 0.00001) {
-      return // Center hasn't changed meaningfully
+    if (pois.length > 0) {
+      lastEmptyCenterRef.current = null
+      return
     }
 
-    previousCenterRef.current = { lat: center.lat, lon: center.lon }
+    const prev = lastEmptyCenterRef.current
+    const centerChanged =
+      !prev ||
+      Math.abs(prev.lat - center.lat) >= 0.00001 ||
+      Math.abs(prev.lon - center.lon) >= 0.00001 ||
+      prev.zoom !== desiredZoom
 
-    // Animate to new center when it changes and there are no POIs
-    isProgrammaticMoveRef.current = true
-    const targetZoom = desiredZoom !== undefined ? desiredZoom : map.getZoom()
-    map.easeTo({
-      center: [center.lon, center.lat],
-      zoom: targetZoom,
-      duration: 500,
+    if (!centerChanged) {
+      return
+    }
+
+    lastEmptyCenterRef.current = { lat: center.lat, lon: center.lon, zoom: desiredZoom }
+
+    markProgrammaticMove((map) => {
+      const targetZoom = desiredZoom !== undefined ? desiredZoom : map.getZoom()
+      map.easeTo({
+        center: [center.lon, center.lat],
+        zoom: targetZoom,
+        duration: 500,
+      })
     })
+  }, [center.lat, center.lon, desiredZoom, isMapReady, markProgrammaticMove, pois.length])
 
-    const timeout = setTimeout(() => {
-      isProgrammaticMoveRef.current = false
-    }, 600)
-
-    return () => clearTimeout(timeout)
-  }, [center.lat, center.lon, pois.length, isMapReady, desiredZoom])
+  const formatCoordinate = useCallback((value: number | undefined) => {
+    if (value === undefined) {
+      return 'na'
+    }
+    return value.toFixed(6)
+  }, [])
 
   useEffect(() => {
-    const map = mapRef.current?.getMap()
-    if (!map || !isMapReady) {
+    if (!isMapReady || !selectedPoiId) {
       return
     }
 
-    // Check if POIs or selectedPoiId actually changed
-    const poisChanged = JSON.stringify(previousPoisRef.current) !== JSON.stringify(pois)
-    const selectedPoiChanged = previousSelectedPoiIdRef.current !== selectedPoiId
-
-    if (!poisChanged && !selectedPoiChanged) {
-      return // Nothing changed, don't move the map
-    }
-
-    // Skip fitBounds if requested (e.g., bbox search should maintain viewport)
-    if (skipFitBounds && poisChanged && !selectedPoiChanged) {
-      previousPoisRef.current = pois
-      onFitBoundsComplete?.()
-      return
-    }
-
-    // Update refs
-    previousPoisRef.current = pois
-    previousSelectedPoiIdRef.current = selectedPoiId
-
-    // Clear any existing timeout
-    if (programmaticMoveTimeoutRef.current) {
-      clearTimeout(programmaticMoveTimeoutRef.current)
-    }
-
-    if (selectedPoiId) {
-      // Mark as programmatic move before executing
-      isProgrammaticMoveRef.current = true
+    markProgrammaticMove((map) => {
       const currentZoom = map.getZoom()
       map.easeTo({
         center: [center.lon, center.lat],
         zoom: Math.max(currentZoom, 15),
         duration: 500,
       })
-      // Reset flag after animation completes (with buffer)
-      programmaticMoveTimeoutRef.current = setTimeout(() => {
-        isProgrammaticMoveRef.current = false
-      }, 600)
+    })
+  }, [center.lon, center.lat, isMapReady, markProgrammaticMove, selectedPoiId])
+
+  useEffect(() => {
+    if (pois.length === 0) {
+      lastBoundsSignatureRef.current = ''
+    }
+  }, [pois.length])
+
+  useEffect(() => {
+    if (!isMapReady) {
       return
     }
 
-    const hasResults = pois.length > 0
-    const hasUserLocation = Boolean(userLocation)
-
-    if (!hasResults) {
-      // Mark as programmatic move before executing
-      isProgrammaticMoveRef.current = true
-      const currentZoom = map.getZoom()
-      map.easeTo({
-        center: [viewState.longitude, viewState.latitude],
-        zoom: currentZoom, // Keep current zoom instead of resetting
-        duration: 500,
-      })
-      // Reset flag after animation completes (with buffer)
-      programmaticMoveTimeoutRef.current = setTimeout(() => {
-        isProgrammaticMoveRef.current = false
-      }, 600)
+    if (selectedPoiId) {
       return
     }
 
-    // Mark as programmatic move before executing fitBounds
-    isProgrammaticMoveRef.current = true
+    if (pois.length === 0) {
+      return
+    }
+
+    const poiSignature = pois
+      .map((poi) => `${poi.osm_type}:${poi.osm_id}:${formatCoordinate(poi.lat)}:${formatCoordinate(poi.lon)}`)
+      .join('|') || 'none'
+    const userSignature = userLocation
+      ? `${formatCoordinate(userLocation.lat)}:${formatCoordinate(userLocation.lon)}`
+      : 'none'
+    const radiusSignature = searchRadius !== undefined ? String(searchRadius) : 'none'
+    const includeSignature = includeUserLocationInFitBounds ? '1' : '0'
+    const skipSignature = skipFitBounds ? '1' : '0'
+    const combinedSignature = [poiSignature, userSignature, radiusSignature, includeSignature, skipSignature].join(';')
+
+    if (combinedSignature === lastBoundsSignatureRef.current) {
+      return
+    }
+
+    lastBoundsSignatureRef.current = combinedSignature
+
+    if (skipFitBounds) {
+      onFitBoundsComplete?.()
+      return
+    }
 
     const bounds = new LngLatBounds()
 
@@ -182,42 +202,33 @@ export function SearchMap({
         bounds.extend([poi.lon, poi.lat])
       })
 
-      if (includeUserLocationInFitBounds && hasUserLocation && userLocation) {
+      if (includeUserLocationInFitBounds && userLocation) {
         bounds.extend([userLocation.lon, userLocation.lat])
       }
     }
 
-    map.fitBounds(bounds as LngLatBoundsLike, {
-      padding: { top: 120, bottom: 80, left: 50, right: 50 },
-      maxZoom: 16,
-      duration: 700,
-    })
-
-    // Reset flag after animation completes (with buffer)
-    programmaticMoveTimeoutRef.current = setTimeout(() => {
-      isProgrammaticMoveRef.current = false
-    }, 800)
+    markProgrammaticMove(
+      (map) => {
+        map.fitBounds(bounds as LngLatBoundsLike, {
+          padding: { top: 120, bottom: 80, left: 50, right: 50 },
+          maxZoom: 16,
+          duration: 700,
+        })
+      },
+      { onComplete: onFitBoundsComplete }
+    )
   }, [
-    pois,
-    userLocation,
-    isMapReady,
-    selectedPoiId,
-    center,
-    viewState,
-    skipFitBounds,
-    onFitBoundsComplete,
-    searchRadius,
+    formatCoordinate,
     includeUserLocationInFitBounds,
+    isMapReady,
+    markProgrammaticMove,
+    onFitBoundsComplete,
+    pois,
+    searchRadius,
+    selectedPoiId,
+    skipFitBounds,
+    userLocation,
   ])
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (programmaticMoveTimeoutRef.current) {
-        clearTimeout(programmaticMoveTimeoutRef.current)
-      }
-    }
-  }, [])
 
   const handleMapLoad = () => {
     setIsMapReady(true)
@@ -240,7 +251,9 @@ export function SearchMap({
 
     // Only trigger onMapMove for user-initiated moves, not programmatic ones
     if (isProgrammaticMoveRef.current) {
-      // Don't reset the flag here - let the timeout handle it
+      pendingCompletionRef.current?.()
+      pendingCompletionRef.current = null
+      isProgrammaticMoveRef.current = false
       return
     }
 
