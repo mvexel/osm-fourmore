@@ -17,7 +17,7 @@ import { CATEGORY_META, type CategoryKey } from '../generated/category_metadata'
 import { POICard } from '../components/POICard'
 import { useNavigate } from 'react-router-dom'
 import { calculateBboxFromZoom, calculateDistance, formatDistance } from '../utils/mapUtils'
-import { useHomeStore } from '../stores/homeStore'
+import { DEFAULT_SEARCH_DISPLAY, useHomeStore } from '../stores/homeStore'
 
 const INITIAL_ZOOM = 17 // Street-level detail
 const MIN_ZOOM = 12 // City-level fallback
@@ -27,6 +27,7 @@ const MIN_QUERY_LENGTH = 3
 const POPULAR_CATEGORY_KEYS: CategoryKey[] = [
   'restaurant',
   'cafe_bakery',
+  'ice-cream',
   'bar_pub',
   'grocery',
   'culture',
@@ -654,7 +655,8 @@ export function Home() {
   // Show recenter when panned away, regardless of other buttons
   const shouldShowRecenterButton = isPannedAwayFromLocation && latitude !== null && longitude !== null
   const searchPlaceholder = isPannedAwayFromLocation ? 'Search here' : 'Search nearby'
-  const displayedSearchLabel = searchDisplay || searchPlaceholder
+  const displayedSearchLabel =
+    searchDisplay && searchDisplay !== DEFAULT_SEARCH_DISPLAY ? searchDisplay : searchPlaceholder
 
   const handleRecenter = useCallback(() => {
     if (latitude === null || longitude === null) return
