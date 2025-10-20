@@ -19,6 +19,7 @@ interface SearchMapProps {
   searchRadius?: number // in meters
   skipFitBounds?: boolean
   includeUserLocationInFitBounds?: boolean
+  desiredZoom?: number // Optional zoom level for recenter operations
   onMarkerClick?: (poi: POI) => void
   onMapMove?: (center: { lat: number; lon: number }) => void
   onMapBoundsChange?: (bounds: { north: number; south: number; east: number; west: number }) => void
@@ -39,6 +40,7 @@ export function SearchMap({
   searchRadius,
   skipFitBounds,
   includeUserLocationInFitBounds = true,
+  desiredZoom,
   onMarkerClick,
   onMapMove,
   onMapBoundsChange,
@@ -61,6 +63,40 @@ export function SearchMap({
     }
     return DEFAULT_VIEW
   }, [center])
+
+  // Track previous center to detect actual center changes
+  const previousCenterRef = useRef<{ lat: number; lon: number } | null>(null)
+
+  // Handle center changes when there are no POIs (e.g., recenter button)
+  useEffect(() => {
+    const map = mapRef.current?.getMap()
+    if (!map || !isMapReady || pois.length > 0) {
+      return
+    }
+
+    // Check if center actually changed (not just zoom)
+    const prev = previousCenterRef.current
+    if (prev && Math.abs(prev.lat - center.lat) < 0.00001 && Math.abs(prev.lon - center.lon) < 0.00001) {
+      return // Center hasn't changed meaningfully
+    }
+
+    previousCenterRef.current = { lat: center.lat, lon: center.lon }
+
+    // Animate to new center when it changes and there are no POIs
+    isProgrammaticMoveRef.current = true
+    const targetZoom = desiredZoom !== undefined ? desiredZoom : map.getZoom()
+    map.easeTo({
+      center: [center.lon, center.lat],
+      zoom: targetZoom,
+      duration: 500,
+    })
+
+    const timeout = setTimeout(() => {
+      isProgrammaticMoveRef.current = false
+    }, 600)
+
+    return () => clearTimeout(timeout)
+  }, [center.lat, center.lon, pois.length, isMapReady, desiredZoom])
 
   useEffect(() => {
     const map = mapRef.current?.getMap()
@@ -114,9 +150,10 @@ export function SearchMap({
     if (!hasResults) {
       // Mark as programmatic move before executing
       isProgrammaticMoveRef.current = true
+      const currentZoom = map.getZoom()
       map.easeTo({
         center: [viewState.longitude, viewState.latitude],
-        zoom: viewState.zoom,
+        zoom: currentZoom, // Keep current zoom instead of resetting
         duration: 500,
       })
       // Reset flag after animation completes (with buffer)
@@ -151,7 +188,7 @@ export function SearchMap({
     }
 
     map.fitBounds(bounds as LngLatBoundsLike, {
-      padding: { top: 120, bottom: 80, left: 80, right: 80 },
+      padding: { top: 120, bottom: 80, left: 50, right: 50 },
       maxZoom: 16,
       duration: 700,
     })
@@ -226,6 +263,7 @@ export function SearchMap({
       attributionControl={false}
       onLoad={handleMapLoad}
       onMoveEnd={handleMoveEnd}
+      padding={{ top: 80, bottom: 40, left: 20, right: 20 }}
     >
       {userLocation && (
         <Marker longitude={userLocation.lon} latitude={userLocation.lat} anchor="center">
@@ -245,7 +283,7 @@ export function SearchMap({
             key={markerKey}
             longitude={poi.lon}
             latitude={poi.lat}
-            anchor="bottom"
+            anchor="center"
             onClick={(event) => {
               event.originalEvent.stopPropagation()
               onMarkerClick?.(poi)
