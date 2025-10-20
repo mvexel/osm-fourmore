@@ -7,7 +7,7 @@ import { cn } from '../utils/classNames'
 
 type ViewMode = 'map' | 'list'
 
-const SWITCHER_BUTTON_BASE = 'flex-1 flex items-center justify-center space-x-1.5 py-1.5 px-3 rounded-md text-sm font-medium transition-all'
+const SWITCHER_BUTTON_BASE = 'flex-1 flex items-center justify-center space-x-1 py-1.5 px-2 min-[400px]:px-3 rounded-md text-xs font-medium transition-all'
 const SWITCHER_BUTTON_ACTIVE = 'bg-primary-600 text-white'
 const SWITCHER_BUTTON_INACTIVE = 'text-gray-600 hover:text-gray-900'
 
@@ -20,16 +20,18 @@ export function Discover() {
   }, [])
 
   const toggle = (
-    <div className="inline-flex bg-gray-100 rounded-lg p-1">
+    <div className="inline-flex bg-gray-100 rounded-lg p-0.5">
       <button
         onClick={() => setViewMode('map')}
         className={cn(
           SWITCHER_BUTTON_BASE,
           viewMode === 'map' ? SWITCHER_BUTTON_ACTIVE : SWITCHER_BUTTON_INACTIVE
         )}
+        aria-label="Discover"
+        title="Discover"
       >
         <IconMap size={16} />
-        <span>Map</span>
+        <span className="hidden min-[400px]:inline">Discover</span>
       </button>
       <button
         onClick={() => setViewMode('list')}
@@ -37,9 +39,11 @@ export function Discover() {
           SWITCHER_BUTTON_BASE,
           viewMode === 'list' ? SWITCHER_BUTTON_ACTIVE : SWITCHER_BUTTON_INACTIVE
         )}
+        aria-label="Log"
+        title="Log"
       >
         <IconList size={16} />
-        <span>List</span>
+        <span className="hidden min-[400px]:inline">Log</span>
       </button>
     </div>
   )

@@ -7,6 +7,7 @@ import {
   IconCategory,
   IconMapSearch,
   IconRadar,
+  IconCurrentLocation,
 } from '@tabler/icons-react'
 import { SearchMap } from '../components/SearchMap'
 import { placesApi } from '../services/api'
@@ -15,14 +16,14 @@ import type { POI, SearchRequest } from '../types'
 import { CATEGORY_META, type CategoryKey } from '../generated/category_metadata'
 import { POICard } from '../components/POICard'
 import { useNavigate } from 'react-router-dom'
-import { calculateBboxFromZoom } from '../utils/mapUtils'
-import { useHomeStore, DEFAULT_SEARCH_DISPLAY } from '../stores/homeStore'
+import { calculateBboxFromZoom, calculateDistance, formatDistance } from '../utils/mapUtils'
+import { useHomeStore } from '../stores/homeStore'
 
 const INITIAL_ZOOM = 17 // Street-level detail
 const MIN_ZOOM = 12 // City-level fallback
 const MIN_RESULTS_THRESHOLD = 10
 const MAP_MOVE_THRESHOLD = 0.002 // ~200m at mid-latitudes
-const MIN_QUERY_LENGTH = 2
+const MIN_QUERY_LENGTH = 3
 const POPULAR_CATEGORY_KEYS: CategoryKey[] = [
   'restaurant',
   'cafe_bakery',
@@ -102,6 +103,7 @@ export function Home() {
   const [isExpandingSearch, setIsExpandingSearch] = useState(false)
   const [hasMapMoved, setHasMapMoved] = useState(false)
   const [skipNextFitBounds, setSkipNextFitBounds] = useState(false)
+  const [isPannedAwayFromLocation, setIsPannedAwayFromLocation] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const hasRestoredSnapshotRef = useRef(false)
 
@@ -178,37 +180,54 @@ export function Home() {
     setIsFetchingSuggestions(true)
     setSuggestionError(null)
 
-    const fetchSuggestions = async () => {
-      try {
-        const request: SearchRequest = {
-          query: trimmedQuery,
-          limit: 5,
-          lat: latitude ?? undefined,
-          lon: longitude ?? undefined,
-          radius: 5000, // Use a reasonable default for text search
-        }
-        const results = await placesApi.search(request)
-        if (!cancelled) {
-          setPlaceSuggestions(results)
-        }
-      } catch (error) {
-        console.error('Failed to fetch suggestions', error)
-        if (!cancelled) {
-          setSuggestionError('Search is unavailable right now. Try again shortly.')
-        }
-      } finally {
-        if (!cancelled) {
-          setIsFetchingSuggestions(false)
+    // Debounce: wait 300ms after user stops typing before fetching
+    const debounceTimeout = setTimeout(() => {
+      const fetchSuggestions = async () => {
+        try {
+          const request: SearchRequest = {
+            query: trimmedQuery,
+            limit: 5,
+            lat: latitude ?? undefined,
+            lon: longitude ?? undefined,
+            radius: 5000, // Use a reasonable default for text search
+          }
+          const results = await placesApi.search(request)
+          if (!cancelled) {
+            setPlaceSuggestions(results)
+          }
+        } catch (error) {
+          console.error('Failed to fetch suggestions', error)
+          if (!cancelled) {
+            setSuggestionError('Search is unavailable right now. Try again shortly.')
+          }
+        } finally {
+          if (!cancelled) {
+            setIsFetchingSuggestions(false)
+          }
         }
       }
-    }
 
-    void fetchSuggestions()
+      void fetchSuggestions()
+    }, 300)
 
     return () => {
       cancelled = true
+      clearTimeout(debounceTimeout)
     }
   }, [trimmedQuery, latitude, longitude, isTypeaheadOpen])
+
+  // Filter place suggestions to only show those matching current query
+  const filteredPlaceSuggestions = useMemo(() => {
+    if (!trimmedQuery || trimmedQuery.length < MIN_QUERY_LENGTH) {
+      return []
+    }
+    const lowerQuery = trimmedQuery.toLowerCase()
+    return placeSuggestions.filter((poi) => {
+      const name = (poi.name || '').toLowerCase()
+      const category = (poi.class || '').replace(/_/g, ' ').toLowerCase()
+      return name.includes(lowerQuery) || category.includes(lowerQuery)
+    })
+  }, [placeSuggestions, trimmedQuery])
 
   useEffect(() => {
     if (pois.length === 0) {
@@ -324,20 +343,28 @@ export function Home() {
       setSelectedPoiId(null)
       setIsExpandingSearch(true)
 
+      // Use current map center if available, otherwise fall back to user location
+      const searchLat = mapCenter.lat
+      const searchLon = mapCenter.lon
+
       // Reset search state
       setLastSearchCategory(className)
-      setLastSearchCenter({ lat: latitude, lon: longitude })
+      setLastSearchCenter({ lat: searchLat, lon: searchLon })
       setHasMapMoved(false)
-      setIncludeUserLocationInViewport(true)
+      
+      // Only include user location in viewport if we're searching from user's actual location
+      const isSearchingFromUserLocation = 
+        Math.abs(searchLat - latitude) < 0.001 && Math.abs(searchLon - longitude) < 0.001
+      setIncludeUserLocationInViewport(isSearchingFromUserLocation)
 
       try {
-        const { results, finalZoom } = await searchCategoryProgressive(className, latitude, longitude)
+        const { results, finalZoom } = await searchCategoryProgressive(className, searchLat, searchLon)
 
         setPois(results)
         setCurrentZoom(finalZoom)
 
         if (results.length > 0) {
-          setMapCenter({ lat: latitude, lon: longitude })
+          setMapCenter({ lat: searchLat, lon: searchLon })
           setSearchError(null)
         } else {
           setSearchError(`No ${label.toLowerCase()} found nearby.`)
@@ -353,6 +380,7 @@ export function Home() {
       closeTypeahead,
       latitude,
       longitude,
+      mapCenter,
       searchCategoryProgressive,
       setCurrentZoom,
       setHasMapMoved,
@@ -453,6 +481,15 @@ export function Home() {
 
   const handleMapMove = useCallback((newCenter: { lat: number; lon: number }) => {
     setMapCenter(newCenter)
+    
+    // Check if panned away from user location
+    if (latitude !== null && longitude !== null) {
+      const latDiff = Math.abs(newCenter.lat - latitude)
+      const lonDiff = Math.abs(newCenter.lon - longitude)
+      setIsPannedAwayFromLocation(latDiff > MAP_MOVE_THRESHOLD || lonDiff > MAP_MOVE_THRESHOLD)
+    }
+    
+    // Check if panned away from last search center
     if (!lastSearchCenter) return
 
     const latDiff = Math.abs(newCenter.lat - lastSearchCenter.lat)
@@ -461,7 +498,7 @@ export function Home() {
     if (latDiff > MAP_MOVE_THRESHOLD || lonDiff > MAP_MOVE_THRESHOLD) {
       setHasMapMoved(true)
     }
-  }, [lastSearchCenter, setMapCenter, setHasMapMoved])
+  }, [lastSearchCenter, latitude, longitude, setMapCenter, setHasMapMoved])
 
   const handleMapBoundsChange = useCallback((bounds: { north: number; south: number; east: number; west: number }) => {
     const prev = mapBounds
@@ -545,33 +582,42 @@ export function Home() {
     const iconMeta = CATEGORY_META[suggestion.poi.class as CategoryKey]
     const IconComponent = iconMeta?.Icon
 
+    // Calculate distance if user location is available
+    let distance: number | undefined
+    if (latitude !== null && longitude !== null) {
+      distance = calculateDistance(latitude, longitude, suggestion.poi.lat, suggestion.poi.lon)
+    }
+
     return (
       <button
         key={`place-${suggestion.poi.osm_type}-${suggestion.poi.osm_id}`}
         className="w-full text-left px-4 py-3 flex items-center justify-between hover:bg-gray-50 focus:bg-gray-100 focus:outline-none transition"
         onClick={() => selectPlaceSuggestion(suggestion.poi)}
       >
-        <div className="flex items-center space-x-3">
-          <div className="text-primary-600">
+        <div className="flex items-center space-x-3 flex-1 min-w-0">
+          <div className="text-primary-600 flex-shrink-0">
             {IconComponent ? <IconComponent size={22} /> : <IconMapSearch size={22} />}
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-900">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
               {highlightText(suggestion.poi.name || 'Unnamed location', trimmedQuery)}
             </p>
             <p className="text-xs text-gray-500 capitalize">
               {suggestion.poi.class?.replace(/_/g, ' ') || 'POI'}
+              {distance !== undefined && (
+                <span className="text-gray-400"> • {formatDistance(distance)}</span>
+              )}
             </p>
           </div>
         </div>
-        <IconChevronRight size={16} className="text-gray-400" />
+        <IconChevronRight size={16} className="text-gray-400 flex-shrink-0" />
       </button>
     )
   }
 
   const combinedSuggestions: Suggestion[] = [
     ...categorySuggestions,
-    ...placeSuggestions.map((poi) => ({ kind: 'place' as const, poi })),
+    ...filteredPlaceSuggestions.map((poi) => ({ kind: 'place' as const, poi })),
   ]
 
   const isLocationReady = latitude !== null && longitude !== null && hasCenteredOnLocation
@@ -605,7 +651,30 @@ export function Home() {
 
   const hasResults = pois.length > 0
   const shouldShowClearButton = hasResults && !isTypeaheadOpen
-  const displayedSearchLabel = searchDisplay || DEFAULT_SEARCH_DISPLAY
+  // Show recenter when panned away, regardless of other buttons
+  const shouldShowRecenterButton = isPannedAwayFromLocation && latitude !== null && longitude !== null
+  const searchPlaceholder = isPannedAwayFromLocation ? 'Search here' : 'Search nearby'
+  const displayedSearchLabel = searchDisplay || searchPlaceholder
+
+  const handleRecenter = useCallback(() => {
+    if (latitude === null || longitude === null) return
+    
+    // Clear any active search to ensure map recenters properly
+    if (hasResults) {
+      clearResults()
+    }
+    
+    // Set center and reset panned state IMMEDIATELY before the map moves
+    // This ensures the placeholder updates right away
+    setIsPannedAwayFromLocation(false)
+    setMapCenter({ lat: latitude, lon: longitude })
+    
+    // Reset zoom to initial zoom level
+    setCurrentZoom(INITIAL_ZOOM)
+    
+    // Also clear search display to show default placeholder
+    setSearchDisplay('')
+  }, [latitude, longitude, hasResults, clearResults, setMapCenter, setSearchDisplay, setCurrentZoom])
 
   return (
     <div className="flex flex-col w-full h-full">
@@ -622,6 +691,7 @@ export function Home() {
             userLocation={userLocation}
             skipFitBounds={skipNextFitBounds}
             includeUserLocationInFitBounds={includeUserLocationInViewport}
+            desiredZoom={currentZoom}
             onMarkerClick={handleMarkerClick}
             onMapMove={handleMapMove}
             onMapBoundsChange={handleMapBoundsChange}
@@ -699,6 +769,18 @@ export function Home() {
                 )}
               </button>
             )}
+
+            {shouldShowRecenterButton && (
+              <button
+                type="button"
+                onClick={handleRecenter}
+                className="p-3 bg-white border border-gray-200 rounded-full shadow-lg hover:shadow-xl transition flex-shrink-0"
+                aria-label="Recenter to your location"
+                title="Recenter"
+              >
+                <IconCurrentLocation size={18} className="text-blue-600" />
+              </button>
+            )}
           </div>
 
           {locationError && (
@@ -722,8 +804,9 @@ export function Home() {
           {/* Results Header */}
           <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 bg-gray-50">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900">
+              <h3 className={`text-sm font-semibold ${pois.length >= 100 ? 'text-amber-700' : 'text-gray-900'}`}>
                 {pois.length} {pois.length === 1 ? 'Result' : 'Results'}
+                {pois.length >= 100 && <span className="text-xs font-normal text-amber-600 ml-1">(max)</span>}
               </h3>
               {searchError && <p className="text-xs text-red-600">{searchError}</p>}
             </div>
@@ -776,7 +859,8 @@ export function Home() {
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search for places or categories"
-                className="w-full pl-9 pr-12 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                className="w-full pl-9 pr-12 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                style={{ fontSize: '16px' }}
               />
               {searchQuery && (
                 <button
@@ -815,7 +899,25 @@ export function Home() {
                 <div className="px-4 py-2 text-sm text-red-600">{suggestionError}</div>
               )}
 
-              {combinedSuggestions.map((suggestion, index) => renderSuggestion(suggestion, index))}
+              {/* Categories Section */}
+              {categorySuggestions.length > 0 && (
+                <div className="mb-2">
+                  <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Categories</h3>
+                  </div>
+                  {categorySuggestions.map((suggestion, index) => renderSuggestion(suggestion, index))}
+                </div>
+              )}
+
+              {/* Places Section */}
+              {filteredPlaceSuggestions.length > 0 && (
+                <div className="mb-2">
+                  <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Places</h3>
+                  </div>
+                  {filteredPlaceSuggestions.map((poi, index) => renderSuggestion({ kind: 'place', poi }, index))}
+                </div>
+              )}
 
               {isFetchingSuggestions && (
                 <div className="px-4 py-3 text-sm text-gray-500 flex items-center space-x-2">
