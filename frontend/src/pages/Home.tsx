@@ -351,9 +351,9 @@ export function Home() {
       setLastSearchCategory(className)
       setLastSearchCenter({ lat: searchLat, lon: searchLon })
       setHasMapMoved(false)
-      
+
       // Only include user location in viewport if we're searching from user's actual location
-      const isSearchingFromUserLocation = 
+      const isSearchingFromUserLocation =
         Math.abs(searchLat - latitude) < 0.001 && Math.abs(searchLon - longitude) < 0.001
       setIncludeUserLocationInViewport(isSearchingFromUserLocation)
 
@@ -481,14 +481,14 @@ export function Home() {
 
   const handleMapMove = useCallback((newCenter: { lat: number; lon: number }) => {
     setMapCenter(newCenter)
-    
+
     // Check if panned away from user location
     if (latitude !== null && longitude !== null) {
       const latDiff = Math.abs(newCenter.lat - latitude)
       const lonDiff = Math.abs(newCenter.lon - longitude)
       setIsPannedAwayFromLocation(latDiff > MAP_MOVE_THRESHOLD || lonDiff > MAP_MOVE_THRESHOLD)
     }
-    
+
     // Check if panned away from last search center
     if (!lastSearchCenter) return
 
@@ -658,20 +658,20 @@ export function Home() {
 
   const handleRecenter = useCallback(() => {
     if (latitude === null || longitude === null) return
-    
+
     // Clear any active search to ensure map recenters properly
     if (hasResults) {
       clearResults()
     }
-    
+
     // Set center and reset panned state IMMEDIATELY before the map moves
     // This ensures the placeholder updates right away
     setIsPannedAwayFromLocation(false)
     setMapCenter({ lat: latitude, lon: longitude })
-    
+
     // Reset zoom to initial zoom level
     setCurrentZoom(INITIAL_ZOOM)
-    
+
     // Also clear search display to show default placeholder
     setSearchDisplay('')
   }, [latitude, longitude, hasResults, clearResults, setMapCenter, setSearchDisplay, setCurrentZoom])
