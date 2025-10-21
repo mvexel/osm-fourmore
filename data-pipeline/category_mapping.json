@@ -42,6 +42,17 @@
     ]
   },
   {
+    "class": "ice_cream",
+    "label": "Ice Cream & Desserts",
+    "icon": "IconIceCream",
+    "matches": [
+      "amenity=ice_cream",
+      "shop=ice_cream",
+      "shop=dessert",
+      "shop=frozen_yogurt"
+    ]
+  },
+  {
     "class": "grocery",
     "label": "Grocery & Markets",
     "icon": "IconShoppingCart",
@@ -429,6 +440,7 @@
     "class": "misc",
     "label": "Other",
     "icon": "IconMapPinQuestion",
+    "is_fallback": true,
     "matches": []
   }
 ]

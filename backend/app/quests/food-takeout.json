@@ -3,7 +3,8 @@
     "applies_to": {
         "poi_classes": [
             "restaurant",
-            "fast_food"
+            "fast_food",
+            "ice_cream"
         ],
         "required_tags": {}
     },
