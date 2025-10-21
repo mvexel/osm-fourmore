@@ -3,45 +3,28 @@
 
 from __future__ import annotations
 
-import json
+import sys
 from pathlib import Path
-from typing import Iterable, Sequence, Tuple, Union
+from typing import Iterable, Sequence, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
-CATEGORY_FILE = ROOT / "category_mapping.json"
+REPO_ROOT = ROOT.parent
 OUTPUT_FILE = ROOT / "poi_mapping.lua"
+
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from fourmore_shared.category_mapping import (
+    CategoryMappingError,
+    load_category_mapping,
+    normalize_match,
+)
 
 
 def lua_quote(value: str) -> str:
     """Wrap a string for use in Lua source."""
     escaped = value.replace("\\", "\\\\").replace("'", "\\'")
     return f"'{escaped}'"
-
-
-def normalize_match(match: Union[str, Sequence[Sequence[str]], Sequence[str]]) -> Sequence[Tuple[str, str]]:
-    if isinstance(match, str):
-        parts = [segment.strip() for segment in match.split('&') if segment.strip()]
-        normalized = []
-        for part in parts:
-            if '=' not in part:
-                raise ValueError(f"Match segment '{part}' must be in key=value form")
-            key, value = part.split('=', 1)
-            normalized.append((key, value))
-        return tuple(normalized)
-
-    if match and isinstance(match[0], (list, tuple)):
-        return tuple((str(key), str(value)) for key, value in match)  # type: ignore[arg-type]
-
-    if match and isinstance(match[0], str):
-        normalized = []
-        for part in match:  # type: ignore[arg-type]
-            if '=' not in part:
-                raise ValueError(f"Match segment '{part}' must be in key=value form")
-            key, value = part.split('=', 1)
-            normalized.append((key, value))
-        return tuple(normalized)
-
-    raise TypeError(f"Unsupported match format: {match!r}")
 
 
 def format_match(match: Sequence[Tuple[str, str]]) -> str:
@@ -63,7 +46,10 @@ def render_entry(entry: dict) -> Iterable[str]:
 
 
 def main() -> None:
-    categories = json.loads(CATEGORY_FILE.read_text())
+    try:
+        categories = load_category_mapping()
+    except CategoryMappingError as error:
+        raise SystemExit(f"[generate_poi_mapping] {error}") from error
 
     lines = [
         "-- POI category mapping generated from category_mapping.json",

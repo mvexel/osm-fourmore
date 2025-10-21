@@ -96,3 +96,7 @@ coverage.xml
 
 # my notes
 docs/
+
+# generated mapping files
+frontend/src/generated/category_metadata.tsx
+poi_mapping.lua
