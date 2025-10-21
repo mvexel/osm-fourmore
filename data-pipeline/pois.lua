@@ -4,15 +4,55 @@ local poi_mapping = require('poi_mapping')
 
 -- Create a lookup table for faster matching
 local poi_lookup = {}
+local function compute_specificity(match)
+    local score = 0
+    for _, pair in ipairs(match) do
+        if pair[2] ~= '*' then
+            score = score + 1
+        end
+    end
+    return score
+end
+
 for _, category in ipairs(poi_mapping) do
     for _, match in ipairs(category.matches) do
         local key = match[1][1]
-        local value = match[1][2]
         if not poi_lookup[key] then
             poi_lookup[key] = {}
         end
-        poi_lookup[key][value] = category.class
+        table.insert(poi_lookup[key], {
+            match = match,
+            class = category.class,
+            specificity = compute_specificity(match),
+        })
     end
+end
+
+for _, candidates in pairs(poi_lookup) do
+    table.sort(candidates, function(a, b)
+        if a.specificity == b.specificity then
+            return #a.match > #b.match
+        end
+        return a.specificity > b.specificity
+    end)
+end
+
+local function matches_rule(tags, rule)
+    for _, pair in ipairs(rule) do
+        local key = pair[1]
+        local expected = pair[2]
+        local value = tags[key]
+
+        if value == nil then
+            return false
+        end
+
+        if expected ~= '*' and value ~= expected then
+            return false
+        end
+    end
+
+    return true
 end
 
 local pois = osm2pgsql.define_table({
@@ -36,10 +76,10 @@ end
 function find_poi_category(object)
     for key, value in pairs(object.tags) do
         if poi_lookup[key] then
-            if poi_lookup[key][value] then
-                return { class = poi_lookup[key][value] }
-            elseif poi_lookup[key]['*'] then
-                return { class = poi_lookup[key]['*'] }
+            for _, candidate in ipairs(poi_lookup[key]) do
+                if matches_rule(object.tags, candidate.match) then
+                    return { class = candidate.class }
+                end
             end
         end
     end

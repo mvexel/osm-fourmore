@@ -3,14 +3,24 @@
 
 from __future__ import annotations
 
-import json
+import sys
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 ROOT = Path(__file__).resolve().parents[1]
-CATEGORY_FILE = ROOT / "category_mapping.json"
-OUTPUT_DIR = ROOT.parent / "frontend" / "src" / "generated"
+REPO_ROOT = ROOT.parent
+OUTPUT_DIR = REPO_ROOT / "frontend" / "src" / "generated"
 OUTPUT_FILE = OUTPUT_DIR / "category_metadata.tsx"
+
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from fourmore_shared.category_mapping import (
+    CategoryMappingError,
+    load_category_mapping,
+    resolve_fallback_category,
+    unique_icon_names,
+)
 
 
 def ts_string_literal(value: str) -> str:
@@ -40,45 +50,17 @@ def generate_category_meta_object(categories: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def generate_legacy_mappings(categories: List[Dict[str, Any]]) -> str:
-    """Generate legacy OSM tag to category mappings."""
-    amenity_mappings = {}
-    shop_mappings = {}
-
-    for category in categories:
-        class_name = category["class"]
-        for match in category.get("matches", []):
-            if "=" in match:
-                key, value = match.split("=", 1)
-                if key == "amenity":
-                    amenity_mappings[value] = class_name
-                elif key == "shop":
-                    shop_mappings[value] = class_name
-
-    # Generate amenity mappings
-    amenity_lines = ["export const LEGACY_AMENITY_TO_CATEGORY: Record<string, CategoryKey> = {"]
-    for amenity, category in sorted(amenity_mappings.items()):
-        if amenity != "*":  # Skip wildcard entries
-            amenity_lines.append(f"  {ts_string_literal(amenity)}: {ts_string_literal(category)},")
-    amenity_lines.append("}")
-
-    # Generate shop mappings
-    shop_lines = ["export const LEGACY_SHOP_TO_CATEGORY: Record<string, CategoryKey> = {"]
-    for shop, category in sorted(shop_mappings.items()):
-        if shop != "*":  # Skip wildcard entries
-            shop_lines.append(f"  {ts_string_literal(shop)}: {ts_string_literal(category)},")
-    shop_lines.append("}")
-
-    return "\n\n".join(["\n".join(amenity_lines), "\n".join(shop_lines)])
-
-
 def generate_typescript_file(categories: List[Dict[str, Any]]) -> str:
     """Generate the complete TypeScript file."""
-    # Get unique icons used
-    icons = sorted(set(cat["icon"] for cat in categories))
-    icon_imports = ",\n  ".join(icons)
+    fallback_category = resolve_fallback_category(categories)
+    fallback_icon = fallback_category["icon"]
+    fallback_label = fallback_category["label"]
 
-    content = f'''// This file is auto-generated from category_mapping.json
+    icons = unique_icon_names(categories)
+    ordered_icons = [fallback_icon] + [icon for icon in icons if icon != fallback_icon]
+    icon_imports = ",\n  ".join(ordered_icons)
+
+    content = f"""// This file is auto-generated from category_mapping.json
 // Do not edit by hand. Update category_mapping.json and run generate_category_ts.py
 
 import type {{ ComponentProps }} from 'react'
@@ -86,8 +68,8 @@ import {{
   {icon_imports},
 }} from '@tabler/icons-react'
 
-type IconProps = Partial<ComponentProps<typeof {icons[0]}>>
-type IconComponent = typeof {icons[0]}
+type IconProps = Partial<ComponentProps<typeof {ordered_icons[0]}>>
+type IconComponent = typeof {ordered_icons[0]}
 
 {generate_category_type(categories)}
 
@@ -95,9 +77,7 @@ type CategoryMeta = {{ label: string; Icon: IconComponent }}
 
 {generate_category_meta_object(categories)}
 
-{generate_legacy_mappings(categories)}
-
-const DEFAULT_META: CategoryMeta = {{ label: 'Other', Icon: {icons[0]} }}
+const DEFAULT_META: CategoryMeta = {{ label: {ts_string_literal(fallback_label)}, Icon: {fallback_icon} }}
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
 
@@ -122,17 +102,7 @@ const normalizeClassName = (className: string | undefined): string | undefined =
   if (hasCategoryMeta(className)) {{
     return className
   }}
-
-  if (className.startsWith('amenity_')) {{
-    const amenityType = className.replace('amenity_', '')
-    return LEGACY_AMENITY_TO_CATEGORY[amenityType] ?? className
-  }}
-
-  if (className.startsWith('shop_')) {{
-    const shopType = className.replace('shop_', '')
-    return LEGACY_SHOP_TO_CATEGORY[shopType] ?? className
-  }}
-
+  
   return className
 }}
 
@@ -172,7 +142,7 @@ export const getCategoryLabel = (className: string | undefined) => {{
 
   return humanize(className)
 }}
-'''
+"""
     return content
 
 
@@ -183,8 +153,10 @@ def main() -> None:
     # Ensure output directory exists
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Load categories
-    categories = json.loads(CATEGORY_FILE.read_text())
+    try:
+        categories = load_category_mapping()
+    except CategoryMappingError as error:
+        raise SystemExit(f"[generate_category_ts] {error}") from error
 
     # Generate TypeScript content
     ts_content = generate_typescript_file(categories)
