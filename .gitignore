@@ -19,6 +19,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.uv-cache
 MANIFEST
 
 # Virtual environments
@@ -75,6 +76,7 @@ yarn-error.log*
 .nuxt
 dist/
 .cache/
+.pnpm-store
 
 # Environment variables (secrets and local overrides)
 .env.local
