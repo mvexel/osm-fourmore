@@ -353,10 +353,9 @@ export function Home() {
       setLastSearchCenter({ lat: searchLat, lon: searchLon })
       setHasMapMoved(false)
 
-      // Only include user location in viewport if we're searching from user's actual location
-      const isSearchingFromUserLocation =
-        Math.abs(searchLat - latitude) < 0.001 && Math.abs(searchLon - longitude) < 0.001
-      setIncludeUserLocationInViewport(isSearchingFromUserLocation)
+      // Always show the user location while running a nearby search (when available)
+      const hasUserLocation = latitude !== null && longitude !== null
+      setIncludeUserLocationInViewport(hasUserLocation)
 
       try {
         const { results, finalZoom } = await searchCategoryProgressive(className, searchLat, searchLon)
@@ -403,6 +402,7 @@ export function Home() {
 
     setIsExpandingSearch(true)
     setSearchError(null)
+    const hasUserLocation = latitude !== null && longitude !== null
 
     try {
       if (hasMapMoved && mapBounds) {
@@ -427,7 +427,7 @@ export function Home() {
         setPois(results)
         setLastSearchCenter(centerFromBounds)
         setMapCenter(centerFromBounds)
-        setIncludeUserLocationInViewport(false)
+        setIncludeUserLocationInViewport(hasUserLocation)
         setHasMapMoved(false)
 
         if (results.length === 0) {
@@ -452,6 +452,7 @@ export function Home() {
 
         setPois(results)
         setCurrentZoom(newZoom)
+        setIncludeUserLocationInViewport(hasUserLocation)
 
         if (results.length === 0) {
           setSearchError('No additional results found.')
@@ -471,6 +472,8 @@ export function Home() {
     mapBounds,
     setCurrentZoom,
     setHasMapMoved,
+    latitude,
+    longitude,
     setIncludeUserLocationInViewport,
     setLastSearchCenter,
     setMapCenter,

@@ -53,6 +53,7 @@ export function SearchMap({
   const pendingCompletionRef = useRef<(() => void) | null>(null)
   const lastBoundsSignatureRef = useRef<string>('')
   const lastEmptyCenterRef = useRef<{ lat: number; lon: number; zoom?: number } | null>(null)
+  const lastSelectionSignatureRef = useRef<string | null>(null)
 
   const viewState = useMemo(() => {
     if (center) {
@@ -130,20 +131,36 @@ export function SearchMap({
     return value.toFixed(6)
   }, [])
 
+  const selectedPoi = useMemo(() => {
+    if (!selectedPoiId) {
+      return null
+    }
+    return pois.find((poi) => `${poi.osm_type}-${poi.osm_id}` === selectedPoiId) ?? null
+  }, [pois, selectedPoiId])
+
   useEffect(() => {
-    if (!isMapReady || !selectedPoiId) {
+    if (!isMapReady || !selectedPoiId || !selectedPoi) {
+      if (!selectedPoiId || !selectedPoi) {
+        lastSelectionSignatureRef.current = null
+      }
       return
     }
+
+    const selectionSignature = `${selectedPoiId}:${selectedPoi.lat.toFixed(6)}:${selectedPoi.lon.toFixed(6)}`
+    if (lastSelectionSignatureRef.current === selectionSignature) {
+      return
+    }
+    lastSelectionSignatureRef.current = selectionSignature
 
     markProgrammaticMove((map) => {
       const currentZoom = map.getZoom()
       map.easeTo({
-        center: [center.lon, center.lat],
+        center: [selectedPoi.lon, selectedPoi.lat],
         zoom: Math.max(currentZoom, 15),
         duration: 500,
       })
     })
-  }, [center.lon, center.lat, isMapReady, markProgrammaticMove, selectedPoiId])
+  }, [isMapReady, markProgrammaticMove, selectedPoi, selectedPoiId])
 
   useEffect(() => {
     if (pois.length === 0) {
