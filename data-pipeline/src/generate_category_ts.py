@@ -110,7 +110,7 @@ const getCategoryMeta = (className: string | undefined): CategoryMeta | undefine
   const normalized = normalizeClassName(className)
   if (normalized && hasCategoryMeta(normalized)) {{
     const meta = CATEGORY_META[normalized]
-    return {{ label: meta.label, Icon: meta.Icon as IconComponent }}
+    return {{ label: meta.label, Icon: meta.Icon }}
   }}
   return undefined
 }}

@@ -12,17 +12,19 @@ import {
   IconCurrentLocation,
 } from '@tabler/icons-react'
 import { SearchMap } from '../components/SearchMap'
-import { placesApi } from '../services/api'
 import { useGeolocation } from '../hooks/useGeolocation'
-import type { POI, SearchRequest } from '../types'
+import type { POI } from '../types'
 import { CATEGORY_META, type CategoryKey } from '../generated/category_metadata'
 import { POICard } from '../components/POICard'
 import { useNavigate } from 'react-router-dom'
-import { calculateBboxFromZoom, calculateDistance, formatDistance } from '../utils/mapUtils'
-import { DEFAULT_SEARCH_DISPLAY, useHomeStore } from '../stores/homeStore'
+import { calculateDistance, formatDistance } from '../utils/mapUtils'
+import { DEFAULT_SEARCH_DISPLAY } from '../stores/homeStore'
+import { useHomeStoreSelectors } from '../hooks/useHomeStoreSelectors'
+import { usePlaceSuggestions } from '../hooks/usePlaceSuggestions'
+import { useCategorySearch } from '../hooks/useCategorySearch'
+import { placesApi } from '../services/api'
 
 const INITIAL_ZOOM = 17 // Street-level detail
-const MIN_ZOOM = 12 // City-level fallback
 const MIN_RESULTS_THRESHOLD = 10
 const MAP_MOVE_THRESHOLD = 0.002 // ~200m at mid-latitudes
 const MIN_QUERY_LENGTH = 3
@@ -69,49 +71,100 @@ export function Home() {
   const { latitude, longitude, error: locationError, loading: locationLoading, retry } = useGeolocation()
 
   // Persistent state from Zustand (survives navigation)
-  const mapCenter = useHomeStore((state) => state.mapCenter)
-  const setMapCenter = useHomeStore((state) => state.setMapCenter)
-  const mapBounds = useHomeStore((state) => state.mapBounds)
-  const setMapBounds = useHomeStore((state) => state.setMapBounds)
-  const snapshotMapState = useHomeStore((state) => state.snapshotMapState)
-  const restoreMapSnapshot = useHomeStore((state) => state.restoreMapSnapshot)
-  const pois = useHomeStore((state) => state.pois)
-  const setPois = useHomeStore((state) => state.setPois)
-  const selectedPoiId = useHomeStore((state) => state.selectedPoiId)
-  const setSelectedPoiId = useHomeStore((state) => state.setSelectedPoiId)
-  const expandedPoiId = useHomeStore((state) => state.expandedPoiId)
-  const setExpandedPoiId = useHomeStore((state) => state.setExpandedPoiId)
-  const searchDisplay = useHomeStore((state) => state.searchDisplay)
-  const setSearchDisplay = useHomeStore((state) => state.setSearchDisplay)
-  const searchQuery = useHomeStore((state) => state.searchQuery)
-  const setSearchQuery = useHomeStore((state) => state.setSearchQuery)
-  const currentZoom = useHomeStore((state) => state.currentZoom)
-  const setCurrentZoom = useHomeStore((state) => state.setCurrentZoom)
-  const lastSearchCategory = useHomeStore((state) => state.lastSearchCategory)
-  const setLastSearchCategory = useHomeStore((state) => state.setLastSearchCategory)
-  const lastSearchCenter = useHomeStore((state) => state.lastSearchCenter)
-  const setLastSearchCenter = useHomeStore((state) => state.setLastSearchCenter)
-  const includeUserLocationInViewport = useHomeStore((state) => state.includeUserLocationInViewport)
-  const setIncludeUserLocationInViewport = useHomeStore((state) => state.setIncludeUserLocationInViewport)
-  const clearResults = useHomeStore((state) => state.clearResults)
+  const { map, results, search, actions } = useHomeStoreSelectors()
+  const mapCenter = map.center
+  const mapBounds = map.bounds
+  const currentZoom = map.zoom
+  const includeUserLocationInViewport = map.includeUserLocation
+
+  const pois = results.pois
+  const selectedPoiId = results.selectedPoiId
+  const expandedPoiId = results.expandedPoiId
+
+  const searchDisplay = search.display
+  const searchQuery = search.query
+  const lastSearchCategory = search.lastCategory
+  const lastSearchCenter = search.lastCenter
+
+  const {
+    setMapCenter,
+    setMapBounds,
+    setCurrentZoom,
+    setIncludeUserLocationInViewport,
+    setPois,
+    setSelectedPoiId,
+    setExpandedPoiId,
+    setSearchQuery,
+    setSearchDisplay,
+    setLastSearchCategory,
+    setLastSearchCenter,
+    snapshotMapState,
+    restoreMapSnapshot,
+    clearResults,
+  } = actions
 
   // Local/transient state (can be reset on navigation)
   const [isTypeaheadOpen, setIsTypeaheadOpen] = useState(false)
-  const [placeSuggestions, setPlaceSuggestions] = useState<POI[]>([])
-  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false)
-  const [suggestionError, setSuggestionError] = useState<string | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [modalError, setModalError] = useState<string | null>(null)
   const [hasCenteredOnLocation, setHasCenteredOnLocation] = useState(false)
-  const [isExpandingSearch, setIsExpandingSearch] = useState(false)
   const [hasMapMoved, setHasMapMoved] = useState(false)
   const [skipNextFitBounds, setSkipNextFitBounds] = useState(false)
   const [isPannedAwayFromLocation, setIsPannedAwayFromLocation] = useState(false)
   const [isResultsExpanded, setIsResultsExpanded] = useState(false)
   const [isLoadingInitialPOIs, setIsLoadingInitialPOIs] = useState(false)
+  const [isFetchingViewportPOIs, setIsFetchingViewportPOIs] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const hasRestoredSnapshotRef = useRef(false)
   const isInitialShowAllRef = useRef(false)
+  const viewportFetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const viewportFetchIdRef = useRef(0)
+  const skipResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const userLocation = useMemo(() => {
+    if (latitude === null || longitude === null) {
+      return null
+    }
+    return { lat: latitude, lon: longitude }
+  }, [latitude, longitude])
+
+  const {
+    suggestions: filteredPlaceSuggestions,
+    isFetching: isFetchingSuggestions,
+    error: suggestionError,
+    hasMinimumQuery,
+    reset: resetSuggestions,
+    setError: setSuggestionError,
+  } = usePlaceSuggestions({
+    query: searchQuery,
+    isEnabled: isTypeaheadOpen,
+    location: userLocation,
+    minQueryLength: MIN_QUERY_LENGTH,
+  })
+
+  const resetMapMovement = useCallback(() => {
+    setHasMapMoved(false)
+  }, [])
+
+  const { searchCategory, continueSearch, isSearching } = useCategorySearch({
+    mapCenter,
+    mapBounds,
+    currentZoom,
+    lastSearchCategory,
+    lastSearchCenter,
+    setSearchError,
+    setSkipNextFitBounds,
+    resetMapMovement,
+    actions: {
+      setPois,
+      setMapCenter,
+      setCurrentZoom,
+      setIncludeUserLocationInViewport,
+      setLastSearchCategory,
+      setLastSearchCenter,
+    },
+    userLocation,
+  })
 
   // Restore map snapshot on mount (if returning from place details)
   useEffect(() => {
@@ -150,7 +203,7 @@ export function Home() {
     if (
       mapBounds &&
       pois.length === 0 &&
-      !isExpandingSearch &&
+      !isSearching &&
       hasCenteredOnLocation &&
       !lastSearchCategory
     ) {
@@ -170,7 +223,7 @@ export function Home() {
             limit: 100,
           })
           setPois(results)
-          setSearchDisplay('All places nearby')
+          // setSearchDisplay('All places nearby')
           // Reset the ref after a short delay to allow SearchMap to process with skipFitBounds=true
           setTimeout(() => {
             isInitialShowAllRef.current = false
@@ -186,7 +239,124 @@ export function Home() {
 
       void fetchInitialPOIs()
     }
-  }, [mapBounds, pois.length, isExpandingSearch, hasCenteredOnLocation, lastSearchCategory, setPois, setSearchDisplay, setIsLoadingInitialPOIs, setSearchError])
+  }, [mapBounds, pois.length, isSearching, hasCenteredOnLocation, lastSearchCategory, setPois, setSearchDisplay, setIsLoadingInitialPOIs, setSearchError])
+
+  // Auto-refresh POIs after user pans the map
+  useEffect(() => {
+    if (!mapBounds || !hasMapMoved) {
+      return
+    }
+
+    if (viewportFetchTimeoutRef.current) {
+      clearTimeout(viewportFetchTimeoutRef.current)
+    }
+
+    const boundsSnapshot = mapBounds
+    const activeCategory = lastSearchCategory
+    const shouldIncludeUserLocation = !activeCategory && Boolean(userLocation)
+
+    viewportFetchTimeoutRef.current = setTimeout(() => {
+      viewportFetchTimeoutRef.current = null
+      const fetchId = ++viewportFetchIdRef.current
+
+      setIsFetchingViewportPOIs(true)
+      setSkipNextFitBounds(true)
+      setSearchError(null)
+
+      const params = {
+        north: boundsSnapshot.north,
+        south: boundsSnapshot.south,
+        east: boundsSnapshot.east,
+        west: boundsSnapshot.west,
+        limit: 100,
+        ...(activeCategory ? { class: activeCategory } : {}),
+      }
+
+      const loadViewportPois = async () => {
+        try {
+          const results = await placesApi.getBbox(params)
+          if (fetchId !== viewportFetchIdRef.current) {
+            return
+          }
+
+          setPois(results)
+          if (results.length === 0) {
+            setSelectedPoiId(null)
+            setExpandedPoiId(null)
+          }
+
+          if (activeCategory) {
+            const centerFromBounds = {
+              lat: (boundsSnapshot.north + boundsSnapshot.south) / 2,
+              lon: (boundsSnapshot.east + boundsSnapshot.west) / 2,
+            }
+            setLastSearchCenter(centerFromBounds)
+            setIncludeUserLocationInViewport(false)
+          } else {
+            setIncludeUserLocationInViewport(shouldIncludeUserLocation)
+          }
+
+          if (results.length === 0) {
+            setSearchError(activeCategory ? 'No results found in this area.' : 'No places found in this area.')
+          } else {
+            setSearchError(null)
+          }
+        } catch (error) {
+          if (fetchId === viewportFetchIdRef.current) {
+            console.error('Failed to load places for current viewport', error)
+            setSearchError('Failed to load places for this area.')
+          }
+        } finally {
+          if (fetchId === viewportFetchIdRef.current) {
+            setIsFetchingViewportPOIs(false)
+            resetMapMovement()
+            const latestFetchId = fetchId
+            if (skipResetTimeoutRef.current) {
+              clearTimeout(skipResetTimeoutRef.current)
+              skipResetTimeoutRef.current = null
+            }
+            skipResetTimeoutRef.current = setTimeout(() => {
+              if (latestFetchId === viewportFetchIdRef.current) {
+                setSkipNextFitBounds(false)
+              }
+              skipResetTimeoutRef.current = null
+            }, 0)
+          }
+        }
+      }
+
+      void loadViewportPois()
+    }, 400)
+
+    return () => {
+      if (viewportFetchTimeoutRef.current) {
+        clearTimeout(viewportFetchTimeoutRef.current)
+        viewportFetchTimeoutRef.current = null
+      }
+    }
+  }, [
+    hasMapMoved,
+    lastSearchCategory,
+    mapBounds,
+    resetMapMovement,
+    setIncludeUserLocationInViewport,
+    setLastSearchCenter,
+    setExpandedPoiId,
+    setPois,
+    setSelectedPoiId,
+    setSearchError,
+    setSkipNextFitBounds,
+    userLocation,
+  ])
+
+  useEffect(() => {
+    return () => {
+      if (skipResetTimeoutRef.current) {
+        clearTimeout(skipResetTimeoutRef.current)
+        skipResetTimeoutRef.current = null
+      }
+    }
+  }, [])
 
   const categoryList = useMemo(
     () =>
@@ -219,71 +389,6 @@ export function Home() {
   }, [trimmedQuery, categoryList])
 
   useEffect(() => {
-    if (!isTypeaheadOpen) {
-      return
-    }
-
-    if (trimmedQuery.length < MIN_QUERY_LENGTH) {
-      setPlaceSuggestions([])
-      setSuggestionError(null)
-      setIsFetchingSuggestions(false)
-      return
-    }
-
-    let cancelled = false
-    setIsFetchingSuggestions(true)
-    setSuggestionError(null)
-
-    // Debounce: wait 300ms after user stops typing before fetching
-    const debounceTimeout = setTimeout(() => {
-      const fetchSuggestions = async () => {
-        try {
-          const request: SearchRequest = {
-            query: trimmedQuery,
-            limit: 5,
-            lat: latitude ?? undefined,
-            lon: longitude ?? undefined,
-            radius: 5000, // Use a reasonable default for text search
-          }
-          const results = await placesApi.search(request)
-          if (!cancelled) {
-            setPlaceSuggestions(results)
-          }
-        } catch (error) {
-          console.error('Failed to fetch suggestions', error)
-          if (!cancelled) {
-            setSuggestionError('Search is unavailable right now. Try again shortly.')
-          }
-        } finally {
-          if (!cancelled) {
-            setIsFetchingSuggestions(false)
-          }
-        }
-      }
-
-      void fetchSuggestions()
-    }, 300)
-
-    return () => {
-      cancelled = true
-      clearTimeout(debounceTimeout)
-    }
-  }, [trimmedQuery, latitude, longitude, isTypeaheadOpen])
-
-  // Filter place suggestions to only show those matching current query
-  const filteredPlaceSuggestions = useMemo(() => {
-    if (!trimmedQuery || trimmedQuery.length < MIN_QUERY_LENGTH) {
-      return []
-    }
-    const lowerQuery = trimmedQuery.toLowerCase()
-    return placeSuggestions.filter((poi) => {
-      const name = (poi.name || '').toLowerCase()
-      const category = (poi.class || '').replace(/_/g, ' ').toLowerCase()
-      return name.includes(lowerQuery) || category.includes(lowerQuery)
-    })
-  }, [placeSuggestions, trimmedQuery])
-
-  useEffect(() => {
     if (pois.length === 0) {
       setSelectedPoiId(null)
       return
@@ -301,21 +406,21 @@ export function Home() {
   const openTypeahead = useCallback(() => {
     setIsTypeaheadOpen(true)
     setSearchQuery('')
-    setPlaceSuggestions([])
     setSuggestionError(null)
     setModalError(null)
+    resetSuggestions()
     setTimeout(() => {
       inputRef.current?.focus()
     }, 0)
-  }, [setIsTypeaheadOpen, setSearchQuery, setPlaceSuggestions, setSuggestionError, setModalError])
+  }, [resetSuggestions, setIsTypeaheadOpen, setModalError, setSearchQuery, setSuggestionError])
 
   const closeTypeahead = useCallback(() => {
     setIsTypeaheadOpen(false)
     setSearchQuery('')
-    setPlaceSuggestions([])
     setSuggestionError(null)
     setModalError(null)
-  }, [setIsTypeaheadOpen, setSearchQuery, setPlaceSuggestions, setSuggestionError, setModalError])
+    resetSuggestions()
+  }, [resetSuggestions, setIsTypeaheadOpen, setModalError, setSearchQuery, setSuggestionError])
 
   const selectPlaceSuggestion = useCallback(
     (poi: POI) => {
@@ -330,11 +435,11 @@ export function Home() {
       // Reset search expansion state (place search, not category)
       setLastSearchCategory(null)
       setLastSearchCenter(null)
-      setHasMapMoved(false)
+      resetMapMovement()
+      setIsPannedAwayFromLocation(false)
     },
     [
       closeTypeahead,
-      setHasMapMoved,
       setIncludeUserLocationInViewport,
       setLastSearchCategory,
       setLastSearchCenter,
@@ -343,219 +448,70 @@ export function Home() {
       setSearchDisplay,
       setSearchError,
       setSelectedPoiId,
+      resetMapMovement,
+      setIsPannedAwayFromLocation,
     ]
   )
 
   // Progressive bbox search: start at high zoom, expand until we find results
-  const searchCategoryProgressive = useCallback(
-    async (
-      className: CategoryKey,
-      centerLat: number,
-      centerLon: number,
-      startZoom: number = INITIAL_ZOOM
-    ): Promise<{ results: POI[]; finalZoom: number }> => {
-      let currentSearchZoom = startZoom
-
-      while (currentSearchZoom >= MIN_ZOOM) {
-        const bbox = calculateBboxFromZoom(centerLat, centerLon, currentSearchZoom)
-
-        try {
-          const results = await placesApi.getBbox({
-            ...bbox,
-            class: className,
-            limit: 100,
-          })
-
-          if (results.length > 0) {
-            return { results, finalZoom: currentSearchZoom }
-          }
-        } catch (error) {
-          console.error(`Bbox search failed at zoom ${currentSearchZoom}`, error)
-          throw error
-        }
-
-        // No results at this zoom, try one level out
-        currentSearchZoom -= 1
-      }
-
-      // Reached minimum zoom with no results
-      return { results: [], finalZoom: MIN_ZOOM }
-    },
-    []
-  )
-
   const selectCategorySuggestion = useCallback(
-    async (className: CategoryKey, label: string) => {
-      if (latitude === null || longitude === null) {
+    (className: CategoryKey, label: string) => {
+      if (!userLocation) {
         setModalError('Enable location services to search nearby categories.')
         return
       }
 
       closeTypeahead()
-      setSearchDisplay(label)
+      setSearchDisplay(`Filter: ${label}`)
       setSearchError(null)
       setSelectedPoiId(null)
-      setIsExpandingSearch(true)
-
-      // Use current map center if available, otherwise fall back to user location
-      const searchLat = mapCenter.lat
-      const searchLon = mapCenter.lon
-
-      // Reset search state
-      setLastSearchCategory(className)
-      setLastSearchCenter({ lat: searchLat, lon: searchLon })
-      setHasMapMoved(false)
-
-      // Always show the user location while running a nearby search (when available)
-      const hasUserLocation = latitude !== null && longitude !== null
-      setIncludeUserLocationInViewport(hasUserLocation)
-
-      try {
-        const { results, finalZoom } = await searchCategoryProgressive(className, searchLat, searchLon)
-
-        setPois(results)
-        setCurrentZoom(finalZoom)
-
-        if (results.length > 0) {
-          setMapCenter({ lat: searchLat, lon: searchLon })
-          setSearchError(null)
-        } else {
-          setSearchError(`No ${label.toLowerCase()} found nearby.`)
-        }
-      } catch (error) {
-        console.error('Failed to load category results', error)
-        setSearchError('Something went wrong while loading results.')
-      } finally {
-        setIsExpandingSearch(false)
-      }
+      setExpandedPoiId(null)
+      setIsPannedAwayFromLocation(false)
+      void searchCategory({ className, label })
     },
     [
       closeTypeahead,
-      latitude,
-      longitude,
-      mapCenter,
-      searchCategoryProgressive,
-      setCurrentZoom,
-      setHasMapMoved,
-      setIncludeUserLocationInViewport,
-      setIsExpandingSearch,
-      setLastSearchCategory,
-      setLastSearchCenter,
-      setMapCenter,
+      searchCategory,
+      setExpandedPoiId,
       setModalError,
-      setPois,
       setSearchDisplay,
       setSearchError,
       setSelectedPoiId,
+      setIsPannedAwayFromLocation,
+      userLocation,
     ]
   )
 
-  const handleSearchAction = useCallback(async () => {
-    if (!lastSearchCategory || !lastSearchCenter) return
+  const handleSearchAction = useCallback(() => {
+    if (isSearching || isFetchingViewportPOIs) return
+    void continueSearch({ hasMapMoved })
+  }, [continueSearch, hasMapMoved, isFetchingViewportPOIs, isSearching])
 
-    setIsExpandingSearch(true)
-    setSearchError(null)
-    const hasUserLocation = latitude !== null && longitude !== null
+  const handleMapMove = useCallback((newView: { lat: number; lon: number; zoom: number }) => {
+    const { lat, lon, zoom } = newView
+    const previousCenter = mapCenter
+    const nextCenter = { lat, lon }
+    setMapCenter(nextCenter)
+    setCurrentZoom(zoom)
 
-    try {
-      if (hasMapMoved && mapBounds) {
-        // "Search Here" - search within current map bounds
-        const bounds = mapBounds
-
-        const results = await placesApi.getBbox({
-          north: bounds.north,
-          south: bounds.south,
-          east: bounds.east,
-          west: bounds.west,
-          class: lastSearchCategory,
-          limit: 100,
-        })
-
-        const centerFromBounds = {
-          lat: (bounds.north + bounds.south) / 2,
-          lon: (bounds.east + bounds.west) / 2,
-        }
-
-        setSkipNextFitBounds(true) // Don't refit bounds when these results arrive
-        setPois(results)
-        setLastSearchCenter(centerFromBounds)
-        setMapCenter(centerFromBounds)
-        setIncludeUserLocationInViewport(hasUserLocation)
-        setHasMapMoved(false)
-
-        if (results.length === 0) {
-          setSearchError('No results found in this area.')
-        }
-      } else {
-        // "Expand Search" - zoom out one level and search
-        const newZoom = Math.max(currentZoom - 1, MIN_ZOOM)
-
-        if (newZoom === currentZoom) {
-          // Already at minimum zoom
-          setSearchError('Already showing maximum search area.')
-          return
-        }
-
-        const bbox = calculateBboxFromZoom(lastSearchCenter.lat, lastSearchCenter.lon, newZoom)
-        const results = await placesApi.getBbox({
-          ...bbox,
-          class: lastSearchCategory,
-          limit: 100,
-        })
-
-        setPois(results)
-        setCurrentZoom(newZoom)
-        setIncludeUserLocationInViewport(hasUserLocation)
-
-        if (results.length === 0) {
-          setSearchError('No additional results found.')
-        }
-      }
-    } catch (error) {
-      console.error('Failed to expand search', error)
-      setSearchError('Something went wrong while searching.')
-    } finally {
-      setIsExpandingSearch(false)
-    }
-  }, [
-    currentZoom,
-    hasMapMoved,
-    lastSearchCategory,
-    lastSearchCenter,
-    mapBounds,
-    setCurrentZoom,
-    setHasMapMoved,
-    latitude,
-    longitude,
-    setIncludeUserLocationInViewport,
-    setLastSearchCenter,
-    setMapCenter,
-    setPois,
-    setIsExpandingSearch,
-    setSearchError,
-    setSkipNextFitBounds,
-  ])
-
-  const handleMapMove = useCallback((newCenter: { lat: number; lon: number }) => {
-    setMapCenter(newCenter)
-
-    // Check if panned away from user location
-    if (latitude !== null && longitude !== null) {
-      const latDiff = Math.abs(newCenter.lat - latitude)
-      const lonDiff = Math.abs(newCenter.lon - longitude)
-      setIsPannedAwayFromLocation(latDiff > MAP_MOVE_THRESHOLD || lonDiff > MAP_MOVE_THRESHOLD)
+    if (userLocation) {
+      const latDiffFromUser = Math.abs(lat - userLocation.lat)
+      const lonDiffFromUser = Math.abs(lon - userLocation.lon)
+      setIsPannedAwayFromLocation(latDiffFromUser > MAP_MOVE_THRESHOLD || lonDiffFromUser > MAP_MOVE_THRESHOLD)
     }
 
-    // Check if panned away from last search center
-    if (!lastSearchCenter) return
+    const referenceCenter = lastSearchCenter ?? previousCenter
+    if (!referenceCenter) {
+      return
+    }
 
-    const latDiff = Math.abs(newCenter.lat - lastSearchCenter.lat)
-    const lonDiff = Math.abs(newCenter.lon - lastSearchCenter.lon)
+    const latDiff = Math.abs(lat - referenceCenter.lat)
+    const lonDiff = Math.abs(lon - referenceCenter.lon)
 
     if (latDiff > MAP_MOVE_THRESHOLD || lonDiff > MAP_MOVE_THRESHOLD) {
       setHasMapMoved(true)
     }
-  }, [lastSearchCenter, latitude, longitude, setMapCenter, setHasMapMoved])
+  }, [lastSearchCenter, mapCenter, setCurrentZoom, setHasMapMoved, setIsPannedAwayFromLocation, setMapCenter, userLocation])
 
   const handleMapBoundsChange = useCallback((bounds: { north: number; south: number; east: number; west: number }) => {
     const prev = mapBounds
@@ -608,10 +564,11 @@ export function Home() {
 
   const handleClearResults = useCallback(() => {
     clearResults()
-    setHasMapMoved(false)
+    resetMapMovement()
     setSkipNextFitBounds(false)
     setSearchError(null)
-  }, [clearResults, setHasMapMoved, setSkipNextFitBounds, setSearchError])
+    setIsPannedAwayFromLocation(false)
+  }, [clearResults, resetMapMovement, setIsPannedAwayFromLocation, setSkipNextFitBounds, setSearchError])
 
   const renderSuggestion = (suggestion: Suggestion, index: number) => {
     if (suggestion.kind === 'category') {
@@ -628,10 +585,13 @@ export function Home() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900">{highlightText(suggestion.label, trimmedQuery)}</p>
-              <p className="text-xs text-gray-500">Category</p>
+              <p className="text-xs text-gray-500">Filter • Category</p>
             </div>
           </div>
-          <IconChevronRight size={16} className="text-gray-400" />
+          <div className="flex items-center space-x-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-primary-600">Filter</span>
+            <IconChevronRight size={16} className="text-gray-400" />
+          </div>
         </button>
       )
     }
@@ -641,8 +601,8 @@ export function Home() {
 
     // Calculate distance if user location is available
     let distance: number | undefined
-    if (latitude !== null && longitude !== null) {
-      distance = calculateDistance(latitude, longitude, suggestion.poi.lat, suggestion.poi.lon)
+    if (userLocation) {
+      distance = calculateDistance(userLocation.lat, userLocation.lon, suggestion.poi.lat, suggestion.poi.lon)
     }
 
     return (
@@ -660,14 +620,17 @@ export function Home() {
               {highlightText(suggestion.poi.name || 'Unnamed location', trimmedQuery)}
             </p>
             <p className="text-xs text-gray-500 capitalize">
-              {suggestion.poi.class?.replace(/_/g, ' ') || 'POI'}
+              Search result • {suggestion.poi.class?.replace(/_/g, ' ') || 'POI'}
               {distance !== undefined && (
                 <span className="text-gray-400"> • {formatDistance(distance)}</span>
               )}
             </p>
           </div>
         </div>
-        <IconChevronRight size={16} className="text-gray-400 flex-shrink-0" />
+        <div className="flex items-center space-x-1 text-gray-400 flex-shrink-0">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Result</span>
+          <IconChevronRight size={16} />
+        </div>
       </button>
     )
   }
@@ -677,10 +640,10 @@ export function Home() {
     ...filteredPlaceSuggestions.map((poi) => ({ kind: 'place' as const, poi })),
   ]
 
-  const isLocationReady = latitude !== null && longitude !== null && hasCenteredOnLocation
-  const userLocation = isLocationReady ? { lat: latitude, lon: longitude } : null
+  const isLocationReady = Boolean(userLocation) && hasCenteredOnLocation
+  const mapUserLocation = isLocationReady ? userLocation : null
   const shouldRenderMap = isLocationReady || pois.length > 0
-  const highlightTerm = trimmedQuery.length >= MIN_QUERY_LENGTH ? trimmedQuery : undefined
+  const highlightTerm = hasMinimumQuery ? trimmedQuery : undefined
 
   // Calculate visible POIs within current map bounds
   const visiblePoisCount = useMemo(() => {
@@ -708,32 +671,25 @@ export function Home() {
 
   const hasResults = pois.length > 0
   const shouldShowClearButton = hasResults && !isTypeaheadOpen
-  const shouldShowBottomBar = hasResults || isLoadingInitialPOIs
+  const shouldShowBottomBar = shouldRenderMap || isLoadingInitialPOIs || isFetchingViewportPOIs
   // Show recenter when panned away, regardless of other buttons
-  const shouldShowRecenterButton = isPannedAwayFromLocation && latitude !== null && longitude !== null
-  const searchPlaceholder = isPannedAwayFromLocation ? 'Search here' : 'Search nearby'
+  const shouldShowRecenterButton = isPannedAwayFromLocation && Boolean(userLocation)
+  const searchPlaceholder = isPannedAwayFromLocation ? 'Search / filter here' : 'Search / filter nearby'
   const displayedSearchLabel =
     searchDisplay && searchDisplay !== DEFAULT_SEARCH_DISPLAY ? searchDisplay : searchPlaceholder
 
   const handleRecenter = useCallback(() => {
-    if (latitude === null || longitude === null) return
+    if (!userLocation) return
 
-    // Clear any active search to ensure map recenters properly
     if (hasResults) {
       clearResults()
     }
 
-    // Set center and reset panned state IMMEDIATELY before the map moves
-    // This ensures the placeholder updates right away
     setIsPannedAwayFromLocation(false)
-    setMapCenter({ lat: latitude, lon: longitude })
-
-    // Reset zoom to initial zoom level
+    setMapCenter(userLocation)
     setCurrentZoom(INITIAL_ZOOM)
-
-    // Also clear search display to show default placeholder
     setSearchDisplay('')
-  }, [latitude, longitude, hasResults, clearResults, setMapCenter, setSearchDisplay, setCurrentZoom])
+  }, [userLocation, hasResults, clearResults, setIsPannedAwayFromLocation, setMapCenter, setSearchDisplay, setCurrentZoom])
 
   return (
     <div className="flex flex-col w-full h-full">
@@ -744,7 +700,7 @@ export function Home() {
             center={mapCenter}
             pois={pois}
             selectedPoiId={selectedPoiId || undefined}
-            userLocation={userLocation}
+            userLocation={mapUserLocation}
             skipFitBounds={skipNextFitBounds || isInitialShowAllRef.current}
             includeUserLocationInFitBounds={includeUserLocationInViewport}
             desiredZoom={currentZoom}
@@ -815,12 +771,12 @@ export function Home() {
               <button
                 type="button"
                 onClick={handleSearchAction}
-                disabled={isExpandingSearch}
+                disabled={isSearching || isFetchingViewportPOIs}
                 className="p-3 bg-white border border-gray-200 rounded-full shadow-lg hover:shadow-xl transition disabled:opacity-50 flex-shrink-0"
-                aria-label={hasMapMoved ? 'Search this area' : 'Expand search area'}
-                title={hasMapMoved ? 'Search Here' : 'Expand Search'}
+                aria-label={hasMapMoved ? 'Search or filter this area' : 'Expand search or filters'}
+                title={hasMapMoved ? 'Search or filter here' : 'Expand search or filters'}
               >
-                {isExpandingSearch ? (
+                {isSearching || isFetchingViewportPOIs ? (
                   <IconLoader2 size={18} className="animate-spin text-gray-600" />
                 ) : hasMapMoved ? (
                   <IconMapSearch size={18} className="text-primary-600" />
@@ -863,19 +819,25 @@ export function Home() {
               className="w-full bg-white border-t-2 border-gray-200 px-4 py-3 flex items-center justify-between shadow-lg hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center space-x-2">
-                {isLoadingInitialPOIs ? (
+                {isLoadingInitialPOIs || isFetchingViewportPOIs ? (
                   <>
                     <IconLoader2 size={18} className="animate-spin text-primary-600" />
-                    <span className="text-sm font-medium text-gray-700">Loading places...</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {isLoadingInitialPOIs ? 'Loading places...' : 'Updating places...'}
+                    </span>
                   </>
-                ) : (
+                ) : hasResults ? (
                   <span className="text-sm font-medium text-gray-900">
                     {pois.length} {pois.length === 1 ? 'place' : 'places'}
                     {pois.length >= 100 && <span className="text-xs font-normal text-amber-600 ml-1">(max)</span>}
                   </span>
+                ) : (
+                  <span className="text-sm font-medium text-gray-500">
+                    No places in this area
+                  </span>
                 )}
               </div>
-              {!isLoadingInitialPOIs && (
+              {!(isLoadingInitialPOIs || isFetchingViewportPOIs) && (
                 isResultsExpanded ? (
                   <IconChevronDown size={20} className="text-gray-600" />
                 ) : (
@@ -896,28 +858,34 @@ export function Home() {
                   </div>
                 )}
                 <div className="px-4 py-2">
-                  {pois.map((poi) => {
-                    const poiKey = `${poi.osm_type}-${poi.osm_id}`
-                    const isActiveCard = selectedPoiId === poiKey
-                    const isExpandedCard = expandedPoiId === poiKey
+                  {hasResults ? (
+                    pois.map((poi) => {
+                      const poiKey = `${poi.osm_type}-${poi.osm_id}`
+                      const isActiveCard = selectedPoiId === poiKey
+                      const isExpandedCard = expandedPoiId === poiKey
 
-                    return (
-                      <div
-                        key={poiKey}
-                        className="mb-3 last:mb-0"
-                        id={`poi-card-${poiKey}`}
-                      >
-                        <POICard
-                          poi={poi}
-                          onClick={() => handleCardClick(poi)}
-                          onDetailsClick={() => handleCheckIn(poi)}
-                          highlight={highlightTerm}
-                          isActive={isActiveCard}
-                          isExpanded={isExpandedCard}
-                        />
-                      </div>
-                    )
-                  })}
+                      return (
+                        <div
+                          key={poiKey}
+                          className="mb-3 last:mb-0"
+                          id={`poi-card-${poiKey}`}
+                        >
+                          <POICard
+                            poi={poi}
+                            onClick={() => handleCardClick(poi)}
+                            onDetailsClick={() => handleCheckIn(poi)}
+                            highlight={highlightTerm}
+                            isActive={isActiveCard}
+                            isExpanded={isExpandedCard}
+                          />
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      No places match this area. Pan the map or adjust filters to see results.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -943,7 +911,7 @@ export function Home() {
                 type="text"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search for places or categories"
+                placeholder="Search or filter places and categories"
                 className="w-full pl-9 pr-12 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 style={{ fontSize: '16px' }}
               />
@@ -966,14 +934,14 @@ export function Home() {
               </div>
             )}
             <div className="py-2">
-              {combinedSuggestions.length === 0 && trimmedQuery.length < MIN_QUERY_LENGTH && (
+              {combinedSuggestions.length === 0 && !hasMinimumQuery && (
                 <div className="px-4 py-8 text-center text-sm text-gray-500 space-y-2">
                   <IconCategory size={32} className="mx-auto text-gray-300" />
                   <p>Start typing to search for places or explore popular categories below.</p>
                 </div>
               )}
 
-              {combinedSuggestions.length === 0 && trimmedQuery.length >= MIN_QUERY_LENGTH && !isFetchingSuggestions && (
+              {combinedSuggestions.length === 0 && hasMinimumQuery && !isFetchingSuggestions && (
                 <div className="px-4 py-8 text-center text-sm text-gray-500 space-y-2">
                   <IconMapSearch size={32} className="mx-auto text-gray-300" />
                   <p>No matches yet. Try a different name or category.</p>
@@ -988,7 +956,7 @@ export function Home() {
               {categorySuggestions.length > 0 && (
                 <div className="mb-2">
                   <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Categories</h3>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Filters</h3>
                   </div>
                   {categorySuggestions.map((suggestion, index) => renderSuggestion(suggestion, index))}
                 </div>
@@ -998,7 +966,7 @@ export function Home() {
               {filteredPlaceSuggestions.length > 0 && (
                 <div className="mb-2">
                   <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Places</h3>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Search Results</h3>
                   </div>
                   {filteredPlaceSuggestions.map((poi, index) => renderSuggestion({ kind: 'place', poi }, index))}
                 </div>
