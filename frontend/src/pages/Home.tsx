@@ -4,6 +4,8 @@ import {
   IconX,
   IconLoader2,
   IconChevronRight,
+  IconChevronUp,
+  IconChevronDown,
   IconCategory,
   IconMapSearch,
   IconRadar,
@@ -105,8 +107,11 @@ export function Home() {
   const [hasMapMoved, setHasMapMoved] = useState(false)
   const [skipNextFitBounds, setSkipNextFitBounds] = useState(false)
   const [isPannedAwayFromLocation, setIsPannedAwayFromLocation] = useState(false)
+  const [isResultsExpanded, setIsResultsExpanded] = useState(false)
+  const [isLoadingInitialPOIs, setIsLoadingInitialPOIs] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const hasRestoredSnapshotRef = useRef(false)
+  const isInitialShowAllRef = useRef(false)
 
   // Restore map snapshot on mount (if returning from place details)
   useEffect(() => {
@@ -134,6 +139,54 @@ export function Home() {
       setHasCenteredOnLocation(true)
     }
   }, [latitude, longitude, hasCenteredOnLocation, pois.length, setMapCenter])
+
+  // Fetch all places in the current viewport on initial load
+  useEffect(() => {
+    // Only fetch if:
+    // 1. We have map bounds
+    // 2. We don't have any POIs yet
+    // 3. We're not in the middle of a search
+    // 4. Map has been centered on location
+    if (
+      mapBounds &&
+      pois.length === 0 &&
+      !isExpandingSearch &&
+      hasCenteredOnLocation &&
+      !lastSearchCategory
+    ) {
+      // Set ref BEFORE starting async operation
+      isInitialShowAllRef.current = true
+
+      // Set loading state immediately so bottom bar appears
+      setIsLoadingInitialPOIs(true)
+
+      const fetchInitialPOIs = async () => {
+        try {
+          const results = await placesApi.getBbox({
+            north: mapBounds.north,
+            south: mapBounds.south,
+            east: mapBounds.east,
+            west: mapBounds.west,
+            limit: 100,
+          })
+          setPois(results)
+          setSearchDisplay('All places nearby')
+          // Reset the ref after a short delay to allow SearchMap to process with skipFitBounds=true
+          setTimeout(() => {
+            isInitialShowAllRef.current = false
+          }, 100)
+        } catch (error) {
+          console.error('Failed to fetch initial POIs', error)
+          setSearchError('Failed to load nearby places')
+          isInitialShowAllRef.current = false
+        } finally {
+          setIsLoadingInitialPOIs(false)
+        }
+      }
+
+      void fetchInitialPOIs()
+    }
+  }, [mapBounds, pois.length, isExpandingSearch, hasCenteredOnLocation, lastSearchCategory, setPois, setSearchDisplay, setIsLoadingInitialPOIs, setSearchError])
 
   const categoryList = useMemo(
     () =>
@@ -655,6 +708,7 @@ export function Home() {
 
   const hasResults = pois.length > 0
   const shouldShowClearButton = hasResults && !isTypeaheadOpen
+  const shouldShowBottomBar = hasResults || isLoadingInitialPOIs
   // Show recenter when panned away, regardless of other buttons
   const shouldShowRecenterButton = isPannedAwayFromLocation && latitude !== null && longitude !== null
   const searchPlaceholder = isPannedAwayFromLocation ? 'Search here' : 'Search nearby'
@@ -683,24 +737,25 @@ export function Home() {
 
   return (
     <div className="flex flex-col w-full h-full">
-      {/* Map Container - Dynamic height */}
-      <div
-        className="relative transition-all duration-300 ease-in-out"
-        style={{ height: hasResults ? '60%' : '100%' }}
-      >
+      {/* Map Container - Always 100% height */}
+      <div className="relative w-full h-full">
         {shouldRenderMap ? (
           <SearchMap
             center={mapCenter}
             pois={pois}
             selectedPoiId={selectedPoiId || undefined}
             userLocation={userLocation}
-            skipFitBounds={skipNextFitBounds}
+            skipFitBounds={skipNextFitBounds || isInitialShowAllRef.current}
             includeUserLocationInFitBounds={includeUserLocationInViewport}
             desiredZoom={currentZoom}
             onMarkerClick={handleMarkerClick}
             onMapMove={handleMapMove}
             onMapBoundsChange={handleMapBoundsChange}
-            onFitBoundsComplete={() => setSkipNextFitBounds(false)}
+            onFitBoundsComplete={() => {
+              setSkipNextFitBounds(false)
+              // Don't reset isInitialShowAllRef here - let it reset after a delay
+              // to prevent the effect from running twice
+            }}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-600 space-y-3">
@@ -798,52 +853,77 @@ export function Home() {
           )}
         </div>
 
-      </div>
+        {/* Persistent Bottom Bar */}
+        {shouldShowBottomBar && !isTypeaheadOpen && (
+          <div className="absolute bottom-0 left-0 right-0 z-10">
+            {/* Collapsed Bar - Always visible */}
+            <button
+              type="button"
+              onClick={() => setIsResultsExpanded(!isResultsExpanded)}
+              className="w-full bg-white border-t-2 border-gray-200 px-4 py-3 flex items-center justify-between shadow-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center space-x-2">
+                {isLoadingInitialPOIs ? (
+                  <>
+                    <IconLoader2 size={18} className="animate-spin text-primary-600" />
+                    <span className="text-sm font-medium text-gray-700">Loading places...</span>
+                  </>
+                ) : (
+                  <span className="text-sm font-medium text-gray-900">
+                    {pois.length} {pois.length === 1 ? 'place' : 'places'}
+                    {pois.length >= 100 && <span className="text-xs font-normal text-amber-600 ml-1">(max)</span>}
+                  </span>
+                )}
+              </div>
+              {!isLoadingInitialPOIs && (
+                isResultsExpanded ? (
+                  <IconChevronDown size={20} className="text-gray-600" />
+                ) : (
+                  <IconChevronUp size={20} className="text-gray-600" />
+                )
+              )}
+            </button>
 
-      {/* Fixed Results List - Slides in when there are results */}
-      {hasResults && (
-        <div
-          className="flex flex-col border-t-2 border-gray-200 bg-white shadow-lg transition-all duration-300 ease-in-out animate-slide-up"
-          style={{ height: '40%' }}
-        >
-          {/* Results Header */}
-          <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center justify-between">
-              <h3 className={`text-sm font-semibold ${pois.length >= 100 ? 'text-amber-700' : 'text-gray-900'}`}>
-                {pois.length} {pois.length === 1 ? 'Result' : 'Results'}
-                {pois.length >= 100 && <span className="text-xs font-normal text-amber-600 ml-1">(max)</span>}
-              </h3>
-              {searchError && <p className="text-xs text-red-600">{searchError}</p>}
-            </div>
-          </div>
+            {/* Expanded Results Panel */}
+            {isResultsExpanded && !isLoadingInitialPOIs && (
+              <div
+                className="bg-white border-t border-gray-200 overflow-y-auto animate-slide-up"
+                style={{ maxHeight: '40vh' }}
+              >
+                {searchError && (
+                  <div className="px-4 py-2 bg-red-50 border-b border-red-100">
+                    <p className="text-xs text-red-600">{searchError}</p>
+                  </div>
+                )}
+                <div className="px-4 py-2">
+                  {pois.map((poi) => {
+                    const poiKey = `${poi.osm_type}-${poi.osm_id}`
+                    const isActiveCard = selectedPoiId === poiKey
+                    const isExpandedCard = expandedPoiId === poiKey
 
-          {/* Scrollable Results */}
-          <div className="flex-1 overflow-y-auto px-4 py-2">
-            {pois.map((poi) => {
-              const poiKey = `${poi.osm_type}-${poi.osm_id}`
-              const isActiveCard = selectedPoiId === poiKey
-              const isExpandedCard = expandedPoiId === poiKey
-
-              return (
-                <div
-                  key={poiKey}
-                  className="mb-3 last:mb-0"
-                  id={`poi-card-${poiKey}`}
-                >
-                  <POICard
-                    poi={poi}
-                    onClick={() => handleCardClick(poi)}
-                    onDetailsClick={() => handleCheckIn(poi)}
-                    highlight={highlightTerm}
-                    isActive={isActiveCard}
-                    isExpanded={isExpandedCard}
-                  />
+                    return (
+                      <div
+                        key={poiKey}
+                        className="mb-3 last:mb-0"
+                        id={`poi-card-${poiKey}`}
+                      >
+                        <POICard
+                          poi={poi}
+                          onClick={() => handleCardClick(poi)}
+                          onDetailsClick={() => handleCheckIn(poi)}
+                          highlight={highlightTerm}
+                          isActive={isActiveCard}
+                          isExpanded={isExpandedCard}
+                        />
+                      </div>
+                    )
+                  })}
                 </div>
-              )
-            })}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Typeahead overlay */}
       {isTypeaheadOpen && (

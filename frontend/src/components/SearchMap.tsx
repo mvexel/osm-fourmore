@@ -30,7 +30,7 @@ interface SearchMapProps {
 const DEFAULT_VIEW = {
   latitude: 40.7128,
   longitude: -74.006,
-  zoom: 17,
+  zoom: 16,
 }
 
 export function SearchMap({
