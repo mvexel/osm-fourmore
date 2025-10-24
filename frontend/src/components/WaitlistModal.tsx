@@ -34,7 +34,7 @@ export function WaitlistModal({ message, email, onClose }: WaitlistModalProps) {
               href={`mailto:${email}?subject=FourMore%20Beta%20Access%20Request`}
               className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors"
             >
-              Email {email}
+              Email Martijn
             </a>
           </div>
           <button
