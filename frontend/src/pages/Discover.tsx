@@ -10,14 +10,30 @@ type ViewMode = 'map' | 'list'
 const SWITCHER_BUTTON_BASE = 'flex-1 flex items-center justify-center space-x-1 py-1.5 px-2 min-[400px]:px-3 rounded-md text-xs font-medium transition-all'
 const SWITCHER_BUTTON_ACTIVE = 'bg-primary-600 text-white'
 const SWITCHER_BUTTON_INACTIVE = 'text-gray-600 hover:text-gray-900'
+const VIEW_MODE_STORAGE_KEY = 'discoverViewMode'
+
+const getInitialViewMode = (): ViewMode => {
+  if (typeof window === 'undefined') {
+    return 'map'
+  }
+  const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY)
+  return stored === 'list' || stored === 'map' ? stored : 'map'
+}
 
 export function Discover() {
-  const [viewMode, setViewMode] = useState<ViewMode>('map')
+  const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode)
   const [headerCenter, setHeaderCenter] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
     setHeaderCenter(document.getElementById('header-center'))
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode)
+  }, [viewMode])
 
   const toggle = (
     <div className="inline-flex bg-gray-100 rounded-lg p-0.5">

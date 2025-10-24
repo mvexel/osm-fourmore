@@ -46,7 +46,7 @@ interface HomeState {
 
 const DEFAULT_CENTER = { lat: 40.7128, lon: -74.006 } // New York City fallback
 export const DEFAULT_SEARCH_DISPLAY = 'Search nearby'
-const INITIAL_ZOOM = 17
+const INITIAL_ZOOM = 16
 
 const initialState = {
     mapCenter: DEFAULT_CENTER,
