@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre'
 import type {
   MapRef,
@@ -22,7 +22,7 @@ interface SearchMapProps {
   includeUserLocationInFitBounds?: boolean
   desiredZoom?: number // Optional zoom level for recenter operations
   onMarkerClick?: (poi: POI) => void
-  onMapMove?: (center: { lat: number; lon: number }) => void
+  onMapMove?: (view: { lat: number; lon: number; zoom: number }) => void
   onMapBoundsChange?: (bounds: { north: number; south: number; east: number; west: number }) => void
   onFitBoundsComplete?: () => void
 }
@@ -31,6 +31,43 @@ const DEFAULT_VIEW = {
   latitude: 40.7128,
   longitude: -74.006,
   zoom: 16,
+}
+
+
+function useProgrammaticMove(mapRef: MutableRefObject<MapRef | null>) {
+  const isProgrammaticMoveRef = useRef(false)
+  const completionRef = useRef<(() => void) | null>(null)
+
+  const run = useCallback((action: (mapInstance: MapInstance) => void, options: { onComplete?: () => void } = {}) => {
+    const map = mapRef.current?.getMap()
+    if (!map) {
+      return
+    }
+
+    isProgrammaticMoveRef.current = true
+    completionRef.current = options.onComplete ?? null
+
+    try {
+      action(map)
+    } catch (error) {
+      isProgrammaticMoveRef.current = false
+      completionRef.current = null
+      throw error
+    }
+  }, [mapRef])
+
+  const consume = useCallback(() => {
+    if (!isProgrammaticMoveRef.current) {
+      return false
+    }
+
+    completionRef.current?.()
+    completionRef.current = null
+    isProgrammaticMoveRef.current = false
+    return true
+  }, [])
+
+  return { run, consume }
 }
 
 export function SearchMap({
@@ -49,8 +86,7 @@ export function SearchMap({
 }: SearchMapProps) {
   const mapRef = useRef<MapRef>(null)
   const [isMapReady, setIsMapReady] = useState(false)
-  const isProgrammaticMoveRef = useRef(false)
-  const pendingCompletionRef = useRef<(() => void) | null>(null)
+  const { run: withProgrammaticMove, consume: consumeProgrammaticMove } = useProgrammaticMove(mapRef)
   const lastBoundsSignatureRef = useRef<string>('')
   const lastEmptyCenterRef = useRef<{ lat: number; lon: number; zoom?: number } | null>(null)
   const lastSelectionSignatureRef = useRef<string | null>(null)
@@ -66,30 +102,6 @@ export function SearchMap({
     return DEFAULT_VIEW
   }, [center])
 
-  const markProgrammaticMove = useCallback(
-    (
-      action: (mapInstance: MapInstance) => void,
-      options: { onComplete?: () => void } = {}
-    ) => {
-      const map = mapRef.current?.getMap()
-      if (!map) {
-        return
-      }
-
-      isProgrammaticMoveRef.current = true
-      pendingCompletionRef.current = options.onComplete ?? null
-
-      try {
-        action(map)
-      } catch (error) {
-        isProgrammaticMoveRef.current = false
-        pendingCompletionRef.current = null
-        throw error
-      }
-    },
-    []
-  )
-
   // Handle center changes when there are no POIs (e.g., recenter button)
   useEffect(() => {
     if (!isMapReady) {
@@ -101,12 +113,12 @@ export function SearchMap({
       return
     }
 
-    const prev = lastEmptyCenterRef.current
+    const previous = lastEmptyCenterRef.current
     const centerChanged =
-      !prev ||
-      Math.abs(prev.lat - center.lat) >= 0.00001 ||
-      Math.abs(prev.lon - center.lon) >= 0.00001 ||
-      prev.zoom !== desiredZoom
+      !previous ||
+      Math.abs(previous.lat - center.lat) >= 0.00001 ||
+      Math.abs(previous.lon - center.lon) >= 0.00001 ||
+      previous.zoom !== desiredZoom
 
     if (!centerChanged) {
       return
@@ -114,22 +126,15 @@ export function SearchMap({
 
     lastEmptyCenterRef.current = { lat: center.lat, lon: center.lon, zoom: desiredZoom }
 
-    markProgrammaticMove((map) => {
-      const targetZoom = desiredZoom !== undefined ? desiredZoom : map.getZoom()
+    withProgrammaticMove((map) => {
+      const targetZoom = desiredZoom ?? map.getZoom()
       map.easeTo({
         center: [center.lon, center.lat],
         zoom: targetZoom,
         duration: 500,
       })
     })
-  }, [center.lat, center.lon, desiredZoom, isMapReady, markProgrammaticMove, pois.length])
-
-  const formatCoordinate = useCallback((value: number | undefined) => {
-    if (value === undefined) {
-      return 'na'
-    }
-    return value.toFixed(6)
-  }, [])
+  }, [center.lat, center.lon, desiredZoom, isMapReady, pois.length, withProgrammaticMove])
 
   const selectedPoi = useMemo(() => {
     if (!selectedPoiId) {
@@ -146,13 +151,13 @@ export function SearchMap({
       return
     }
 
-    const selectionSignature = `${selectedPoiId}:${selectedPoi.lat.toFixed(6)}:${selectedPoi.lon.toFixed(6)}`
-    if (lastSelectionSignatureRef.current === selectionSignature) {
+    const signature = `${selectedPoiId}:${selectedPoi.lat.toFixed(6)}:${selectedPoi.lon.toFixed(6)}`
+    if (lastSelectionSignatureRef.current === signature) {
       return
     }
-    lastSelectionSignatureRef.current = selectionSignature
+    lastSelectionSignatureRef.current = signature
 
-    markProgrammaticMove((map) => {
+    withProgrammaticMove((map) => {
       const currentZoom = map.getZoom()
       map.easeTo({
         center: [selectedPoi.lon, selectedPoi.lat],
@@ -160,7 +165,7 @@ export function SearchMap({
         duration: 500,
       })
     })
-  }, [isMapReady, markProgrammaticMove, selectedPoi, selectedPoiId])
+  }, [isMapReady, selectedPoi, selectedPoiId, withProgrammaticMove])
 
   useEffect(() => {
     if (pois.length === 0) {
@@ -169,52 +174,45 @@ export function SearchMap({
   }, [pois.length])
 
   useEffect(() => {
-    if (!isMapReady) {
+    if (!isMapReady || selectedPoiId || pois.length === 0) {
       return
     }
 
-    if (selectedPoiId) {
+    const snapshot = JSON.stringify({
+      pois: pois.map((poi) => ({
+        id: `${poi.osm_type}-${poi.osm_id}`,
+        lat: Number(poi.lat.toFixed(6)),
+        lon: Number(poi.lon.toFixed(6)),
+      })),
+      user: userLocation
+        ? {
+          lat: Number(userLocation.lat.toFixed(6)),
+          lon: Number(userLocation.lon.toFixed(6)),
+        }
+        : null,
+      radius: searchRadius ?? null,
+      includeUserLocationInFitBounds,
+    })
+
+    if (snapshot === lastBoundsSignatureRef.current) {
       return
     }
 
-    if (pois.length === 0) {
-      return
-    }
-
-    const poiSignature = pois
-      .map((poi) => `${poi.osm_type}:${poi.osm_id}:${formatCoordinate(poi.lat)}:${formatCoordinate(poi.lon)}`)
-      .join('|') || 'none'
-    const userSignature = userLocation
-      ? `${formatCoordinate(userLocation.lat)}:${formatCoordinate(userLocation.lon)}`
-      : 'none'
-    const radiusSignature = searchRadius !== undefined ? String(searchRadius) : 'none'
-    const includeSignature = includeUserLocationInFitBounds ? '1' : '0'
-    const skipSignature = skipFitBounds ? '1' : '0'
-    const combinedSignature = [poiSignature, userSignature, radiusSignature, includeSignature, skipSignature].join(';')
-
-    if (combinedSignature === lastBoundsSignatureRef.current) {
-      return
-    }
-
-    lastBoundsSignatureRef.current = combinedSignature
+    lastBoundsSignatureRef.current = snapshot
 
     if (skipFitBounds) {
-      onFitBoundsComplete?.()
       return
     }
 
     const bounds = new LngLatBounds()
 
     if (searchRadius && userLocation) {
-      // Use search radius to create bounds for a circular area
-      // Approximate: 1 degree latitude ≈ 111km, longitude varies by latitude
-      const latOffset = (searchRadius / 1000) / 111 // convert meters to degrees
+      const latOffset = (searchRadius / 1000) / 111
       const lonOffset = (searchRadius / 1000) / (111 * Math.cos(userLocation.lat * Math.PI / 180))
 
       bounds.extend([userLocation.lon - lonOffset, userLocation.lat - latOffset])
       bounds.extend([userLocation.lon + lonOffset, userLocation.lat + latOffset])
     } else {
-      // Fallback to fitting all POIs
       pois.forEach((poi) => {
         bounds.extend([poi.lon, poi.lat])
       })
@@ -224,7 +222,7 @@ export function SearchMap({
       }
     }
 
-    markProgrammaticMove(
+    withProgrammaticMove(
       (map) => {
         map.fitBounds(bounds as LngLatBoundsLike, {
           padding: { top: 120, bottom: 80, left: 50, right: 50 },
@@ -235,18 +233,16 @@ export function SearchMap({
       { onComplete: onFitBoundsComplete }
     )
   }, [
-    formatCoordinate,
     includeUserLocationInFitBounds,
     isMapReady,
-    markProgrammaticMove,
     onFitBoundsComplete,
     pois,
     searchRadius,
     selectedPoiId,
     skipFitBounds,
     userLocation,
+    withProgrammaticMove,
   ])
-
   const handleMapLoad = () => {
     setIsMapReady(true)
   }
@@ -267,16 +263,13 @@ export function SearchMap({
     }
 
     // Only trigger onMapMove for user-initiated moves, not programmatic ones
-    if (isProgrammaticMoveRef.current) {
-      pendingCompletionRef.current?.()
-      pendingCompletionRef.current = null
-      isProgrammaticMoveRef.current = false
+    if (consumeProgrammaticMove()) {
       return
     }
 
     if (onMapMove) {
       const center = map.getCenter()
-      onMapMove({ lat: center.lat, lon: center.lng })
+      onMapMove({ lat: center.lat, lon: center.lng, zoom: map.getZoom() })
     }
   }
 
