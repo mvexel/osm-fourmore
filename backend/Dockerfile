@@ -22,6 +22,8 @@ COPY .env* ./
 
 # Copy application code
 COPY backend/app/ ./app/
+COPY fourmore_shared/ ./fourmore_shared/
+COPY data-pipeline/category_mapping.json ./data-pipeline/
 
 # Create non-root user
 RUN useradd -m -u 1000 fourmore && chown -R fourmore:fourmore /app
