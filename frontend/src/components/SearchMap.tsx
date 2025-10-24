@@ -25,6 +25,8 @@ interface SearchMapProps {
   onMapMove?: (view: { lat: number; lon: number; zoom: number }) => void
   onMapBoundsChange?: (bounds: { north: number; south: number; east: number; west: number }) => void
   onFitBoundsComplete?: () => void
+  onMapClick?: () => void
+  bottomOverlayHeight?: number
 }
 
 const DEFAULT_VIEW = {
@@ -32,6 +34,13 @@ const DEFAULT_VIEW = {
   longitude: -74.006,
   zoom: 16,
 }
+
+const MAP_PADDING = {
+  top: 80,
+  bottom: 40,
+  left: 20,
+  right: 20,
+} as const
 
 
 function useProgrammaticMove(mapRef: MutableRefObject<MapRef | null>) {
@@ -83,6 +92,8 @@ export function SearchMap({
   onMapMove,
   onMapBoundsChange,
   onFitBoundsComplete,
+  onMapClick,
+  bottomOverlayHeight = 0,
 }: SearchMapProps) {
   const mapRef = useRef<MapRef>(null)
   const [isMapReady, setIsMapReady] = useState(false)
@@ -151,7 +162,8 @@ export function SearchMap({
       return
     }
 
-    const signature = `${selectedPoiId}:${selectedPoi.lat.toFixed(6)}:${selectedPoi.lon.toFixed(6)}`
+    const overlayKey = bottomOverlayHeight.toFixed(3)
+    const signature = `${selectedPoiId}:${selectedPoi.lat.toFixed(6)}:${selectedPoi.lon.toFixed(6)}:${overlayKey}`
     if (lastSelectionSignatureRef.current === signature) {
       return
     }
@@ -159,13 +171,23 @@ export function SearchMap({
 
     withProgrammaticMove((map) => {
       const currentZoom = map.getZoom()
-      map.easeTo({
+      // Negative offset moves the visual center up, effectively panning the map down
+      // to keep the POI visible above the drawer. We offset by half the drawer height
+      // to center the POI in the visible area above the drawer.
+      const bottomOffset = bottomOverlayHeight > 0 ? -bottomOverlayHeight / 2 : 0
+      const cameraOptions: Parameters<MapInstance['easeTo']>[0] = {
         center: [selectedPoi.lon, selectedPoi.lat],
         zoom: Math.max(currentZoom, 15),
         duration: 500,
-      })
+      }
+
+      if (bottomOffset !== 0) {
+        cameraOptions.offset = [0, bottomOffset]
+      }
+
+      map.easeTo(cameraOptions)
     })
-  }, [isMapReady, selectedPoi, selectedPoiId, withProgrammaticMove])
+  }, [bottomOverlayHeight, isMapReady, selectedPoi, selectedPoiId, withProgrammaticMove])
 
   useEffect(() => {
     if (pois.length === 0) {
@@ -222,10 +244,17 @@ export function SearchMap({
       }
     }
 
+    const fitBoundsPadding = {
+      top: 120,
+      bottom: Math.max(80, bottomOverlayHeight),
+      left: 50,
+      right: 50,
+    }
+
     withProgrammaticMove(
       (map) => {
         map.fitBounds(bounds as LngLatBoundsLike, {
-          padding: { top: 120, bottom: 80, left: 50, right: 50 },
+          padding: fitBoundsPadding,
           maxZoom: 16,
           duration: 700,
         })
@@ -235,6 +264,7 @@ export function SearchMap({
   }, [
     includeUserLocationInFitBounds,
     isMapReady,
+    bottomOverlayHeight,
     onFitBoundsComplete,
     pois,
     searchRadius,
@@ -286,7 +316,8 @@ export function SearchMap({
       attributionControl={false}
       onLoad={handleMapLoad}
       onMoveEnd={handleMoveEnd}
-      padding={{ top: 80, bottom: 40, left: 20, right: 20 }}
+      onClick={() => onMapClick?.()}
+      padding={MAP_PADDING}
     >
       {userLocation && (
         <Marker longitude={userLocation.lon} latitude={userLocation.lat} anchor="center">
