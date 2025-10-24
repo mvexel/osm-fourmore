@@ -114,6 +114,8 @@ export function Home() {
   const [isResultsExpanded, setIsResultsExpanded] = useState(false)
   const [isLoadingInitialPOIs, setIsLoadingInitialPOIs] = useState(false)
   const [isFetchingViewportPOIs, setIsFetchingViewportPOIs] = useState(false)
+  const resultsOverlayRef = useRef<HTMLDivElement | null>(null)
+  const [resultsOverlayHeight, setResultsOverlayHeight] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const hasRestoredSnapshotRef = useRef(false)
   const isInitialShowAllRef = useRef(false)
@@ -534,7 +536,10 @@ export function Home() {
 
   const handleMarkerClick = useCallback((poi: POI) => {
     const poiKey = `${poi.osm_type}-${poi.osm_id}`
+    snapshotMapState()
+    setIsResultsExpanded(true)
     setSelectedPoiId(poiKey)
+    setExpandedPoiId(poiKey)
     setMapCenter({ lat: poi.lat, lon: poi.lon })
 
     // Scroll to the corresponding card
@@ -542,7 +547,7 @@ export function Home() {
       const cardElement = document.getElementById(`poi-card-${poiKey}`)
       cardElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }, 100)
-  }, [setMapCenter, setSelectedPoiId])
+  }, [setExpandedPoiId, setIsResultsExpanded, setMapCenter, setSelectedPoiId, snapshotMapState])
 
   const handleCardClick = useCallback((poi: POI) => {
     const poiKey = `${poi.osm_type}-${poi.osm_id}`
@@ -552,10 +557,17 @@ export function Home() {
       snapshotMapState()
     }
 
+    setIsResultsExpanded(true)
     setSelectedPoiId(poiKey)
-    setExpandedPoiId(poiKey === expandedPoiId ? null : poiKey)
+    setExpandedPoiId(poiKey)
     setMapCenter({ lat: poi.lat, lon: poi.lon })
-  }, [expandedPoiId, setExpandedPoiId, setMapCenter, setSelectedPoiId, snapshotMapState])
+  }, [expandedPoiId, setExpandedPoiId, setIsResultsExpanded, setMapCenter, setSelectedPoiId, snapshotMapState])
+
+  const handleMapClick = useCallback(() => {
+    setSelectedPoiId(null)
+    setExpandedPoiId(null)
+    setIsResultsExpanded(false)
+  }, [setExpandedPoiId, setIsResultsExpanded, setSelectedPoiId])
 
   const handleCheckIn = useCallback((poi: POI) => {
     // Navigate to place details (snapshot already taken when card was expanded)
@@ -645,6 +657,20 @@ export function Home() {
   const shouldRenderMap = isLocationReady || pois.length > 0
   const highlightTerm = hasMinimumQuery ? trimmedQuery : undefined
 
+  const displayedPois = useMemo(() => {
+    if (!selectedPoiId) {
+      return pois
+    }
+
+    const selectedPoi = pois.find((poi) => `${poi.osm_type}-${poi.osm_id}` === selectedPoiId)
+    if (!selectedPoi) {
+      return pois
+    }
+
+    const remainingPois = pois.filter((poi) => `${poi.osm_type}-${poi.osm_id}` !== selectedPoiId)
+    return [selectedPoi, ...remainingPois]
+  }, [pois, selectedPoiId])
+
   // Calculate visible POIs within current map bounds
   const visiblePoisCount = useMemo(() => {
     if (!mapBounds || pois.length === 0) return pois.length
@@ -677,6 +703,46 @@ export function Home() {
   const searchPlaceholder = isPannedAwayFromLocation ? 'Search / filter here' : 'Search / filter nearby'
   const displayedSearchLabel =
     searchDisplay && searchDisplay !== DEFAULT_SEARCH_DISPLAY ? searchDisplay : searchPlaceholder
+
+  useEffect(() => {
+    if (!shouldShowBottomBar || isTypeaheadOpen) {
+      setResultsOverlayHeight(0)
+      return
+    }
+
+    const node = resultsOverlayRef.current
+    if (!node) {
+      setResultsOverlayHeight(0)
+      return
+    }
+
+    const updateHeight = () => {
+      setResultsOverlayHeight(node.getBoundingClientRect().height)
+    }
+
+    updateHeight()
+
+    if (typeof ResizeObserver === 'undefined') {
+      return
+    }
+
+    const observer = new ResizeObserver(() => {
+      updateHeight()
+    })
+    observer.observe(node)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [
+    isFetchingViewportPOIs,
+    isLoadingInitialPOIs,
+    isResultsExpanded,
+    isTypeaheadOpen,
+    pois.length,
+    searchError,
+    shouldShowBottomBar,
+  ])
 
   const handleRecenter = useCallback(() => {
     if (!userLocation) return
@@ -712,6 +778,8 @@ export function Home() {
               // Don't reset isInitialShowAllRef here - let it reset after a delay
               // to prevent the effect from running twice
             }}
+            onMapClick={handleMapClick}
+            bottomOverlayHeight={resultsOverlayHeight}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-600 space-y-3">
@@ -811,7 +879,7 @@ export function Home() {
 
         {/* Persistent Bottom Bar */}
         {shouldShowBottomBar && !isTypeaheadOpen && (
-          <div className="absolute bottom-0 left-0 right-0 z-10">
+          <div ref={resultsOverlayRef} className="absolute bottom-0 left-0 right-0 z-10">
             {/* Collapsed Bar - Always visible */}
             <button
               type="button"
@@ -859,7 +927,7 @@ export function Home() {
                 )}
                 <div className="px-4 py-2">
                   {hasResults ? (
-                    pois.map((poi) => {
+                    displayedPois.map((poi) => {
                       const poiKey = `${poi.osm_type}-${poi.osm_id}`
                       const isActiveCard = selectedPoiId === poiKey
                       const isExpandedCard = expandedPoiId === poiKey
