@@ -47,7 +47,7 @@ export function AuthCallback() {
           sessionStorage.setItem(
             WAITLIST_STORAGE_KEY,
             JSON.stringify({
-              message: 'We are currently in private beta.',
+              message: 'FourMore is in private beta. If you\'d like to give it a try, drop me a line!',
               email: 'mvexel@gmail.com',
             })
           )
