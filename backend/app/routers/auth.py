@@ -59,14 +59,7 @@ async def auth_callback(code: str, db: Session = Depends(get_db)):
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "code": "waitlist_required",
-                    "email": "mvexel@gmail.com",
-                    "message": (
-                        "Thanks for your interest! We're inviting people in waves. "
-                        "Email mvexel@gmail.com and we'll add you to the waitlist."
-                    ),
-                },
+                detail="We are currently in private beta. Please contact us to request access.",
             )
 
         # Create or update user in our database (store OSM token for API writes)

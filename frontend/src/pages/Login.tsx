@@ -15,15 +15,12 @@ export function Login() {
       try {
         const parsed = JSON.parse(stored) as { message?: string; email?: string }
         setWaitlistInfo({
-          message:
-            parsed?.message ??
-            'We are inviting people in waves while we scale up. Drop us an email and we will add you to the list.',
+          message: parsed?.message ?? 'We are currently in private beta.',
           email: parsed?.email ?? 'mvexel@gmail.com',
         })
       } catch {
         setWaitlistInfo({
-          message:
-            'We are inviting people in waves while we scale up. Drop us an email and we will add you to the list.',
+          message: 'We are currently in private beta.',
           email: 'mvexel@gmail.com',
         })
       }

@@ -43,28 +43,12 @@ export function AuthCallback() {
       } catch (err) {
         lastCodeRef.current = null
         if (isAxiosError(err) && err.response?.status === 403) {
-          const responseData = err.response?.data as { detail?: { payload?: unknown } } | undefined
-          const detailPayload: unknown = responseData?.detail?.payload
-          let message: string | undefined
-          let email: string | undefined
-
-          if (typeof detailPayload === 'object' && detailPayload !== null) {
-            const detail = detailPayload as { message?: unknown; email?: unknown }
-            if (typeof detail.message === 'string') {
-              message = detail.message
-            }
-            if (typeof detail.email === 'string') {
-              email = detail.email
-            }
-          }
-
+          // User is not whitelisted - show waitlist modal
           sessionStorage.setItem(
             WAITLIST_STORAGE_KEY,
             JSON.stringify({
-              message:
-                message ??
-                'We are inviting people in waves while we scale up. Drop us an email and we will add you to the list.',
-              email: email ?? 'mvexel@gmail.com',
+              message: 'We are currently in private beta.',
+              email: 'mvexel@gmail.com',
             })
           )
           navigate('/login', { replace: true })

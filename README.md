@@ -12,6 +12,22 @@ You can access the mvp at https://fourmore.osm.lol/
 
 Please do report ideas and bugs and help out if you can
 
+## Private Beta / Account Whitelisting
+
+FourMore supports restricting access to specific OSM accounts for private beta testing. When enabled, users not on the whitelist will see a message directing them to contact you for access.
+
+To enable whitelisting, set one or both of these environment variables in your `.env.local`:
+
+```bash
+# Whitelist by OSM username (case-insensitive, comma-separated)
+OSM_ALLOWED_USERNAMES=alice,bob,charlie
+
+# Whitelist by OSM user ID (comma-separated)
+OSM_ALLOWED_USER_IDS=123456,789012,345678
+```
+
+When both variables are empty, all OSM users can sign in. When either is set, only users matching the criteria can access the app. Non-whitelisted users will see a modal with a mailto link to `mvexel@gmail.com` (configurable in the frontend).
+
 Cheers
 Martijn
 

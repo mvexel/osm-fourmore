@@ -12,7 +12,7 @@ export function WaitlistModal({ message, email, onClose }: WaitlistModalProps) {
     <Modal>
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Thanks for your interest!</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Private Beta</h2>
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
@@ -29,14 +29,9 @@ export function WaitlistModal({ message, email, onClose }: WaitlistModalProps) {
             </div>
           </div>
           <p className="text-gray-700 text-center">{message}</p>
-          <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-            <p className="text-sm text-gray-600 text-center">
-              Email <a href={`mailto:${email}`} className="text-primary-600 underline">{email}</a> and we&apos;ll add you to the waitlist.
-            </p>
-          </div>
           <div className="flex justify-center">
             <a
-              href={`mailto:${email}?subject=FourMore%20Waitlist`}
+              href={`mailto:${email}?subject=FourMore%20Beta%20Access%20Request`}
               className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors"
             >
               Email {email}
@@ -46,7 +41,7 @@ export function WaitlistModal({ message, email, onClose }: WaitlistModalProps) {
             onClick={onClose}
             className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
           >
-            Got it
+            Close
           </button>
         </div>
       </div>
