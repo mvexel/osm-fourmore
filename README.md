@@ -12,6 +12,44 @@ You can access the mvp at https://fourmore.osm.lol/
 
 Please do report ideas and bugs and help out if you can
 
+## Quick Start for Developers
+
+### Test Incremental Updates Locally
+
+Want to test the complete OSM incremental updates workflow? One command:
+
+```bash
+make test-incremental
+```
+
+This will:
+- Download Rhode Island OSM extract (~20MB, ~3 minutes)
+- Pre-filter to extract POIs (~30 seconds)
+- Import into your local PostgreSQL (~30 seconds)
+- Initialize incremental updates (~1 minute)
+- Verify everything works
+
+**Total time: ~5 minutes** ✅
+
+See [`docs/LOCAL_TESTING_INCREMENTAL_UPDATES.md`](docs/LOCAL_TESTING_INCREMENTAL_UPDATES.md) for detailed guide.
+
+### Full Development Setup
+
+```bash
+# Backend
+make setup-backend
+make backend
+
+# Frontend (separate terminal)
+make frontend
+
+# Load OSM data
+make db-setup-dev
+make db-seed-dev
+```
+
+See [`DEVELOPMENT.md`](DEVELOPMENT.md) for complete setup instructions.
+
 ## Private Beta / Account Whitelisting
 
 FourMore supports restricting access to specific OSM accounts for private beta testing. When enabled, users not on the whitelist will see a message directing them to contact you for access.

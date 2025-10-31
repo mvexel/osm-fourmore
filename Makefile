@@ -23,6 +23,13 @@ help:
 	@echo "  db-seed-dev   - Load OSM data + create POI table in local PostgreSQL"
 	@echo "  db-update-dev - Update OSM data in local PostgreSQL"
 	@echo ""
+	@echo " OSM Data Processing:"
+	@echo "  prefilter-osm        - Pre-filter OSM for POIs (local, requires osmium)"
+	@echo "  prefilter-osm-docker - Pre-filter OSM for POIs (Docker, no local deps)"
+	@echo "  download-osm         - Download OSM extract (regional or planet)"
+	@echo "  setup-planet         - Complete planet setup: download + filter + import"
+	@echo "  test-incremental     - Test complete incremental update workflow locally"
+	@echo ""
 	@echo "Production Deployment:"
 	@echo "  deploy        - Deploy full stack with Docker"
 	@echo "  deploy-api    - Deploy backend only"
@@ -164,6 +171,53 @@ clean:
 generate-mappings:
 	@echo "Regenerating category mapping artifacts..."
 	./scripts/generate-mappings.sh
+
+# ============================================================================
+# OSM Data Processing
+# ============================================================================
+
+prefilter-osm:
+	@echo "Pre-filtering OSM data for POIs..."
+	@echo "This will take 30-60 minutes for planet OSM"
+	@command -v osmium >/dev/null 2>&1 || { echo "❌ osmium-tool not found. Install with: brew install osmium-tool"; exit 1; }
+	cd data-pipeline && ./prefilter_osm.sh
+
+prefilter-osm-docker:
+	@echo "Pre-filtering OSM data using Docker..."
+	@echo "This will take 30-60 minutes for planet OSM"
+	docker build -t fourmore-data-pipeline -f data-pipeline/Dockerfile .
+	docker run --rm \
+		-v "$(PWD)/data:/app/data" \
+		--entrypoint ./prefilter_osm.sh \
+		fourmore-data-pipeline
+
+download-osm:
+	@echo "Downloading OSM extract..."
+	./scripts/download-osm.sh
+
+test-incremental:
+	@echo "Testing incremental updates workflow locally..."
+	@echo "This will download Rhode Island extract (~20MB) and test the complete workflow"
+	./scripts/test-incremental-updates.sh
+
+# Recommended workflow for planet OSM with incremental updates
+setup-planet:
+	@echo "🌍 Setting up planet OSM with incremental updates..."
+	@echo ""
+	@echo "Step 1/3: Downloading planet file (~70GB, will take hours)..."
+	@mkdir -p data
+	@cd data && curl -L --progress-bar --continue-at - \
+		-o planet-latest.osm.pbf \
+		https://ftp.osuosl.org/pub/openstreetmap/pbf/planet-latest.osm.pbf
+	@echo ""
+	@echo "Step 2/3: Pre-filtering for POIs (~60 min)..."
+	@$(MAKE) prefilter-osm INPUT_FILE=data/planet-latest.osm.pbf OUTPUT_FILE=data/planet-pois-filtered.osm.pbf
+	@echo ""
+	@echo "Step 3/3: Initial import with --slim mode for future updates..."
+	@OSM_DATA_FILE=/app/data/planet-pois-filtered.osm.pbf $(MAKE) db-seed
+	@echo ""
+	@echo "✅ Planet OSM setup complete!"
+	@echo "   Run 'make db-update' daily/hourly for incremental updates"
 
 # ============================================================================
 # Backend-specific tasks (with uv virtual environment)
