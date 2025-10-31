@@ -30,9 +30,6 @@ services:
         max-file: "3"
     networks:
       - internal
-    profiles:
-      - database
-      - full
 
   # Redis Cache
   redis:
@@ -55,9 +52,6 @@ services:
         max-file: "3"
     networks:
       - internal
-    profiles:
-      - cache
-      - full
 
   # Backend API (for production deployment)
   backend:
@@ -96,9 +90,6 @@ services:
         max-file: "5"
     networks:
       - internal
-    profiles:
-      - backend
-      - full
 
   # Frontend (for production deployment)
   frontend:
@@ -126,9 +117,6 @@ services:
         max-file: "3"
     networks:
       - internal
-    profiles:
-      - frontend
-      - full
 
   # Data Pipeline (for OSM data loading)
   data-pipeline:
