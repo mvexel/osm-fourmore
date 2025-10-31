@@ -6,6 +6,8 @@ services:
   postgres:
     image: postgis/postgis:15-3.4
     init: true
+    env_file:
+      - .env
     command: postgres -c config_file=/etc/postgresql/postgresql.conf
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -35,6 +37,8 @@ services:
   redis:
     image: redis:7-alpine
     init: true
+    env_file:
+      - .env
     ports:
       - "127.0.0.1:${REDIS_PORT}:6379"
     volumes:
@@ -55,6 +59,8 @@ services:
 
   # Backend API (for production deployment)
   backend:
+    env_file:
+      - .env
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -93,6 +99,8 @@ services:
 
   # Frontend (for production deployment)
   frontend:
+    env_file:
+      - .env
     build:
       context: .
       dockerfile: frontend/Dockerfile
