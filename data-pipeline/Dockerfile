@@ -1,3 +1,11 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY . .
+
+# Generate mappings during build
+RUN make generate-mappings
+
 FROM debian:bookworm
 
 # backports for recent osm2pgsqwl
