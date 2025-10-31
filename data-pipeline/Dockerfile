@@ -7,14 +7,16 @@ RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' > /etc/apt/s
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-# Install osm2pgsql, PostgreSQL client, Python and pip
+# Install osm2pgsql, osmium-tool, PostgreSQL client, Python and pip
 RUN apt-get update && apt-get install -y -t bookworm-backports \
     osm2pgsql \
+    osmium-tool \
     postgresql-client \
     tzdata \
     python3 \
     python3-pip \
     python3-venv \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -27,10 +29,11 @@ RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 # Copy osm2pgsql scripts and lua files
 COPY data-pipeline/run_osm2pgsql.sh ./
 COPY data-pipeline/update_osm2pgsql.sh ./
+COPY data-pipeline/prefilter_osm.sh ./
 COPY data-pipeline/*.lua ./
 
 # Make scripts executable
-RUN chmod +x run_osm2pgsql.sh update_osm2pgsql.sh
+RUN chmod +x run_osm2pgsql.sh update_osm2pgsql.sh prefilter_osm.sh
 
 # Create data directory
 RUN mkdir -p /app/data
