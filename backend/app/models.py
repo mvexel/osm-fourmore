@@ -200,6 +200,7 @@ class CheckInResponse(CheckInBase):
     user_id: int
     created_at: datetime
     poi: POIResponse
+    checkin_count: int = Field(..., description="Total number of check-ins at this place by the user")
 
     class Config:
         from_attributes = True

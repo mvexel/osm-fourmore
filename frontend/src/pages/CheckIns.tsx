@@ -161,6 +161,26 @@ export function CheckIns() {
     return Object.entries(groups)
   }, [checkins])
 
+  // Helper function to get accent color based on check-in frequency
+  const getAccentColor = (count: number) => {
+    if (count === 1) return 'border-l-gray-300'
+    if (count === 2) return 'border-l-blue-400'
+    if (count === 3) return 'border-l-green-400'
+    if (count === 4) return 'border-l-yellow-400'
+    if (count >= 5 && count < 10) return 'border-l-orange-400'
+    return 'border-l-purple-500'
+  }
+
+  // Helper function to get badge color based on check-in frequency
+  const getBadgeColor = (count: number) => {
+    if (count === 1) return 'bg-gray-100 text-gray-700'
+    if (count === 2) return 'bg-blue-100 text-blue-700'
+    if (count === 3) return 'bg-green-100 text-green-700'
+    if (count === 4) return 'bg-yellow-100 text-yellow-700'
+    if (count >= 5 && count < 10) return 'bg-orange-100 text-orange-700'
+    return 'bg-purple-100 text-purple-700'
+  }
+
   return (
     <div>
       {/* Header */}
@@ -220,22 +240,29 @@ export function CheckIns() {
                   {dayCheckins.map((checkin) => (
                     <div key={checkin.id}>
                       {/* Check-in card */}
-                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                      <div className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border-l-4 ${getAccentColor(checkin.checkin_count)}`}>
                         <div className="flex items-start space-x-3">
                           <div className="text-gray-600 flex-shrink-0">
                             {getCategoryIcon(checkin.poi.class || checkin.poi.category || 'misc', { size: 24 })}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <Link
-                                to={`/places/${checkin.poi.osm_type}/${checkin.poi.osm_id}`}
-                                className="font-semibold text-gray-900 hover:text-primary-600 transition-colors line-clamp-1"
-                              >
-                                {checkin.poi.name || 'Unnamed Location'}
-                              </Link>
-                              <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0">
-                                {format(new Date(checkin.created_at), 'h:mm a')}
-                              </span>
+                              <div className="flex-1 min-w-0">
+                                <Link
+                                  to={`/places/${checkin.poi.osm_type}/${checkin.poi.osm_id}`}
+                                  className="font-semibold text-gray-900 hover:text-primary-600 transition-colors line-clamp-1"
+                                >
+                                  {checkin.poi.name || 'Unnamed Location'}
+                                </Link>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${getBadgeColor(checkin.checkin_count)}`}>
+                                  {checkin.checkin_count}x
+                                </span>
+                                <span className="text-xs text-gray-500 whitespace-nowrap">
+                                  {format(new Date(checkin.created_at), 'h:mm a')}
+                                </span>
+                              </div>
                             </div>
 
                             <p className="text-sm text-gray-600 mt-0.5">
@@ -306,9 +333,14 @@ export function CheckIns() {
                             )}
 
                             <div className="mt-3 flex items-center justify-between text-xs">
-                              <span className="text-gray-400">
-                                {formatDistanceToNow(new Date(checkin.created_at), { addSuffix: true })}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className="text-gray-500 font-medium">
+                                  {formatDistanceToNow(new Date(checkin.created_at), { addSuffix: true })}
+                                </span>
+                                <span className="text-gray-400 text-xs">
+                                  {format(new Date(checkin.created_at), 'MMM d, yyyy @ h:mm a')}
+                                </span>
+                              </div>
                               <div className="flex items-center gap-2">
                                 <DoubleConfirmButton
                                   onConfirm={() => handleDeleteCheckin(checkin.id)}
