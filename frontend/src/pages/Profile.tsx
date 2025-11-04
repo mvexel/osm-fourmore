@@ -5,6 +5,7 @@ import { checkinsApi, usersApi } from '../services/api'
 import { NavIcons, ActionIcons, getCategoryLabel } from '../utils/icons'
 import { CheckinStats } from '../types'
 import { ToggleSwitch } from '../components/ToggleSwitch'
+import { APP_VERSION } from '../utils/version'
 
 export function Profile() {
   const { user, logout, updateUser } = useAuth()
@@ -268,7 +269,7 @@ export function Profile() {
             </p>
             <div className="pt-3 border-t border-gray-100">
               <p className="text-xs text-gray-500">
-                Version 1.0.0 • Github
+                Version {APP_VERSION} • Github
               </p>
             </div>
           </div>
