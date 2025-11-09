@@ -6,17 +6,46 @@ set -e
 
 # Configuration
 DATA_DIR=${DATA_DIR:-./data}
-OSM_DATA_FILE=${OSM_DATA_FILE:-utah-latest.osm.pbf}
-OSM_DATA_URL=${OSM_DATA_URL:-https://download.geofabrik.de/north-america/us/utah-latest.osm.pbf}
+OSM_DATASET=${OSM_DATASET:-planet}
+
+case "$OSM_DATASET" in
+    planet)
+        PRESET_FILE="planet-latest.osm.pbf"
+        PRESET_URL="https://planet.openstreetmap.org/pbf/planet-latest.osm.pbf"
+        ;;
+    usa|us)
+        PRESET_FILE="us-latest.osm.pbf"
+        PRESET_URL="https://download.geofabrik.de/north-america/us-latest.osm.pbf"
+        ;;
+    utah)
+        PRESET_FILE="utah-latest.osm.pbf"
+        PRESET_URL="https://download.geofabrik.de/north-america/us/utah-latest.osm.pbf"
+        ;;
+    *)
+        PRESET_FILE=""
+        PRESET_URL=""
+        ;;
+esac
+
+DOWNLOAD_FILE=${OSM_DOWNLOAD_FILE:-${OSM_DATA_FILE:-$PRESET_FILE}}
+DOWNLOAD_URL=${OSM_DOWNLOAD_URL:-${OSM_DATA_URL:-$PRESET_URL}}
+
+if [ -z "$DOWNLOAD_FILE" ] || [ -z "$DOWNLOAD_URL" ]; then
+    echo "❌ Unable to determine which OSM file to download."
+    echo "   Set OSM_DATASET (planet|usa|utah) or explicitly provide"
+    echo "   OSM_DOWNLOAD_FILE + OSM_DOWNLOAD_URL."
+    exit 1
+fi
 
 # Create data directory if it doesn't exist
 mkdir -p "$DATA_DIR"
 
-FULL_PATH="$DATA_DIR/$OSM_DATA_FILE"
+FULL_PATH="$DATA_DIR/$DOWNLOAD_FILE"
 
 echo "📦 OSM Data Download Manager"
 echo "   Data directory: $DATA_DIR"
-echo "   Target file: $OSM_DATA_FILE"
+echo "   Dataset preset: $OSM_DATASET"
+echo "   Target file: $DOWNLOAD_FILE"
 echo "   Full path: $FULL_PATH"
 
 # Check if file already exists
@@ -35,14 +64,14 @@ if [ -f "$FULL_PATH" ]; then
 fi
 
 echo "📥 Downloading OSM data..."
-echo "   URL: $OSM_DATA_URL"
+echo "   URL: $DOWNLOAD_URL"
 
 # Download with progress bar and resume support
 curl -L \
     --progress-bar \
     --continue-at - \
     --output "$FULL_PATH" \
-    "$OSM_DATA_URL"
+    "$DOWNLOAD_URL"
 
 # Verify download
 if [ -f "$FULL_PATH" ]; then

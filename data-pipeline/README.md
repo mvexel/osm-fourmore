@@ -12,6 +12,18 @@ This directory contains scripts and configuration for importing OpenStreetMap da
 
 ## Quick Start
 
+### Configure Which Dataset To Use
+
+The helper scripts respect the following environment variables (see the root `.env` file for defaults):
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `OSM_DATASET` | Preset selector (`planet`, `usa`, `utah`) | `planet` |
+| `OSM_DOWNLOAD_FILE` / `OSM_DOWNLOAD_URL` | Override download target saved into `./data` | `my-area.osm.pbf` / `https://download.geofabrik.de/...` |
+| `OSM_DATA_FILE` | Path inside the Docker data-pipeline container (volume is mounted at `/app/data`) | `/app/data/planet-pois-filtered.osm.pbf` |
+
+Set these before running `make download-osm`, `make prefilter-osm`, or `make db-seed` to switch between the global planet extract and smaller regional extracts without editing the scripts.
+
 ### For Regional Extracts (Recommended for Development)
 
 ```bash

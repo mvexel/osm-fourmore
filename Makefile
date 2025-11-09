@@ -193,6 +193,7 @@ prefilter-osm-docker:
 
 download-osm:
 	@echo "Downloading OSM extract..."
+	@echo "Set OSM_DATASET (planet|usa|utah) or override OSM_DOWNLOAD_URL/OSM_DOWNLOAD_FILE to change the source."
 	./scripts/download-osm.sh
 
 test-incremental:

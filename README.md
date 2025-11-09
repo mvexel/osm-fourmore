@@ -50,6 +50,20 @@ make db-seed-dev
 
 See [`DEVELOPMENT.md`](DEVELOPMENT.md) for complete setup instructions.
 
+### OSM Dataset Configuration
+
+The OSM helpers read dataset defaults from `.env`:
+
+- `OSM_DATASET` selects a preset (`planet`, `usa`, or `utah`). `planet` is now the default so you can work with the global dataset once you've downloaded or pre-filtered it into `./data`.
+- Override `OSM_DOWNLOAD_FILE` / `OSM_DOWNLOAD_URL` when you need a custom extract (e.g., Geofabrik region). Run `make download-osm` to fetch the file into `./data`.
+- Point `OSM_DATA_FILE` at the file inside the Docker volume (usually `/app/data/planet-pois-filtered.osm.pbf`) before running `make db-seed` or `make db-update`.
+
+This keeps the download/import scripts configurable without hand-editing them each time you switch datasets.
+
+### Deploying on Coolify
+
+See [`docs/COOLIFY_SETUP.md`](docs/COOLIFY_SETUP.md) for a step-by-step guide covering volumes, environment variables, and the planet-scale data pipeline on Coolify.
+
 ## Private Beta / Account Whitelisting
 
 FourMore supports restricting access to specific OSM accounts for private beta testing. When enabled, users not on the whitelist will see a message directing them to contact you for access.

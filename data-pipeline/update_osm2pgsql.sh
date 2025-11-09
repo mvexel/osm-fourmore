@@ -12,7 +12,7 @@ DATABASE_PASSWORD=${DATABASE_PASSWORD:-fourmore_dev_password}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LUA_SCRIPT=${LUA_SCRIPT:-"$SCRIPT_DIR/pois.lua"}
-OSM_DATA_FILE=${OSM_DATA_FILE:-"/app/data/us-latest.osm.pbf"}
+OSM_DATA_FILE=${OSM_DATA_FILE:-"/app/data/planet-pois-filtered.osm.pbf"}
 
 # Check if Lua script exists
 if [ ! -f "$LUA_SCRIPT" ]; then

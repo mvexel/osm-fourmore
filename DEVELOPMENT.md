@@ -185,6 +185,7 @@ docker compose exec postgres psql -U fourmore -d fourmore
 # Downloads and processes OSM data for Utah (configurable)
 make db-seed
 ```
+Set `OSM_DATASET` (and optionally `OSM_DOWNLOAD_URL` / `OSM_DATA_FILE`) in `.env` before running the data pipeline to switch between the default global planet extract and smaller regional extracts.
 
 ### Testing and Quality
 
