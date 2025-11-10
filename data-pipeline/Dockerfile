@@ -14,15 +14,18 @@ RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' > /etc/apt/s
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-RUN apt-get update && apt-get install -y -t bookworm-backports \
-    osm2pgsql \
-    osmium-tool \
-    postgresql-client \
-    tzdata \
-    python3 \
-    python3-pip \
-    python3-venv \
-    curl \
+RUN apt-get update && \
+    apt-get install -y -t bookworm-backports \
+        osm2pgsql \
+        osmium-tool && \
+    apt-get install -y \
+        postgresql-client \
+        tzdata \
+        python3 \
+        python3-pip \
+        python3-venv \
+        curl \
+        file \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -35,8 +38,9 @@ COPY data-pipeline/run_osm2pgsql.sh ./
 COPY data-pipeline/update_osm2pgsql.sh ./
 COPY data-pipeline/prefilter_osm.sh ./
 COPY data-pipeline/*.lua ./
+COPY scripts/ ./scripts/
 
-RUN chmod +x run_osm2pgsql.sh update_osm2pgsql.sh prefilter_osm.sh
+RUN chmod +x run_osm2pgsql.sh update_osm2pgsql.sh prefilter_osm.sh scripts/*.sh
 RUN mkdir -p /app/data
 RUN useradd -m -u 1000 fourmore && chown -R fourmore:fourmore /app
 USER fourmore
