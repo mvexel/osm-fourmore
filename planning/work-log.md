@@ -51,3 +51,20 @@ Update it proactively after each meaningful task so the session state remains re
   - `uv run pytest` in `backend/` -> `1 passed`
 - Observed follow-up modernization signal during test run:
   - Pydantic emits deprecation warnings for class-based `Config`; keep this for later cleanup, not part of this fix.
+
+## 2026-04-07 11:27 MDT
+
+- Added stateless OAuth `state` protection to the OSM login/callback flow.
+- Backend changes:
+  - login endpoint now generates signed short-lived OAuth state
+  - callback now requires and validates `state` before token exchange
+  - added auth regression tests
+- Frontend changes:
+  - callback page now requires `state`
+  - auth API client now sends `code` and `state` together to the backend
+- Verified with:
+  - `uv run pytest` in `backend/` -> `3 passed`
+  - `npm run lint` in `frontend/` -> passed
+  - `npm run build` in `frontend/` -> passed
+- Current follow-up warnings remain:
+  - legacy Pydantic class-based `Config` deprecation warnings in backend models

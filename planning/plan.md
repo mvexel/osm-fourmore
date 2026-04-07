@@ -17,8 +17,9 @@ Update it when priorities change, when steps complete, or when scope is added/re
 1. Fix account deletion so removing a user cannot delete shared/global quest response data incorrectly.
    - Status: completed on 2026-04-07.
 2. Add OAuth `state` generation, storage, and callback validation.
-   - Status: next active coding task.
+   - Status: completed on 2026-04-07.
 3. Review auth/runtime secret handling and fail safely for production misconfiguration.
+   - Status: next active coding task.
 
 ### Phase 2: Backend architecture cleanup
 
@@ -53,4 +54,5 @@ Update it when priorities change, when steps complete, or when scope is added/re
 - Docs drift addressed.
 - Frontend generated metadata workflow verified.
 - Account deletion fix completed and covered by a backend regression test.
-- Next recommended coding task: Phase 1, Step 2.
+- OAuth `state` protection completed and covered by backend tests.
+- Next recommended coding task: Phase 1, Step 3.
