@@ -1,11 +1,13 @@
 """Current user endpoints."""
 
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from ..db import get_db, User, CheckIn, QuestResponse
+
 from ..auth import get_current_user
-from ..models import APIResponse, UserSettingsUpdate, UserResponse
+from ..db import CheckIn, User, get_db
+from ..models import APIResponse, UserResponse, UserSettingsUpdate
 
 router = APIRouter(prefix="/me", tags=["current-user"])
 
@@ -71,19 +73,11 @@ async def delete_account(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """Delete user account and all associated data."""
-    # Delete all user's quest responses
-    db.query(QuestResponse).filter(
-        QuestResponse.poi_osm_id.in_(
-            db.query(CheckIn.poi_osm_id).filter(CheckIn.user_id == current_user.id)
-        )
-    ).delete(synchronize_session=False)
-
-    # Delete all user's checkins
+    # Quest responses are stored globally per POI and are not user-owned.
+    # Deleting an account must not remove shared quest history.
     db.query(CheckIn).filter(CheckIn.user_id == current_user.id).delete()
 
-    # Delete user account
     db.delete(current_user)
-
     db.commit()
 
     return APIResponse(
