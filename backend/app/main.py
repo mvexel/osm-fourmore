@@ -42,6 +42,7 @@ from .database import create_tables
 async def lifespan(app: FastAPI):
     """Handle application lifespan events."""
     # Startup
+    config.validate_runtime_config()
     logger.info("Creating database tables...")
     create_tables()
     logger.info("Database tables created successfully")

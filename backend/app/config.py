@@ -13,10 +13,10 @@ Do not duplicate defaults in .env files or other modules. Just reference
 config.VARIABLE_NAME from other modules.
 """
 
-import os
 import logging
-from pathlib import Path
-from dotenv import load_dotenv, find_dotenv
+import os
+
+from dotenv import find_dotenv, load_dotenv
 
 # Configure module logger
 logger = logging.getLogger(__name__)
@@ -88,9 +88,10 @@ ENVIRONMENT = get_env("ENVIRONMENT", "development")
 LOG_LEVEL = get_env("LOG_LEVEL", "INFO").upper()
 
 # JWT Configuration
+DEFAULT_JWT_SECRET_KEY = "dev_secret_key_CHANGE_IN_PRODUCTION_via_env_local"
 JWT_SECRET_KEY = get_env(
     "JWT_SECRET_KEY",
-    "dev_secret_key_CHANGE_IN_PRODUCTION_via_env_local",
+    DEFAULT_JWT_SECRET_KEY,
 )
 JWT_ALGORITHM = get_env("JWT_ALGORITHM", "HS256")
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(
@@ -107,3 +108,49 @@ OSM_REDIRECT_URI = get_env(
 )
 OSM_ALLOWED_USERNAMES = {name.lower() for name in get_env_list("OSM_ALLOWED_USERNAMES")}
 OSM_ALLOWED_USER_IDS = set(get_env_list("OSM_ALLOWED_USER_IDS"))
+
+
+def get_runtime_config_errors(
+    *,
+    environment: str,
+    debug: bool,
+    jwt_secret_key: str,
+    osm_client_id: str,
+    osm_client_secret: str,
+    osm_redirect_uri: str,
+) -> list[str]:
+    """Return fail-fast configuration errors for the given runtime settings."""
+    normalized_environment = environment.strip().lower()
+    if normalized_environment not in {"production", "prod"}:
+        return []
+
+    errors: list[str] = []
+
+    if debug:
+        errors.append("DEBUG must be disabled in production")
+    if jwt_secret_key == DEFAULT_JWT_SECRET_KEY:
+        errors.append("JWT_SECRET_KEY must be overridden in production")
+    if not osm_client_id.strip():
+        errors.append("OSM_CLIENT_ID must be set in production")
+    if not osm_client_secret.strip():
+        errors.append("OSM_CLIENT_SECRET must be set in production")
+    if not osm_redirect_uri.strip():
+        errors.append("OSM_REDIRECT_URI must be set in production")
+
+    return errors
+
+
+def validate_runtime_config() -> None:
+    """Raise when the active runtime configuration is unsafe for production."""
+    errors = get_runtime_config_errors(
+        environment=ENVIRONMENT,
+        debug=DEBUG,
+        jwt_secret_key=JWT_SECRET_KEY,
+        osm_client_id=OSM_CLIENT_ID,
+        osm_client_secret=OSM_CLIENT_SECRET,
+        osm_redirect_uri=OSM_REDIRECT_URI,
+    )
+    if not errors:
+        return
+
+    raise RuntimeError("Invalid runtime configuration: " + "; ".join(errors))
