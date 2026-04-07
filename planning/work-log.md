@@ -68,3 +68,16 @@ Update it proactively after each meaningful task so the session state remains re
   - `npm run build` in `frontend/` -> passed
 - Current follow-up warnings remain:
   - legacy Pydantic class-based `Config` deprecation warnings in backend models
+
+## 2026-04-07 11:34 MDT
+
+- Added fail-fast runtime configuration validation for production auth/security settings.
+- Production startup now raises on unsafe config such as:
+  - `DEBUG=true`
+  - default `JWT_SECRET_KEY`
+  - missing OSM OAuth credentials or redirect URI
+- Wired validation into backend startup via app lifespan.
+- Added focused config tests in `backend/tests/test_config.py`.
+- Verified with:
+  - `uv run pytest` in `backend/` -> `5 passed`
+- Remaining backend warnings are still limited to legacy Pydantic `Config` usage.

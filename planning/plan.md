@@ -19,7 +19,7 @@ Update it when priorities change, when steps complete, or when scope is added/re
 2. Add OAuth `state` generation, storage, and callback validation.
    - Status: completed on 2026-04-07.
 3. Review auth/runtime secret handling and fail safely for production misconfiguration.
-   - Status: next active coding task.
+   - Status: completed on 2026-04-07.
 
 ### Phase 2: Backend architecture cleanup
 
@@ -55,4 +55,5 @@ Update it when priorities change, when steps complete, or when scope is added/re
 - Frontend generated metadata workflow verified.
 - Account deletion fix completed and covered by a backend regression test.
 - OAuth `state` protection completed and covered by backend tests.
-- Next recommended coding task: Phase 1, Step 3.
+- Production runtime/auth config validation completed and covered by backend tests.
+- Next recommended coding task: Phase 2, Step 4.
