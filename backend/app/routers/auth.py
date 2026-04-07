@@ -1,17 +1,21 @@
 """Authentication endpoints."""
 
 from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
 from ..db import get_db
 from ..auth import (
-    OSMAuth,
-    create_access_token,
-    create_or_update_user,
-    user_is_whitelisted,
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
+    create_access_token,
+    create_oauth_state_token,
+    create_or_update_user,
+    OSMAuth,
+    verify_oauth_state_token,
+    user_is_whitelisted,
 )
-from ..models import AuthCallback, Token, APIResponse, UserResponse
+from ..models import APIResponse, Token, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -19,7 +23,7 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 @router.get("/login")
 async def login():
     """Get OSM OAuth login URL."""
-    auth_url = OSMAuth.get_authorization_url()
+    auth_url = OSMAuth.get_authorization_url(create_oauth_state_token())
     return APIResponse(
         success=True,
         message="OAuth authorization URL generated",
@@ -28,13 +32,19 @@ async def login():
 
 
 @router.get("/callback", response_model=Token)
-async def auth_callback(code: str, db: Session = Depends(get_db)):
+async def auth_callback(code: str, state: str, db: Session = Depends(get_db)):
     """Handle OAuth callback and create user session."""
     import logging
 
     logger = logging.getLogger(__name__)
 
     try:
+        if not verify_oauth_state_token(state):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired OAuth state",
+            )
+
         logger.debug(f"Auth callback received with code: {code[:10]}...")
 
         # Exchange code for token

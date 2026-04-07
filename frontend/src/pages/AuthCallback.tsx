@@ -17,6 +17,7 @@ export function AuthCallback() {
 
     const handleCallback = async () => {
       const code = searchParams.get('code')
+      const state = searchParams.get('state')
       const error = searchParams.get('error')
 
       if (code && lastCodeRef.current === code) {
@@ -35,9 +36,15 @@ export function AuthCallback() {
         return
       }
 
+      if (!state) {
+        setError('Missing OAuth state')
+        setTimeout(() => navigate('/login'), 3000)
+        return
+      }
+
       try {
         lastCodeRef.current = code
-        const authData = await authApi.handleCallback(code)
+        const authData = await authApi.handleCallback(code, state)
         login(authData.access_token, authData.user)
         navigate('/nearby')
       } catch (err) {

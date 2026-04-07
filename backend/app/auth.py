@@ -1,14 +1,17 @@
 """OSM OAuth2 authentication for FastAPI."""
 
+from datetime import UTC, datetime, timedelta
+from secrets import token_urlsafe
+from typing import Any, Optional
+
 import httpx
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
-from fastapi import HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from .db import get_db, User
+
 from . import config
+from .db import User, get_db
 
 # OAuth and JWT configuration from centralized config
 OSM_CLIENT_ID = config.OSM_CLIENT_ID
@@ -17,6 +20,7 @@ OSM_REDIRECT_URI = config.OSM_REDIRECT_URI
 JWT_SECRET_KEY = config.JWT_SECRET_KEY
 JWT_ALGORITHM = config.JWT_ALGORITHM
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+OAUTH_STATE_EXPIRE_MINUTES = 10
 OSM_ALLOWED_USERNAMES = config.OSM_ALLOWED_USERNAMES
 OSM_ALLOWED_USER_IDS = config.OSM_ALLOWED_USER_IDS
 
@@ -33,7 +37,7 @@ class OSMAuth:
     """Handle OSM OAuth2 authentication."""
 
     @staticmethod
-    def get_authorization_url() -> str:
+    def get_authorization_url(state: str) -> str:
         """Generate OSM OAuth authorization URL."""
         from urllib.parse import urlencode
 
@@ -42,13 +46,14 @@ class OSMAuth:
             "redirect_uri": OSM_REDIRECT_URI,
             "response_type": "code",
             "scope": "read_prefs write_api write_notes",
+            "state": state,
         }
 
         query_string = urlencode(params)
         return f"{OSM_OAUTH_URL}?{query_string}"
 
     @staticmethod
-    async def exchange_code_for_token(code: str) -> Dict[str, Any]:
+    async def exchange_code_for_token(code: str) -> dict[str, Any]:
         """Exchange authorization code for access token."""
         import logging
 
@@ -83,7 +88,7 @@ class OSMAuth:
         return response.json()
 
     @staticmethod
-    async def get_user_info(access_token: str) -> Dict[str, Any]:
+    async def get_user_info(access_token: str) -> dict[str, Any]:
         """Get user information from OSM API."""
         headers = {"Authorization": f"Bearer {access_token}"}
 
@@ -115,6 +120,27 @@ def user_is_whitelisted(osm_user_data: dict) -> bool:
         return True
 
     return False
+
+
+def create_oauth_state_token() -> str:
+    """Create a short-lived signed token for OAuth state validation."""
+    expires_at = datetime.now(UTC) + timedelta(minutes=OAUTH_STATE_EXPIRE_MINUTES)
+    payload = {
+        "type": "oauth_state",
+        "nonce": token_urlsafe(24),
+        "exp": expires_at,
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def verify_oauth_state_token(state: str) -> bool:
+    """Return True when the OAuth state token is valid and unexpired."""
+    try:
+        payload = jwt.decode(state, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    except JWTError:
+        return False
+
+    return payload.get("type") == "oauth_state"
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):

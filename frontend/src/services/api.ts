@@ -77,8 +77,10 @@ export const authApi = {
     return data
   },
 
-  async handleCallback(code: string): Promise<AuthToken> {
-    const response = await api.get<AuthToken>(`/auth/callback?code=${code}`)
+  async handleCallback(code: string, state: string): Promise<AuthToken> {
+    const response = await api.get<AuthToken>('/auth/callback', {
+      params: { code, state },
+    })
     return unwrap(response)
   },
 }
