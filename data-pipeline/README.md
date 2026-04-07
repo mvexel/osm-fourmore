@@ -5,7 +5,7 @@ This directory contains scripts and configuration for importing OpenStreetMap da
 ## Files
 
 - **`pois.lua`** - osm2pgsql flex output style that defines POI extraction logic
-- **`poi_mapping.lua`** - Generated file mapping OSM tags to FourMore categories
+- **`poi_mapping.lua`** - Generated file mapping OSM tags to FourMore categories (created by `make generate-mappings`)
 - **`run_osm2pgsql.sh`** - Main script to run osm2pgsql with flex output
 - **`update_osm2pgsql.sh`** - Script for updating existing OSM data
 - **`prefilter_osm.sh`** - Pre-processes large OSM files to extract only relevant POIs
@@ -28,8 +28,8 @@ Set these before running `make download-osm`, `make prefilter-osm`, or `make db-
 
 ```bash
 # Download and import regional extract
-OSM_DATA_URL="https://download.geofabrik.de/north-america/us/utah-latest.osm.pbf" \
-OSM_DATA_FILE="utah-latest.osm.pbf" \
+OSM_DOWNLOAD_URL="https://download.geofabrik.de/north-america/us/utah-latest.osm.pbf" \
+OSM_DOWNLOAD_FILE="utah-latest.osm.pbf" \
 make download-osm
 
 make db-seed
@@ -48,7 +48,9 @@ make setup-planet
 make db-update
 ```
 
-**See [`docs/OSM_INCREMENTAL_UPDATES.md`](../docs/OSM_INCREMENTAL_UPDATES.md) for complete guide.**
+The helper targets in the root [README](../README.md) and
+[DEVELOPMENT.md](../DEVELOPMENT.md) cover the end-to-end workflow for dataset
+selection, pre-filtering, and import.
 
 ### Manual Pre-filtering
 
@@ -90,7 +92,8 @@ make prefilter-osm
 make prefilter-osm-docker
 ```
 
-**For complete workflow, see:** [`docs/OSM_INCREMENTAL_UPDATES.md`](../docs/OSM_INCREMENTAL_UPDATES.md)
+For the complete local workflow, see the root
+[README](../README.md) and [DEVELOPMENT.md](../DEVELOPMENT.md).
 
 ## Performance Comparison
 

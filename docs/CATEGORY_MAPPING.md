@@ -10,9 +10,10 @@ The category mapping system uses a **single source of truth** approach to avoid 
 
 ```
 category_mapping.json (source of truth)
-├── generate_poi_mapping.py → poi_mapping.lua (osm2pgsql)
-├── generate_category_ts.py → category_metadata.tsx (frontend)
-└── categories.py API endpoint → dynamic category data
+├── fourmore_shared/category_mapping.py → shared loader/validation helpers
+├── generate_poi_mapping.py → data-pipeline/poi_mapping.lua
+├── generate_category_ts.py → frontend/src/generated/category_metadata.tsx
+└── backend/app/routers/categories.py → API responses
 ```
 
 ## Files and Responsibilities
@@ -25,11 +26,13 @@ category_mapping.json (source of truth)
 ### Generated Files (DO NOT EDIT)
 - **`data-pipeline/poi_mapping.lua`** - Used by osm2pgsql to classify POIs during import
 - **`frontend/src/generated/category_metadata.tsx`** - TypeScript metadata for frontend components
+- These files are regenerated with `./scripts/generate-mappings.sh` (or `make generate-mappings`) and are produced automatically inside the Docker frontend/data-pipeline builds.
 
 ### API Endpoints
-- **`/api/categories/`** - Returns all categories with metadata
-- **`/api/categories/metadata`** - Returns frontend-formatted category data
-- **`/api/categories/{category_class}`** - Returns specific category details
+- **`/categories/`** - Returns all categories with metadata from the backend service
+- **`/categories/metadata`** - Returns frontend-formatted category data
+- **`/categories/{category_class}`** - Returns specific category details
+- In local/frontend deployments these are typically reached through the `/api` proxy, e.g. `/api/categories/metadata`.
 
 ## Category Structure
 
@@ -62,7 +65,7 @@ Each category in `category_mapping.json` has:
 
 ### 3. API Responses
 1. Backend serves POI data with the `class` field
-2. Category metadata is available via `/api/categories/` endpoints
+2. Category metadata is available via the categories router (`/categories/...`, usually proxied as `/api/categories/...`)
 3. All data derives from the same `category_mapping.json` source
 
 ## Making Changes
@@ -139,14 +142,6 @@ make db-seed-dev
 - Icons must be available in `@tabler/icons-react`
 - Use the exact component name (e.g., `IconToolsKitchen2`)
 - Add imports to the TypeScript generator if using new icons
-
-## Backward Compatibility
-
-The frontend includes legacy mapping functions for backward compatibility:
-- `LEGACY_AMENITY_TO_CATEGORY` - Maps old amenity-based categories
-- `LEGACY_SHOP_TO_CATEGORY` - Maps old shop-based categories
-
-These are automatically generated from the `matches` patterns in the JSON file.
 
 ## Troubleshooting
 

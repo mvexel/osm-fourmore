@@ -4,7 +4,7 @@ I have been a Swarm (née Foursquare) user since 2011. I love to go back in time
 
 I also love OpenStreetMap, it's the best map of the world, but more than anything else, it's an amazing community of mapmakers.
 
-So this project is an effort to bring the two together. A private & non-social check-in app that uses OSM as its source for points of interest to look up, and encourages users to add information to OSM while they are out and about. It also has a "life log" that lets you go back in time. It requires OSM sign in through OAuth2. 
+So this project is an effort to bring the two together. A private & non-social check-in app that uses OSM as its source for points of interest to look up, and encourages users to add information to OSM while they are out and about. It also has a "life log" that lets you go back in time. It requires OSM sign in through OAuth2.
 
 Eventually perhaps mobile apps? Expo / React native? I know nothing about this stuff
 
@@ -12,35 +12,19 @@ You can access the mvp at https://fourmore.osm.lol/
 
 Please do report ideas and bugs and help out if you can
 
-## Quick Start for Developers
-
-### Test Incremental Updates Locally
-
-Want to test the complete OSM incremental updates workflow? One command:
+### Quick Development Setup
 
 ```bash
-make test-incremental
-```
+# Create and init database locally
+createdb fourmore
+psql -d fourmore -c 'create extension postgis'
 
-This will:
-- Download Rhode Island OSM extract (~20MB, ~3 minutes)
-- Pre-filter to extract POIs (~30 seconds)
-- Import into your local PostgreSQL (~30 seconds)
-- Initialize incremental updates (~1 minute)
-- Verify everything works
-
-**Total time: ~5 minutes** ✅
-
-See [`docs/LOCAL_TESTING_INCREMENTAL_UPDATES.md`](docs/LOCAL_TESTING_INCREMENTAL_UPDATES.md) for detailed guide.
-
-### Full Development Setup
-
-```bash
 # Backend
 make setup-backend
 make backend
 
 # Frontend (separate terminal)
+make generate-mappings
 make frontend
 
 # Load OSM data
@@ -49,6 +33,9 @@ make db-seed-dev
 ```
 
 See [`DEVELOPMENT.md`](DEVELOPMENT.md) for complete setup instructions.
+
+If `frontend/src/generated/category_metadata.tsx` is missing on a fresh checkout,
+run `make generate-mappings` before starting Vite or building the frontend.
 
 ### OSM Dataset Configuration
 
@@ -82,6 +69,5 @@ When both variables are empty, all OSM users can sign in. When either is set, on
 
 Cheers
 Martijn
-
 
 Note on coding: I suck at front end / react so I had a lot of help from Claude Code for that part. I think that's fine, but the result is a little boring looking.

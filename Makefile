@@ -53,7 +53,7 @@ dev:
 	@echo "Frontend: http://127.0.0.1:3000"
 	@echo "Backend: http://127.0.0.1:8000"
 	@echo ""
-	@echo "Make sure you have PostgreSQL and Redis running locally!"
+	@echo "Make sure PostgreSQL is running locally. Redis is currently optional."
 	@echo "Press Ctrl+C to stop both services"
 	@echo ""
 	@trap 'kill %1 %2 2>/dev/null; wait' EXIT; \

@@ -13,7 +13,6 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install gunicorn
 
-COPY .env* ./
 COPY backend/app/ ./app/
 COPY fourmore_shared/ ./fourmore_shared/
 COPY data-pipeline/category_mapping.json ./data-pipeline/

@@ -8,7 +8,7 @@ This guide will help you set up and run the FourMore project locally for develop
 - **Python 3.11+**
 - **uv** (modern Python package manager) - [Install guide](https://docs.astral.sh/uv/getting-started/installation/)
 - **PostgreSQL** (local installation or managed service like Supabase)
-- **Redis** (local installation or managed service like Upstash)
+- **Redis** (optional today; provisioned in Docker/deployment configs but not required for the current local app flow)
 - **Git**
 - **Docker** (only for production deployment and data pipeline)
 
@@ -50,15 +50,15 @@ Edit `.env.local` to configure:
 - OSM OAuth credentials (register at [OpenStreetMap](https://www.openstreetmap.org/oauth2/applications))
 - Optional: `OSM_ALLOWED_USERNAMES` / `OSM_ALLOWED_USER_IDS` (comma-separated lists) to control who can sign in
 - JWT secret key
-- Redis connection
+- Redis connection (optional; reserved for future app/runtime use)
 
 ### 3. Setup Services
 
 **Option A: Local Services (Recommended for Development)**
 ```bash
 # Install and start PostgreSQL locally
-# Install and start Redis locally
-# Or use managed services like Supabase + Upstash
+# Redis is optional for the current local app flow
+# Or use managed services like Supabase (+ Upstash later if needed)
 ```
 
 **Option B: Docker Database (Alternative)**
@@ -75,6 +75,9 @@ make setup-backend
 
 # Frontend dependencies
 make install-frontend
+
+# Generate category artifacts required by the frontend and data pipeline
+make generate-mappings
 ```
 
 ### 5. Start Development
@@ -87,6 +90,9 @@ make dev
 make frontend  # React dev server on http://127.0.0.1:3000
 make backend   # FastAPI server on http://127.0.0.1:8000
 ```
+
+If the frontend fails with a missing `frontend/src/generated/category_metadata.tsx`
+import, regenerate the derived files with `make generate-mappings`.
 
 ### 6. Load Data (Optional)
 
@@ -195,9 +201,12 @@ make test-backend
 make lint-backend
 
 # Frontend
-make test-frontend
 make lint-frontend
+make build-frontend
 ```
+
+There is currently no committed `npm test` frontend script, so the practical
+frontend verification commands are linting plus a production build.
 
 ## Production Deployment
 
@@ -221,7 +230,7 @@ make deploy-web  # Frontend only
 │  ↓                   ↓                                    │
 │  http://127.0.0.1:3000   http://127.0.0.1:8000           │
 │                      ↓                                    │
-│  Local PostgreSQL + Redis (or managed services)          │
+│  Local PostgreSQL (Redis optional / currently unused)    │
 └────────────────────────────────────────────────────────────┘
 ```
 
