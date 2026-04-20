@@ -48,6 +48,7 @@ export interface CheckIn {
   comment?: string
   created_at: string
   poi: POI
+  checkin_count: number
 }
 
 export interface AuthToken {

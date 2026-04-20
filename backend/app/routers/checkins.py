@@ -78,8 +78,29 @@ async def get_user_checkins(
         CheckIn.user_id == current_user.id
     ).count()
 
-    # Convert to response format with POI details
-    checkin_responses = [get_checkin_with_poi(db, checkin) for checkin in checkins]
+    # Get check-in counts for each unique place in the result set
+    checkin_counts = {}
+    if checkins:
+        # Build a query to count check-ins per place
+        for checkin in checkins:
+            key = (checkin.poi_osm_type, checkin.poi_osm_id)
+            if key not in checkin_counts:
+                count = db.query(CheckIn).filter(
+                    CheckIn.user_id == current_user.id,
+                    CheckIn.poi_osm_type == checkin.poi_osm_type,
+                    CheckIn.poi_osm_id == checkin.poi_osm_id
+                ).count()
+                checkin_counts[key] = count
+
+    # Convert to response format with POI details and check-in counts
+    checkin_responses = [
+        get_checkin_with_poi(
+            db,
+            checkin,
+            checkin_counts.get((checkin.poi_osm_type, checkin.poi_osm_id), 1)
+        )
+        for checkin in checkins
+    ]
 
     return CheckInListResponse(
         checkins=checkin_responses,
@@ -244,7 +265,7 @@ async def export_checkins_geojson(
         }
     )
 
-def get_checkin_with_poi(db: Session, checkin: CheckIn) -> CheckInResponse:
+def get_checkin_with_poi(db: Session, checkin: CheckIn, checkin_count: int = None) -> CheckInResponse:
     """Helper function to get checkin with POI details."""
     poi = db.query(POI).filter(
         POI.osm_type == checkin.poi_osm_type,
@@ -254,6 +275,14 @@ def get_checkin_with_poi(db: Session, checkin: CheckIn) -> CheckInResponse:
     if not poi:
         raise HTTPException(status_code=404, detail="Associated place not found")
 
+    # Calculate check-in count if not provided
+    if checkin_count is None:
+        checkin_count = db.query(CheckIn).filter(
+            CheckIn.user_id == checkin.user_id,
+            CheckIn.poi_osm_type == checkin.poi_osm_type,
+            CheckIn.poi_osm_id == checkin.poi_osm_id
+        ).count()
+
     # Create CheckInResponse with POI included
     return CheckInResponse(
         id=checkin.id,
@@ -262,5 +291,6 @@ def get_checkin_with_poi(db: Session, checkin: CheckIn) -> CheckInResponse:
         user_id=checkin.user_id,
         created_at=checkin.created_at,
         comment=checkin.comment,
-        poi=POIResponse.model_validate(poi)
+        poi=POIResponse.model_validate(poi),
+        checkin_count=checkin_count
     )
